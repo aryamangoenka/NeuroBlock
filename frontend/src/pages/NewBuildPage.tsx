@@ -38,6 +38,7 @@ import {
   InputNode,
   OutputNode,
   AttentionNode,
+  ResNetBlockNode,
 } from "../components/CustomNodes";
 import NavBar from "../components/NavBar";
 import axios from "axios";
@@ -65,6 +66,7 @@ const nodeTypes = {
   dropout: DropoutNode,
   batchnormalization: BatchNormalizationNode,
   attention: AttentionNode,
+  resnetblock: ResNetBlockNode,
 };
 
 // Define the sidebar navigation options
@@ -655,6 +657,8 @@ const NewBuildPage: React.FC = () => {
           return `BatchNorm Layer ${layerNumber}`;
         case "attention":
           return `Attention Layer ${layerNumber}`;
+        case "resnetblock":
+          return `ResNet Block ${layerNumber}`;
         case "output":
           return `Output Layer ${layerNumber}`;
         default:
@@ -670,6 +674,15 @@ const NewBuildPage: React.FC = () => {
       dropout: { rate: 0.2 },
       batchnormalization: { momentum: 0.99, epsilon: 0.001 },
       attention: { heads: 8, keyDim: 64, dropout: 0.0 },
+      resnetblock: {
+        blockType: "Basic",
+        inChannels: 64,
+        outChannels: 64,
+        stride: [1, 1],
+        activation: "ReLU",
+        useSkipConnection: true,
+        downsampleType: "None",
+      },
       output: { activation: "None" },
     };
 
@@ -762,7 +775,7 @@ const NewBuildPage: React.FC = () => {
           type: "output",
         },
       ],
-      Transformer: [
+      "Transformer Model": [
         {
           id: "Input-1",
           data: { label: "Input Layer" },
@@ -807,7 +820,7 @@ const NewBuildPage: React.FC = () => {
           type: "output",
         },
       ],
-      Regression: [
+      "Fully Connected Regression": [
         {
           id: "Input-1",
           data: { label: "Input Layer" },
@@ -847,10 +860,586 @@ const NewBuildPage: React.FC = () => {
           type: "output",
         },
       ],
+      "Convolutional Network": [
+        {
+          id: "Input-1",
+          data: { label: "Input Layer" },
+          position: { x: 100, y: 100 },
+          type: "input",
+        },
+        {
+          id: "Conv-1",
+          data: {
+            label: "Convolution Layer",
+            filters: 32,
+            kernelSize: [3, 3],
+            stride: [1, 1],
+            activation: "ReLU",
+          },
+          position: { x: 300, y: 200 },
+          type: "convolution",
+        },
+        {
+          id: "MaxPool-1",
+          data: {
+            label: "MaxPooling Layer",
+            poolSize: [2, 2],
+            stride: [2, 2],
+            padding: "valid",
+          },
+          position: { x: 500, y: 300 },
+          type: "maxpooling",
+        },
+        {
+          id: "Flatten-1",
+          data: { label: "Flatten Layer" },
+          position: { x: 700, y: 400 },
+          type: "flatten",
+        },
+        {
+          id: "Dense-1",
+          data: { label: "Dense Layer", neurons: 64, activation: "ReLU" },
+          position: { x: 900, y: 500 },
+          type: "dense",
+        },
+        {
+          id: "Output-1",
+          data: { label: "Output Layer", activation: "Softmax" },
+          position: { x: 1100, y: 600 },
+          type: "output",
+        },
+      ],
+      "ResNet-18": [
+        {
+          id: "input-1",
+          data: { label: "Input Layer" },
+          position: { x: 250, y: 25 },
+          type: "input",
+        },
+        {
+          id: "conv-1",
+          data: {
+            label: "Initial Conv Layer",
+            filters: 64,
+            kernelSize: [7, 7],
+            stride: [2, 2],
+            padding: "same",
+            activation: "ReLU",
+          },
+          position: { x: 250, y: 100 },
+          type: "convolution",
+        },
+        {
+          id: "batchnorm-1",
+          data: {
+            label: "BatchNorm Layer",
+            momentum: 0.9,
+            epsilon: 1e-5,
+          },
+          position: { x: 250, y: 175 },
+          type: "batchnormalization",
+        },
+        {
+          id: "maxpool-1",
+          data: {
+            label: "Initial MaxPool",
+            poolSize: [3, 3],
+            stride: [2, 2],
+            padding: "same",
+          },
+          position: { x: 250, y: 250 },
+          type: "maxpooling",
+        },
+        // Layer 1 - 2 Basic Blocks
+        {
+          id: "resblock-1-1",
+          data: {
+            label: "ResBlock 1-1",
+            blockType: "Basic",
+            inChannels: 64,
+            outChannels: 64,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 325 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-1-2",
+          data: {
+            label: "ResBlock 1-2",
+            blockType: "Basic",
+            inChannels: 64,
+            outChannels: 64,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 400 },
+          type: "resnetblock",
+        },
+        // Layer 2 - 2 Basic Blocks
+        {
+          id: "resblock-2-1",
+          data: {
+            label: "ResBlock 2-1",
+            blockType: "Basic",
+            inChannels: 64,
+            outChannels: 128,
+            stride: [2, 2],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "Conv1x1",
+          },
+          position: { x: 250, y: 475 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-2-2",
+          data: {
+            label: "ResBlock 2-2",
+            blockType: "Basic",
+            inChannels: 128,
+            outChannels: 128,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 550 },
+          type: "resnetblock",
+        },
+        // Layer 3 - 2 Basic Blocks
+        {
+          id: "resblock-3-1",
+          data: {
+            label: "ResBlock 3-1",
+            blockType: "Basic",
+            inChannels: 128,
+            outChannels: 256,
+            stride: [2, 2],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "Conv1x1",
+          },
+          position: { x: 250, y: 625 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-3-2",
+          data: {
+            label: "ResBlock 3-2",
+            blockType: "Basic",
+            inChannels: 256,
+            outChannels: 256,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 700 },
+          type: "resnetblock",
+        },
+        // Layer 4 - 2 Basic Blocks
+        {
+          id: "resblock-4-1",
+          data: {
+            label: "ResBlock 4-1",
+            blockType: "Basic",
+            inChannels: 256,
+            outChannels: 512,
+            stride: [2, 2],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "Conv1x1",
+          },
+          position: { x: 250, y: 775 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-4-2",
+          data: {
+            label: "ResBlock 4-2",
+            blockType: "Basic",
+            inChannels: 512,
+            outChannels: 512,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 850 },
+          type: "resnetblock",
+        },
+        // Global Average Pooling
+        {
+          id: "avgpool-1",
+          data: {
+            label: "Global AvgPool",
+            poolSize: [7, 7],
+            stride: [1, 1],
+            padding: "valid",
+          },
+          position: { x: 250, y: 925 },
+          type: "maxpooling",
+        },
+        {
+          id: "flatten-1",
+          data: { label: "Flatten Layer" },
+          position: { x: 250, y: 1000 },
+          type: "flatten",
+        },
+        {
+          id: "dense-1",
+          data: {
+            label: "FC Layer",
+            neurons: 1000,
+            activation: "ReLU",
+          },
+          position: { x: 250, y: 1075 },
+          type: "dense",
+        },
+        {
+          id: "output-1",
+          data: { label: "Output Layer", activation: "Softmax" },
+          position: { x: 250, y: 1150 },
+          type: "output",
+        },
+      ],
+      "ResNet-34": [
+        {
+          id: "input-1",
+          data: { label: "Input Layer" },
+          position: { x: 250, y: 25 },
+          type: "input",
+        },
+        {
+          id: "conv-1",
+          data: {
+            label: "Initial Conv Layer",
+            filters: 64,
+            kernelSize: [7, 7],
+            stride: [2, 2],
+            padding: "same",
+            activation: "ReLU",
+          },
+          position: { x: 250, y: 100 },
+          type: "convolution",
+        },
+        {
+          id: "batchnorm-1",
+          data: {
+            label: "BatchNorm Layer",
+            momentum: 0.9,
+            epsilon: 1e-5,
+          },
+          position: { x: 250, y: 175 },
+          type: "batchnormalization",
+        },
+        {
+          id: "maxpool-1",
+          data: {
+            label: "Initial MaxPool",
+            poolSize: [3, 3],
+            stride: [2, 2],
+            padding: "same",
+          },
+          position: { x: 250, y: 250 },
+          type: "maxpooling",
+        },
+        // Layer 1 - 3 Basic Blocks (ResNet-34 has more blocks)
+        {
+          id: "resblock-1-1",
+          data: {
+            label: "ResBlock 1-1",
+            blockType: "Basic",
+            inChannels: 64,
+            outChannels: 64,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 325 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-1-2",
+          data: {
+            label: "ResBlock 1-2",
+            blockType: "Basic",
+            inChannels: 64,
+            outChannels: 64,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 400 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-1-3",
+          data: {
+            label: "ResBlock 1-3",
+            blockType: "Basic",
+            inChannels: 64,
+            outChannels: 64,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 475 },
+          type: "resnetblock",
+        },
+        // Layer 2 - 4 Basic Blocks
+        {
+          id: "resblock-2-1",
+          data: {
+            label: "ResBlock 2-1",
+            blockType: "Basic",
+            inChannels: 64,
+            outChannels: 128,
+            stride: [2, 2],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "Conv1x1",
+          },
+          position: { x: 250, y: 550 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-2-2",
+          data: {
+            label: "ResBlock 2-2",
+            blockType: "Basic",
+            inChannels: 128,
+            outChannels: 128,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 625 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-2-3",
+          data: {
+            label: "ResBlock 2-3",
+            blockType: "Basic",
+            inChannels: 128,
+            outChannels: 128,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 700 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-2-4",
+          data: {
+            label: "ResBlock 2-4",
+            blockType: "Basic",
+            inChannels: 128,
+            outChannels: 128,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 775 },
+          type: "resnetblock",
+        },
+        // Layer 3 would follow...
+        // Global Average Pooling
+        {
+          id: "avgpool-1",
+          data: {
+            label: "Global AvgPool",
+            poolSize: [7, 7],
+            stride: [1, 1],
+            padding: "valid",
+          },
+          position: { x: 250, y: 850 },
+          type: "maxpooling",
+        },
+        {
+          id: "flatten-1",
+          data: { label: "Flatten Layer" },
+          position: { x: 250, y: 925 },
+          type: "flatten",
+        },
+        {
+          id: "dense-1",
+          data: {
+            label: "FC Layer",
+            neurons: 1000,
+            activation: "ReLU",
+          },
+          position: { x: 250, y: 1000 },
+          type: "dense",
+        },
+        {
+          id: "output-1",
+          data: { label: "Output Layer", activation: "Softmax" },
+          position: { x: 250, y: 1075 },
+          type: "output",
+        },
+      ],
+      "ResNet-50": [
+        {
+          id: "input-1",
+          data: { label: "Input Layer" },
+          position: { x: 250, y: 25 },
+          type: "input",
+        },
+        {
+          id: "conv-1",
+          data: {
+            label: "Initial Conv Layer",
+            filters: 64,
+            kernelSize: [7, 7],
+            stride: [2, 2],
+            padding: "same",
+            activation: "ReLU",
+          },
+          position: { x: 250, y: 100 },
+          type: "convolution",
+        },
+        {
+          id: "batchnorm-1",
+          data: {
+            label: "BatchNorm Layer",
+            momentum: 0.9,
+            epsilon: 1e-5,
+          },
+          position: { x: 250, y: 175 },
+          type: "batchnormalization",
+        },
+        {
+          id: "maxpool-1",
+          data: {
+            label: "Initial MaxPool",
+            poolSize: [3, 3],
+            stride: [2, 2],
+            padding: "same",
+          },
+          position: { x: 250, y: 250 },
+          type: "maxpooling",
+        },
+        // Layer 1 - 3 Bottleneck Blocks (ResNet-50 uses bottleneck blocks)
+        {
+          id: "resblock-1-1",
+          data: {
+            label: "ResBlock 1-1",
+            blockType: "Bottleneck",
+            inChannels: 64,
+            outChannels: 256,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "Conv1x1",
+          },
+          position: { x: 250, y: 325 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-1-2",
+          data: {
+            label: "ResBlock 1-2",
+            blockType: "Bottleneck",
+            inChannels: 256,
+            outChannels: 256,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 400 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-1-3",
+          data: {
+            label: "ResBlock 1-3",
+            blockType: "Bottleneck",
+            inChannels: 256,
+            outChannels: 256,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 475 },
+          type: "resnetblock",
+        },
+        // Layer 2 - First block (with downsampling)
+        {
+          id: "resblock-2-1",
+          data: {
+            label: "ResBlock 2-1",
+            blockType: "Bottleneck",
+            inChannels: 256,
+            outChannels: 512,
+            stride: [2, 2],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "Conv1x1",
+          },
+          position: { x: 250, y: 550 },
+          type: "resnetblock",
+        },
+        // Additional blocks would follow here...
+        // Global Average Pooling
+        {
+          id: "avgpool-1",
+          data: {
+            label: "Global AvgPool",
+            poolSize: [7, 7],
+            stride: [1, 1],
+            padding: "valid",
+          },
+          position: { x: 250, y: 625 },
+          type: "maxpooling",
+        },
+        {
+          id: "flatten-1",
+          data: { label: "Flatten Layer" },
+          position: { x: 250, y: 700 },
+          type: "flatten",
+        },
+        {
+          id: "dense-1",
+          data: {
+            label: "FC Layer",
+            neurons: 1000,
+            activation: "ReLU",
+          },
+          position: { x: 250, y: 775 },
+          type: "dense",
+        },
+        {
+          id: "output-1",
+          data: { label: "Output Layer", activation: "Softmax" },
+          position: { x: 250, y: 850 },
+          type: "output",
+        },
+      ],
     };
 
-    setNodes(templates[templateKey]);
-    setEdges([]);
+    // Get the template and set it as our nodes
+    const templateNodes = templates[templateKey];
+    if (templateNodes) {
+      setNodes(templateNodes);
+      setEdges([]);
+    }
   };
 
   // Function to update node parameters
@@ -1245,6 +1834,10 @@ const NewBuildPage: React.FC = () => {
   // Helper function to get icon based on layer type
   const getLayerIcon = (layerType: string): string => {
     switch (layerType.toLowerCase()) {
+      case "input":
+        return "fa-sign-in-alt";
+      case "output":
+        return "fa-sign-out-alt";
       case "dense":
         return "fa-network-wired";
       case "convolution":
@@ -1258,13 +1851,11 @@ const NewBuildPage: React.FC = () => {
       case "batchnormalization":
         return "fa-balance-scale";
       case "attention":
-        return "fa-eye";
-      case "input":
-        return "fa-sign-in-alt";
-      case "output":
-        return "fa-sign-out-alt";
+        return "fa-brain";
+      case "resnetblock":
+        return "fa-code-branch";
       default:
-        return "fa-layer-group";
+        return "fa-cube";
     }
   };
 
@@ -1354,7 +1945,7 @@ const NewBuildPage: React.FC = () => {
               </div>
               <div className="layer-item attention-layer">
                 <span>
-                  <i className="fas fa-eye"></i> Attention
+                  <i className="fas fa-brain"></i> Attention
                 </span>
                 <button
                   className="add-button"
@@ -1363,13 +1954,13 @@ const NewBuildPage: React.FC = () => {
                   <i className="fas fa-plus"></i>
                 </button>
               </div>
-              <div className="layer-item input-layer">
+              <div className="layer-item resnetblock-layer">
                 <span>
-                  <i className="fas fa-sign-in-alt"></i> Input
+                  <i className="fas fa-code-branch"></i> ResNet Block
                 </span>
                 <button
                   className="add-button"
-                  onClick={() => addLayer("Input")}
+                  onClick={() => addLayer("ResNetBlock")}
                 >
                   <i className="fas fa-plus"></i>
                 </button>
@@ -1391,160 +1982,46 @@ const NewBuildPage: React.FC = () => {
       case "layer_params":
         return (
           <div className="sidebar-content-section">
-            <h3>Layer Parameters</h3>
+            <h3>
+              <i className="fas fa-sliders-h"></i> Layer Parameters
+            </h3>
+            <div className="sidebar-intro layer-params-intro">
+              <div className="sidebar-intro-icon">
+                <i className="fas fa-sliders-h"></i>
+              </div>
+              <p>
+                Select a layer on the canvas to view and edit its parameters.
+                Each layer type has different configurable options that affect
+                how your model processes data.
+              </p>
+            </div>
+
             {!selectedNode ? (
-              <>
-                <div className="layer-params-intro">
-                  <div className="layer-params-intro-icon">
-                    <i className="fas fa-sliders-h"></i>
-                  </div>
-                  <p>
-                    Customize your neural network layers by selecting a layer
-                    from the canvas. You can modify all parameters to fine-tune
-                    your model architecture.
-                  </p>
+              <div className="layer-params-empty-state">
+                <div className="empty-state-animation">
+                  <div className="pulse-ring"></div>
+                  <i className="fas fa-mouse-pointer"></i>
                 </div>
-                <div className="no-layer-selected">
-                  <p>
-                    <i className="fas fa-info-circle"></i> Select a layer from
-                    the canvas to view and edit its parameters.
-                  </p>
+                <p>Click on a layer in the canvas to edit its parameters</p>
+                <div className="empty-state-hint">
+                  <i className="fas fa-info-circle"></i>
+                  <span>
+                    Layer parameters control how your neural network processes
+                    data
+                  </span>
                 </div>
-              </>
+              </div>
             ) : (
-              <>
-                <div className="layer-params-list">
-                  {nodes.map((node) => (
-                    <div
-                      key={node.id}
-                      className={`layer-params-item ${
-                        selectedNode?.id === node.id ? "selected" : ""
-                      } ${node.type ? `${node.type}-params` : ""}`}
-                      onClick={() => {
-                        setSelectedNode(node);
-                      }}
-                    >
-                      <div className="layer-params-header">
-                        <span className="layer-params-type">
-                          <i
-                            className={`fas ${getLayerIcon(node.type || "")}`}
-                          ></i>
-                          {node.type &&
-                            node.type.charAt(0).toUpperCase() +
-                              node.type.slice(1)}{" "}
-                          Layer
-                        </span>
-                      </div>
-                      <div className="layer-params-details">
-                        {node.type === "dense" && (
-                          <>
-                            <div className="param-item">
-                              <span className="param-label">Neurons:</span>
-                              <span className="param-value">
-                                {node.data.neurons}
-                              </span>
-                            </div>
-                            <div className="param-item">
-                              <span className="param-label">Activation:</span>
-                              <span className="param-value">
-                                {node.data.activation}
-                              </span>
-                            </div>
-                          </>
-                        )}
-                        {node.type === "convolution" && (
-                          <>
-                            <div className="param-item">
-                              <span className="param-label">Filters:</span>
-                              <span className="param-value">
-                                {node.data.filters}
-                              </span>
-                            </div>
-                            <div className="param-item">
-                              <span className="param-label">Kernel:</span>
-                              <span className="param-value">
-                                {node.data.kernelSize?.join("×")}
-                              </span>
-                            </div>
-                          </>
-                        )}
-                        {node.type === "maxpooling" && (
-                          <>
-                            <div className="param-item">
-                              <span className="param-label">Pool Size:</span>
-                              <span className="param-value">
-                                {node.data.poolSize?.join("×")}
-                              </span>
-                            </div>
-                            <div className="param-item">
-                              <span className="param-label">Stride:</span>
-                              <span className="param-value">
-                                {node.data.stride?.join("×")}
-                              </span>
-                            </div>
-                          </>
-                        )}
-                        {node.type === "dropout" && (
-                          <div className="param-item">
-                            <span className="param-label">Rate:</span>
-                            <span className="param-value">
-                              {node.data.rate}
-                            </span>
-                          </div>
-                        )}
-                        {node.type === "batchnormalization" && (
-                          <>
-                            <div className="param-item">
-                              <span className="param-label">Momentum:</span>
-                              <span className="param-value">
-                                {node.data.momentum}
-                              </span>
-                            </div>
-                            <div className="param-item">
-                              <span className="param-label">Epsilon:</span>
-                              <span className="param-value">
-                                {node.data.epsilon}
-                              </span>
-                            </div>
-                          </>
-                        )}
-                        {node.type === "attention" && (
-                          <>
-                            <div className="param-item">
-                              <span className="param-label">Heads:</span>
-                              <span className="param-value">
-                                {node.data.heads}
-                              </span>
-                            </div>
-                            <div className="param-item">
-                              <span className="param-label">Key Dim:</span>
-                              <span className="param-value">
-                                {node.data.keyDim}
-                              </span>
-                            </div>
-                          </>
-                        )}
-                        {node.type === "output" && (
-                          <div className="param-item">
-                            <span className="param-label">Activation:</span>
-                            <span className="param-value">
-                              {node.data.activation}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {renderNodeParameters()}
-              </>
+              <div className="node-parameters">{renderNodeParameters()}</div>
             )}
           </div>
         );
       case "templates":
         return (
           <div className="sidebar-content-section">
-            <h3>Model Templates</h3>
+            <h3>
+              <i className="fas fa-shapes"></i> Model Templates
+            </h3>
             <div className="template-intro">
               <div className="template-intro-icon">
                 <i className="fas fa-shapes"></i>
@@ -1556,9 +2033,12 @@ const NewBuildPage: React.FC = () => {
               </p>
             </div>
             <div className="template-list">
-              <div className="template-item">
+              <div className="template-section-title">
+                <i className="fas fa-cubes"></i> Basic Templates
+              </div>
+              <div className="template-item simple-feedforward">
                 <span>
-                  <i className="fas fa-sitemap"></i> Simple Feedforward
+                  <i className="fas fa-network-wired"></i> Simple Feedforward
                 </span>
                 <button
                   className="load-button"
@@ -1569,44 +2049,75 @@ const NewBuildPage: React.FC = () => {
               </div>
               <div className="template-item">
                 <span>
-                  <i className="fas fa-border-all"></i> CNN
+                  <i className="fas fa-border-all"></i> Convolutional Network
                 </span>
                 <button
                   className="load-button"
-                  onClick={() => loadTemplate("CNN")}
+                  onClick={() => loadTemplate("Convolutional Network")}
                 >
                   <i className="fas fa-download"></i> Load
                 </button>
               </div>
-              <div className="template-item">
+
+              <div className="template-section-title">
+                <i className="fas fa-brain"></i> Advanced Templates
+              </div>
+              <div className="template-item transformer-template">
                 <span>
-                  <i className="fas fa-project-diagram"></i> Transformer
+                  <i className="fas fa-random"></i> Transformer Model
                 </span>
                 <button
                   className="load-button"
-                  onClick={() => loadTemplate("Transformer")}
+                  onClick={() => loadTemplate("Transformer Model")}
                 >
                   <i className="fas fa-download"></i> Load
                 </button>
               </div>
-              <div className="template-item">
+              <div className="template-item regression-template">
                 <span>
-                  <i className="fas fa-chart-line"></i> Regression
+                  <i className="fas fa-chart-line"></i> Fully Connected
+                  Regression
                 </span>
                 <button
                   className="load-button"
-                  onClick={() => loadTemplate("Regression")}
+                  onClick={() => loadTemplate("Fully Connected Regression")}
                 >
                   <i className="fas fa-download"></i> Load
                 </button>
               </div>
-              <div className="template-item">
+
+              <div className="template-section-title">
+                <i className="fas fa-code-branch"></i> ResNet Templates
+              </div>
+              <div className="template-item resnet-template">
                 <span>
-                  <i className="fas fa-file"></i> Blank
+                  <i className="fas fa-code-branch"></i> ResNet-18
                 </span>
                 <button
                   className="load-button"
-                  onClick={() => loadTemplate("Blank")}
+                  onClick={() => loadTemplate("ResNet-18")}
+                >
+                  <i className="fas fa-download"></i> Load
+                </button>
+              </div>
+              <div className="template-item resnet-template">
+                <span>
+                  <i className="fas fa-code-branch"></i> ResNet-34
+                </span>
+                <button
+                  className="load-button"
+                  onClick={() => loadTemplate("ResNet-34")}
+                >
+                  <i className="fas fa-download"></i> Load
+                </button>
+              </div>
+              <div className="template-item resnet-template">
+                <span>
+                  <i className="fas fa-code-branch"></i> ResNet-50
+                </span>
+                <button
+                  className="load-button"
+                  onClick={() => loadTemplate("ResNet-50")}
                 >
                   <i className="fas fa-download"></i> Load
                 </button>
@@ -1617,7 +2128,9 @@ const NewBuildPage: React.FC = () => {
       case "hyperparameters":
         return (
           <div className="sidebar-content-section">
-            <h3>Hyperparameters</h3>
+            <h3>
+              <i className="fas fa-cogs"></i> Hyperparameters
+            </h3>
             <div className="hyperparams-intro">
               <div className="hyperparams-intro-icon">
                 <i className="fas fa-cogs"></i>
@@ -1687,15 +2200,6 @@ const NewBuildPage: React.FC = () => {
         return (
           <div className="sidebar-content-section">
             <h3>Training Options</h3>
-            <div className="training-intro">
-              <div className="training-intro-icon">
-                <i className="fas fa-brain"></i>
-              </div>
-              <p>
-                Fine-tune your model's training process by selecting appropriate
-                algorithms and configuration for your specific task.
-              </p>
-            </div>
 
             <div className="training-options-container">
               {/* Optimizer Card */}
@@ -1939,88 +2443,89 @@ const NewBuildPage: React.FC = () => {
 
             <div className="model-config-container compact-config">
               {/* Data Section */}
-              <div className="model-config-section">
+              <div className="model-config-section data-section">
                 <h4>
                   <i className="fas fa-database"></i> Data
                 </h4>
-                <div className="model-config-grid">
-                  <div className="model-config-item">
-                    <span className="model-config-label">
-                      <i className="fas fa-table"></i> Dataset
-                    </span>
-                    <span className="model-config-value dataset">
-                      {selectedDataset
-                        ? selectedDataset
-                        : "No dataset selected"}
-                    </span>
-                  </div>
-                </div>
-              </div>
+                <div className="dataset-display">
+                  {selectedDataset ? (
+                    <div className="dataset-info-container">
+                      <div className="dataset-header">
+                        <div className="dataset-icon">
+                          <i
+                            className={`fas ${
+                              selectedDataset === "MNIST" ||
+                              selectedDataset === "CIFAR-10"
+                                ? "fa-image"
+                                : selectedDataset === "California Housing"
+                                ? "fa-home"
+                                : "fa-table"
+                            }`}
+                          ></i>
+                        </div>
+                        <div className="dataset-name">
+                          <span>{selectedDataset}</span>
+                          <small className="dataset-type">
+                            {selectedDataset === "MNIST" ||
+                            selectedDataset === "CIFAR-10"
+                              ? "Image Classification"
+                              : selectedDataset === "Iris" ||
+                                selectedDataset === "Breast Cancer"
+                              ? "Classification"
+                              : selectedDataset === "California Housing"
+                              ? "Regression"
+                              : "Dataset"}
+                          </small>
+                        </div>
+                      </div>
 
-              {/* Training Section */}
-              <div className="model-config-section">
-                <h4>
-                  <i className="fas fa-sliders-h"></i> Training
-                </h4>
-                <div className="model-config-grid">
-                  <div className="model-config-item">
-                    <span className="model-config-label">
-                      <i className="fas fa-cog"></i> Optimizer
-                    </span>
-                    <span className="model-config-value optimizer">
-                      {trainingConfig.optimizer}
-                    </span>
-                  </div>
+                      <div className="dataset-details">
+                        {selectedDataset !== "California Housing" && (
+                          <div className="dataset-classes">
+                            <span className="detail-label">
+                              <i className="fas fa-tags"></i> Classes
+                            </span>
+                            <div className="class-labels">
+                              {getClassLabels(selectedDataset).map(
+                                (label, index) => (
+                                  <span key={index} className="class-tag">
+                                    {label}
+                                  </span>
+                                )
+                              )}
+                            </div>
+                          </div>
+                        )}
 
-                  <div className="model-config-item">
-                    <span className="model-config-label">
-                      <i className="fas fa-chart-line"></i> Loss
-                    </span>
-                    <span className="model-config-value loss">
-                      {trainingConfig.lossFunction}
-                    </span>
-                  </div>
-
-                  <div className="model-config-item">
-                    <span className="model-config-label">
-                      <i className="fas fa-layer-group"></i> Batch Size
-                    </span>
-                    <span className="model-config-value compact">
-                      {trainingConfig.batchSize}
-                    </span>
-                  </div>
-
-                  <div className="model-config-item">
-                    <span className="model-config-label">
-                      <i className="fas fa-tachometer-alt"></i> Learning Rate
-                    </span>
-                    <span className="model-config-value compact">
-                      {trainingConfig.learningRate}
-                    </span>
-                  </div>
-                </div>
-
-                <div
-                  className="model-config-grid"
-                  style={{ marginTop: "15px" }}
-                >
-                  <div className="model-config-item">
-                    <span className="model-config-label">
-                      <i className="fas fa-redo"></i> Epochs
-                    </span>
-                    <span className="model-config-value">
-                      {trainingConfig.epochs}
-                    </span>
-                  </div>
-
-                  <div className="model-config-item">
-                    <span className="model-config-label">
-                      <i className="fas fa-random"></i> Validation Split
-                    </span>
-                    <span className="model-config-value">
-                      {trainingConfig.validationSplit * 100}%
-                    </span>
-                  </div>
+                        <div className="dataset-features">
+                          <span className="detail-label">
+                            <i className="fas fa-chart-bar"></i> Features
+                          </span>
+                          <span className="feature-info">
+                            {selectedDataset === "MNIST"
+                              ? "28×28 grayscale images"
+                              : selectedDataset === "CIFAR-10"
+                              ? "32×32 color images"
+                              : selectedDataset === "Iris"
+                              ? "4 numeric features"
+                              : selectedDataset === "Breast Cancer"
+                              ? "30 numeric features"
+                              : selectedDataset === "California Housing"
+                              ? "8 numeric features"
+                              : "Multiple features"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="no-dataset-selected">
+                      <i className="fas fa-exclamation-circle"></i>
+                      <span>No dataset selected</span>
+                      <small>
+                        Select a dataset in Settings to train your model
+                      </small>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -2144,40 +2649,136 @@ const NewBuildPage: React.FC = () => {
   const renderNodeParameters = () => {
     if (!selectedNode) return null;
 
+    const getParameterHint = (paramName: string): string => {
+      const hints: { [key: string]: string } = {
+        neurons:
+          "Number of neurons in this layer. More neurons can capture more complex patterns.",
+        activation:
+          "Activation function introduces non-linearity, allowing the network to learn complex patterns.",
+        rate: "Dropout rate (0-1). Higher values drop more connections, increasing regularization.",
+        filters:
+          "Number of convolutional filters. More filters can detect more features.",
+        kernelSize:
+          "Size of the convolutional kernel. Larger kernels capture broader patterns.",
+        stride:
+          "Step size for filter movement. Larger strides reduce output dimensions.",
+        poolSize:
+          "Size of the pooling window. Larger pools reduce dimensions more aggressively.",
+        useSkipConnection:
+          "Skip connections help with vanishing gradient problem and improve learning.",
+        downsampleType: "Method to reduce dimensions in residual connections.",
+      };
+
+      return (
+        hints[paramName] ||
+        "Configure this parameter based on your model's needs"
+      );
+    };
+
     return (
-      <div className="node-parameters">
-        <h3>Layer Parameters</h3>
+      <div className={`node-parameters ${selectedNode.type || ""}`}>
+        <div className="node-parameters-header">
+          <div className={`node-type ${selectedNode.type || ""}`}>
+            <i className={`fas ${getLayerIcon(selectedNode.type || "")}`}></i>
+            <span>
+              {selectedNode.type &&
+                selectedNode.type.charAt(0).toUpperCase() +
+                  selectedNode.type.slice(1)}{" "}
+              Parameters
+            </span>
+          </div>
+          <div className="node-id">{selectedNode.id}</div>
+        </div>
+
         <div className="parameter-list">
           {/* Common parameters for all nodes */}
-          <label>Layer Name:</label>
-          <div className="name-input-container">
-            <input
-              type="text"
-              value={selectedNode.data.label || ""}
-              onChange={(e) => updateParameter("label", e.target.value)}
-              placeholder="Enter custom layer name"
-              className="layer-name-input"
-            />
-            <small className="name-hint">
-              This name will appear on the layer in the canvas
-            </small>
+          <div className="parameter-section">
+            <div className="parameter-section-title">General</div>
+            <label>
+              Layer Name:
+              <div className="parameter-hint">
+                <i className="fas fa-info-circle"></i>
+                <span className="hint-text">
+                  A descriptive name helps identify this layer's purpose
+                </span>
+              </div>
+            </label>
+            <div className="name-input-container">
+              <input
+                type="text"
+                value={selectedNode.data.label || ""}
+                onChange={(e) => updateParameter("label", e.target.value)}
+                placeholder="Enter custom layer name"
+                className="layer-name-input"
+              />
+              <small className="name-hint">
+                This name will appear on the layer in the canvas
+              </small>
+            </div>
           </div>
 
           {/* Dense Layer */}
           {selectedNode.type === "dense" && (
-            <>
-              <label>Neurons:</label>
-              <input
-                type="number"
-                min="1"
-                value={selectedNode.data.neurons || ""}
-                onChange={(e) => updateParameter("neurons", +e.target.value)}
-              />
+            <div className="parameter-section">
+              <div className="parameter-section-title">
+                Dense Layer Settings
+              </div>
+              <label>
+                Neurons:
+                <div className="parameter-hint">
+                  <i className="fas fa-info-circle"></i>
+                  <span className="hint-text">
+                    {getParameterHint("neurons")}
+                  </span>
+                </div>
+              </label>
+              <div className="parameter-input-container">
+                <input
+                  type="number"
+                  min="1"
+                  value={selectedNode.data.neurons || ""}
+                  onChange={(e) => updateParameter("neurons", +e.target.value)}
+                  className="parameter-input"
+                />
+                <div className="parameter-controls">
+                  <button
+                    className="param-control-btn"
+                    onClick={() =>
+                      updateParameter(
+                        "neurons",
+                        Math.max(1, (selectedNode.data.neurons || 1) - 1)
+                      )
+                    }
+                  >
+                    <i className="fas fa-minus"></i>
+                  </button>
+                  <button
+                    className="param-control-btn"
+                    onClick={() =>
+                      updateParameter(
+                        "neurons",
+                        (selectedNode.data.neurons || 0) + 1
+                      )
+                    }
+                  >
+                    <i className="fas fa-plus"></i>
+                  </button>
+                </div>
+              </div>
 
-              <label>Activation:</label>
+              <label>
+                Activation:
+                <div className="parameter-hint">
+                  <i className="fas fa-info-circle"></i>
+                  <span className="hint-text">
+                    {getParameterHint("activation")}
+                  </span>
+                </div>
+              </label>
               <select
                 value={selectedNode.data.activation || "None"}
                 onChange={(e) => updateParameter("activation", e.target.value)}
+                className="activation-select"
               >
                 <option value="None">None</option>
                 <option value="ReLU">ReLU</option>
@@ -2186,99 +2787,236 @@ const NewBuildPage: React.FC = () => {
                 <option value="Softmax">Softmax</option>
                 <option value="Leaky ReLU">Leaky ReLU</option>
               </select>
-            </>
+              {selectedNode.data.activation &&
+                selectedNode.data.activation !== "None" && (
+                  <div className="activation-preview">
+                    <div className="activation-function-visual">
+                      <div
+                        className={`activation-graph ${selectedNode.data.activation
+                          .replace(" ", "-")
+                          .toLowerCase()}`}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+            </div>
           )}
 
           {/* Dropout Layer */}
           {selectedNode.type === "dropout" && (
-            <>
-              <label>Rate:</label>
-              <input
-                type="number"
-                min="0"
-                max="1"
-                step="0.01"
-                value={selectedNode.data.rate || 0.2}
-                onChange={(e) =>
-                  updateParameter("rate", parseFloat(e.target.value) || 0)
-                }
-              />
-            </>
+            <div className="parameter-section">
+              <div className="parameter-section-title">Dropout Settings</div>
+              <label>
+                Rate:
+                <div className="parameter-hint">
+                  <i className="fas fa-info-circle"></i>
+                  <span className="hint-text">{getParameterHint("rate")}</span>
+                </div>
+              </label>
+              <div className="parameter-slider-container">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={selectedNode.data.rate || 0.2}
+                  onChange={(e) =>
+                    updateParameter("rate", parseFloat(e.target.value) || 0)
+                  }
+                  className="parameter-slider"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={selectedNode.data.rate || 0.2}
+                  onChange={(e) =>
+                    updateParameter("rate", parseFloat(e.target.value) || 0)
+                  }
+                  className="parameter-input narrow"
+                />
+              </div>
+              <div className="dropout-preview">
+                <div className="dropout-visual">
+                  {[...Array(25)].map((_, i) => (
+                    <div
+                      key={i}
+                      className={`dropout-unit ${
+                        Math.random() > (selectedNode.data.rate || 0.2)
+                          ? "active"
+                          : "inactive"
+                      }`}
+                    ></div>
+                  ))}
+                </div>
+                <div className="dropout-info">
+                  <span>{`${Math.round(
+                    (selectedNode.data.rate || 0.2) * 100
+                  )}% Dropout`}</span>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Convolutional Layer */}
           {selectedNode.type === "convolution" && (
-            <>
-              <label>Filters:</label>
-              <input
-                type="number"
-                min="1"
-                value={selectedNode.data.filters || ""}
-                onChange={(e) => updateParameter("filters", +e.target.value)}
-              />
-
-              <label>Kernel Size:</label>
-              <div className="input-group">
+            <div className="parameter-section">
+              <div className="parameter-section-title">
+                Convolution Settings
+              </div>
+              <label>
+                Filters:
+                <div className="parameter-hint">
+                  <i className="fas fa-info-circle"></i>
+                  <span className="hint-text">
+                    {getParameterHint("filters")}
+                  </span>
+                </div>
+              </label>
+              <div className="parameter-input-container">
                 <input
                   type="number"
                   min="1"
-                  value={selectedNode.data.kernelSize?.[0] || ""}
-                  onChange={(e) =>
-                    updateParameter("kernelSize", [
-                      parseInt(e.target.value) || 1,
-                      selectedNode.data.kernelSize?.[1] || 1,
-                    ])
-                  }
-                  style={{ width: "60px" }}
+                  value={selectedNode.data.filters || ""}
+                  onChange={(e) => updateParameter("filters", +e.target.value)}
+                  className="parameter-input"
                 />
-                <span>x</span>
-                <input
-                  type="number"
-                  min="1"
-                  value={selectedNode.data.kernelSize?.[1] || ""}
-                  onChange={(e) =>
-                    updateParameter("kernelSize", [
-                      selectedNode.data.kernelSize?.[0] || 1,
-                      parseInt(e.target.value) || 1,
-                    ])
-                  }
-                  style={{ width: "60px" }}
-                />
+                <div className="parameter-controls">
+                  <button
+                    className="param-control-btn"
+                    onClick={() =>
+                      updateParameter(
+                        "filters",
+                        Math.max(1, (selectedNode.data.filters || 1) - 1)
+                      )
+                    }
+                  >
+                    <i className="fas fa-minus"></i>
+                  </button>
+                  <button
+                    className="param-control-btn"
+                    onClick={() =>
+                      updateParameter(
+                        "filters",
+                        (selectedNode.data.filters || 0) + 1
+                      )
+                    }
+                  >
+                    <i className="fas fa-plus"></i>
+                  </button>
+                </div>
               </div>
 
-              <label>Stride:</label>
-              <div className="input-group">
+              <label>
+                Kernel Size:
+                <div className="parameter-hint">
+                  <i className="fas fa-info-circle"></i>
+                  <span className="hint-text">
+                    {getParameterHint("kernelSize")}
+                  </span>
+                </div>
+              </label>
+              <div className="kernel-size-input">
+                <div className="input-group">
+                  <input
+                    type="number"
+                    min="1"
+                    value={selectedNode.data.kernelSize?.[0] || ""}
+                    onChange={(e) =>
+                      updateParameter("kernelSize", [
+                        parseInt(e.target.value) || 1,
+                        selectedNode.data.kernelSize?.[1] || 1,
+                      ])
+                    }
+                    className="parameter-input"
+                  />
+                  <span>×</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={selectedNode.data.kernelSize?.[1] || ""}
+                    onChange={(e) =>
+                      updateParameter("kernelSize", [
+                        selectedNode.data.kernelSize?.[0] || 1,
+                        parseInt(e.target.value) || 1,
+                      ])
+                    }
+                    className="parameter-input"
+                  />
+                </div>
+                <div className="kernel-visual">
+                  {[
+                    ...Array(
+                      Math.min(7, selectedNode.data.kernelSize?.[0] || 3)
+                    ),
+                  ].map((_, i) => (
+                    <div key={`row-${i}`} className="kernel-row">
+                      {[
+                        ...Array(
+                          Math.min(7, selectedNode.data.kernelSize?.[1] || 3)
+                        ),
+                      ].map((_, j) => (
+                        <div
+                          key={`cell-${i}-${j}`}
+                          className="kernel-cell"
+                        ></div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <label>
+                Stride:
+                <div className="parameter-hint">
+                  <i className="fas fa-info-circle"></i>
+                  <span className="hint-text">
+                    {getParameterHint("stride")}
+                  </span>
+                </div>
+              </label>
+              <div className="input-group stride-group">
                 <input
                   type="number"
                   min="1"
-                  value={selectedNode.data.stride?.[0] || ""}
+                  value={selectedNode.data.stride?.[0] || 1}
                   onChange={(e) =>
                     updateParameter("stride", [
                       parseInt(e.target.value) || 1,
                       selectedNode.data.stride?.[1] || 1,
                     ])
                   }
-                  style={{ width: "60px" }}
+                  className="parameter-input"
                 />
-                <span>x</span>
+                <span>×</span>
                 <input
                   type="number"
                   min="1"
-                  value={selectedNode.data.stride?.[1] || ""}
+                  value={selectedNode.data.stride?.[1] || 1}
                   onChange={(e) =>
                     updateParameter("stride", [
                       selectedNode.data.stride?.[0] || 1,
                       parseInt(e.target.value) || 1,
                     ])
                   }
-                  style={{ width: "60px" }}
+                  className="parameter-input"
                 />
               </div>
 
-              <label>Activation:</label>
+              <label>
+                Activation:
+                <div className="parameter-hint">
+                  <i className="fas fa-info-circle"></i>
+                  <span className="hint-text">
+                    {getParameterHint("activation")}
+                  </span>
+                </div>
+              </label>
               <select
                 value={selectedNode.data.activation || "None"}
                 onChange={(e) => updateParameter("activation", e.target.value)}
+                className="activation-select"
               >
                 <option value="None">None</option>
                 <option value="ReLU">ReLU</option>
@@ -2286,14 +3024,37 @@ const NewBuildPage: React.FC = () => {
                 <option value="Tanh">Tanh</option>
                 <option value="Leaky ReLU">Leaky ReLU</option>
               </select>
-            </>
+              {selectedNode.data.activation &&
+                selectedNode.data.activation !== "None" && (
+                  <div className="activation-preview">
+                    <div className="activation-function-visual">
+                      <div
+                        className={`activation-graph ${selectedNode.data.activation
+                          .replace(" ", "-")
+                          .toLowerCase()}`}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+            </div>
           )}
 
           {/* MaxPooling Layer */}
           {selectedNode.type === "maxpooling" && (
-            <>
-              <label>Pool Size:</label>
-              <div className="input-group">
+            <div className="parameter-section">
+              <div className="parameter-section-title">
+                Max Pooling Settings
+              </div>
+              <label>
+                Pool Size:
+                <div className="parameter-hint">
+                  <i className="fas fa-info-circle"></i>
+                  <span className="hint-text">
+                    {getParameterHint("poolSize")}
+                  </span>
+                </div>
+              </label>
+              <div className="input-group pool-size-group">
                 <input
                   type="number"
                   min="1"
@@ -2304,9 +3065,9 @@ const NewBuildPage: React.FC = () => {
                       selectedNode.data.poolSize?.[1] || 1,
                     ])
                   }
-                  style={{ width: "60px" }}
+                  className="parameter-input"
                 />
-                <span>x</span>
+                <span>×</span>
                 <input
                   type="number"
                   min="1"
@@ -2317,11 +3078,19 @@ const NewBuildPage: React.FC = () => {
                       parseInt(e.target.value) || 1,
                     ])
                   }
-                  style={{ width: "60px" }}
+                  className="parameter-input"
                 />
               </div>
 
-              <label>Stride:</label>
+              <label>
+                Stride:
+                <div className="parameter-hint">
+                  <i className="fas fa-info-circle"></i>
+                  <span className="hint-text">
+                    {getParameterHint("stride")}
+                  </span>
+                </div>
+              </label>
               <div className="input-group">
                 <input
                   type="number"
@@ -2333,9 +3102,9 @@ const NewBuildPage: React.FC = () => {
                       selectedNode.data.stride?.[1] || 1,
                     ])
                   }
-                  style={{ width: "60px" }}
+                  className="parameter-input"
                 />
-                <span>x</span>
+                <span>×</span>
                 <input
                   type="number"
                   min="1"
@@ -2346,99 +3115,590 @@ const NewBuildPage: React.FC = () => {
                       parseInt(e.target.value) || 1,
                     ])
                   }
-                  style={{ width: "60px" }}
+                  className="parameter-input"
                 />
               </div>
 
-              <label>Padding:</label>
+              <label>
+                Padding:
+                <div className="parameter-hint">
+                  <i className="fas fa-info-circle"></i>
+                  <span className="hint-text">
+                    Defines how the input is padded around the edges
+                  </span>
+                </div>
+              </label>
               <select
                 value={selectedNode.data.padding || "none"}
                 onChange={(e) => updateParameter("padding", e.target.value)}
+                className="parameter-input"
               >
                 <option value="none">None</option>
                 <option value="valid">Valid</option>
                 <option value="same">Same</option>
               </select>
-            </>
+            </div>
           )}
 
           {/* Batch Normalization Layer */}
           {selectedNode.type === "batchnormalization" && (
-            <>
-              <label>Momentum:</label>
-              <input
-                type="number"
-                min="0"
-                max="1"
-                step="0.01"
-                value={selectedNode.data.momentum || 0.99}
-                onChange={(e) =>
-                  updateParameter("momentum", parseFloat(e.target.value))
-                }
-              />
+            <div className="parameter-section">
+              <div className="parameter-section-title">
+                Batch Normalization Settings
+              </div>
 
-              <label>Epsilon:</label>
-              <input
-                type="number"
-                min="0.00001"
-                step="0.00001"
-                value={selectedNode.data.epsilon || 0.001}
-                onChange={(e) =>
-                  updateParameter("epsilon", parseFloat(e.target.value))
-                }
-              />
-            </>
+              <label>
+                Momentum:
+                <div className="parameter-hint">
+                  <i className="fas fa-info-circle"></i>
+                  <span className="hint-text">
+                    Momentum for the moving average. Higher values maintain more
+                    history.
+                  </span>
+                </div>
+              </label>
+              <div className="parameter-slider-container">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={selectedNode.data.momentum || 0.99}
+                  onChange={(e) =>
+                    updateParameter("momentum", parseFloat(e.target.value))
+                  }
+                  className="parameter-slider"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={selectedNode.data.momentum || 0.99}
+                  onChange={(e) =>
+                    updateParameter("momentum", parseFloat(e.target.value))
+                  }
+                  className="parameter-input narrow"
+                />
+              </div>
+
+              <label>
+                Epsilon:
+                <div className="parameter-hint">
+                  <i className="fas fa-info-circle"></i>
+                  <span className="hint-text">
+                    Small constant added to variance to prevent division by zero
+                  </span>
+                </div>
+              </label>
+              <div className="parameter-input-container">
+                <input
+                  type="number"
+                  min="0.00001"
+                  step="0.00001"
+                  value={selectedNode.data.epsilon || 0.001}
+                  onChange={(e) =>
+                    updateParameter("epsilon", parseFloat(e.target.value))
+                  }
+                  className="parameter-input"
+                />
+              </div>
+
+              <div className="batch-norm-info"></div>
+            </div>
           )}
 
           {/* Attention Layer */}
           {selectedNode.type === "attention" && (
-            <>
-              <label>Number of Heads:</label>
-              <input
-                type="number"
-                min="1"
-                value={selectedNode.data.heads || 8}
-                onChange={(e) =>
-                  updateParameter("heads", parseInt(e.target.value))
-                }
-              />
+            <div className="parameter-section">
+              <div className="parameter-section-title">
+                Attention Layer Settings
+              </div>
 
-              <label>Key Dimension:</label>
-              <input
-                type="number"
-                min="1"
-                value={selectedNode.data.keyDim || 64}
-                onChange={(e) =>
-                  updateParameter("keyDim", parseInt(e.target.value))
-                }
-              />
+              <label>
+                Number of Heads:
+                <div className="parameter-hint">
+                  <i className="fas fa-info-circle"></i>
+                  <span className="hint-text">
+                    Number of attention heads. More heads allow focus on
+                    different representation subspaces.
+                  </span>
+                </div>
+              </label>
+              <div className="parameter-input-container">
+                <input
+                  type="number"
+                  min="1"
+                  value={selectedNode.data.heads || 8}
+                  onChange={(e) =>
+                    updateParameter("heads", parseInt(e.target.value))
+                  }
+                  className="parameter-input"
+                />
+                <div className="parameter-controls">
+                  <button
+                    className="param-control-btn"
+                    onClick={() =>
+                      updateParameter(
+                        "heads",
+                        Math.max(1, (selectedNode.data.heads || 8) - 1)
+                      )
+                    }
+                  >
+                    <i className="fas fa-minus"></i>
+                  </button>
+                  <button
+                    className="param-control-btn"
+                    onClick={() =>
+                      updateParameter(
+                        "heads",
+                        (selectedNode.data.heads || 8) + 1
+                      )
+                    }
+                  >
+                    <i className="fas fa-plus"></i>
+                  </button>
+                </div>
+              </div>
 
-              <label>Dropout Rate:</label>
-              <input
-                type="number"
-                min="0"
-                max="1"
-                step="0.01"
-                value={selectedNode.data.dropout || 0.0}
-                onChange={(e) =>
-                  updateParameter("dropout", parseFloat(e.target.value))
-                }
-              />
-            </>
+              <label>
+                Key Dimension:
+                <div className="parameter-hint">
+                  <i className="fas fa-info-circle"></i>
+                  <span className="hint-text">
+                    Dimensionality of the query, key projections. Affects
+                    representation capacity.
+                  </span>
+                </div>
+              </label>
+              <div className="parameter-input-container">
+                <input
+                  type="number"
+                  min="1"
+                  value={selectedNode.data.keyDim || 64}
+                  onChange={(e) =>
+                    updateParameter("keyDim", parseInt(e.target.value))
+                  }
+                  className="parameter-input"
+                />
+                <div className="parameter-controls">
+                  <button
+                    className="param-control-btn"
+                    onClick={() =>
+                      updateParameter(
+                        "keyDim",
+                        Math.max(1, (selectedNode.data.keyDim || 64) - 8)
+                      )
+                    }
+                  >
+                    <i className="fas fa-minus"></i>
+                  </button>
+                  <button
+                    className="param-control-btn"
+                    onClick={() =>
+                      updateParameter(
+                        "keyDim",
+                        (selectedNode.data.keyDim || 64) + 8
+                      )
+                    }
+                  >
+                    <i className="fas fa-plus"></i>
+                  </button>
+                </div>
+              </div>
+
+              <label>
+                Dropout Rate:
+                <div className="parameter-hint">
+                  <i className="fas fa-info-circle"></i>
+                  <span className="hint-text">
+                    Rate of dropout in the attention layer. Helps prevent
+                    overfitting.
+                  </span>
+                </div>
+              </label>
+              <div className="parameter-slider-container">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={selectedNode.data.dropout || 0.0}
+                  onChange={(e) =>
+                    updateParameter("dropout", parseFloat(e.target.value))
+                  }
+                  className="parameter-slider"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={selectedNode.data.dropout || 0.0}
+                  onChange={(e) =>
+                    updateParameter("dropout", parseFloat(e.target.value))
+                  }
+                  className="parameter-input narrow"
+                />
+              </div>
+
+              <div className="attention-visual">
+                <div className="attention-diagram">
+                  <div className="attention-heads">
+                    {[...Array(Math.min(8, selectedNode.data.heads || 8))].map(
+                      (_, i) => (
+                        <div key={`head-${i}`} className="attention-head"></div>
+                      )
+                    )}
+                  </div>
+                  <div className="attention-flow">
+                    <i className="fas fa-random"></i>
+                  </div>
+                  <div className="attention-output"></div>
+                </div>
+                <div className="diagram-label">
+                  Multi-head attention mechanism
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Output Layer */}
           {selectedNode.type === "output" && (
-            <>
-              <label>Activation:</label>
+            <div className="parameter-section">
+              <div className="parameter-section-title">
+                Output Layer Settings
+              </div>
+
+              <label>
+                Activation:
+                <div className="parameter-hint">
+                  <i className="fas fa-info-circle"></i>
+                  <span className="hint-text">
+                    Output activation determines the type of prediction: Sigmoid
+                    for binary, Softmax for multi-class.
+                  </span>
+                </div>
+              </label>
               <select
                 value={selectedNode.data.activation || "None"}
                 onChange={(e) => updateParameter("activation", e.target.value)}
+                className="activation-select"
               >
                 <option value="None">None</option>
                 <option value="Sigmoid">Sigmoid</option>
                 <option value="Softmax">Softmax</option>
               </select>
+              {selectedNode.data.activation &&
+                selectedNode.data.activation !== "None" && (
+                  <div className="activation-preview">
+                    <div className="activation-function-visual">
+                      <div
+                        className={`activation-graph ${selectedNode.data.activation
+                          .replace(" ", "-")
+                          .toLowerCase()}`}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+
+              <div className="output-info">
+                <div className="output-explainer">
+                  <div className="explainer-content"></div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ResNetBlock Layer */}
+          {selectedNode.type === "resnetblock" && (
+            <>
+              <div className="parameter-section">
+                <div className="parameter-section-title">
+                  Block Configuration
+                </div>
+                <label>
+                  Block Type:
+                  <div className="parameter-hint">
+                    <i className="fas fa-info-circle"></i>
+                    <span className="hint-text">
+                      Basic blocks have 2 convolutions, while bottleneck blocks
+                      use a 3-layer pattern with dimensionality reduction
+                    </span>
+                  </div>
+                </label>
+                <select
+                  name="blockType"
+                  value={selectedNode.data.blockType || "Basic"}
+                  onChange={(e) => updateParameter("blockType", e.target.value)}
+                  className="parameter-input"
+                >
+                  <option value="Basic">Basic Block</option>
+                  <option value="Bottleneck">Bottleneck Block</option>
+                </select>
+
+                <label>
+                  Input Channels:
+                  <div className="parameter-hint">
+                    <i className="fas fa-info-circle"></i>
+                    <span className="hint-text">
+                      Number of input channels to the block
+                    </span>
+                  </div>
+                </label>
+                <div className="parameter-input-container">
+                  <input
+                    type="number"
+                    min="1"
+                    value={selectedNode.data.inChannels || 64}
+                    onChange={(e) =>
+                      updateParameter("inChannels", +e.target.value)
+                    }
+                    className="parameter-input"
+                  />
+                  <div className="parameter-controls">
+                    <button
+                      className="param-control-btn"
+                      onClick={() =>
+                        updateParameter(
+                          "inChannels",
+                          Math.max(1, (selectedNode.data.inChannels || 64) - 16)
+                        )
+                      }
+                    >
+                      <i className="fas fa-minus"></i>
+                    </button>
+                    <button
+                      className="param-control-btn"
+                      onClick={() =>
+                        updateParameter(
+                          "inChannels",
+                          (selectedNode.data.inChannels || 64) + 16
+                        )
+                      }
+                    >
+                      <i className="fas fa-plus"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <label>
+                  Output Channels:
+                  <div className="parameter-hint">
+                    <i className="fas fa-info-circle"></i>
+                    <span className="hint-text">
+                      Number of output channels from the block
+                    </span>
+                  </div>
+                </label>
+                <div className="parameter-input-container">
+                  <input
+                    type="number"
+                    min="1"
+                    value={selectedNode.data.outChannels || 64}
+                    onChange={(e) =>
+                      updateParameter("outChannels", +e.target.value)
+                    }
+                    className="parameter-input"
+                  />
+                  <div className="parameter-controls">
+                    <button
+                      className="param-control-btn"
+                      onClick={() =>
+                        updateParameter(
+                          "outChannels",
+                          Math.max(
+                            1,
+                            (selectedNode.data.outChannels || 64) - 16
+                          )
+                        )
+                      }
+                    >
+                      <i className="fas fa-minus"></i>
+                    </button>
+                    <button
+                      className="param-control-btn"
+                      onClick={() =>
+                        updateParameter(
+                          "outChannels",
+                          (selectedNode.data.outChannels || 64) + 16
+                        )
+                      }
+                    >
+                      <i className="fas fa-plus"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="parameter-section">
+                <div className="parameter-section-title">
+                  Stride Configuration
+                </div>
+                <label>
+                  Stride:
+                  <div className="parameter-hint">
+                    <i className="fas fa-info-circle"></i>
+                    <span className="hint-text">
+                      {getParameterHint("stride")}
+                    </span>
+                  </div>
+                </label>
+                <div className="input-group stride-group">
+                  <input
+                    type="number"
+                    min="1"
+                    value={selectedNode.data.stride?.[0] || 1}
+                    onChange={(e) =>
+                      updateParameter("stride", [
+                        parseInt(e.target.value) || 1,
+                        selectedNode.data.stride?.[1] || 1,
+                      ])
+                    }
+                    className="parameter-input"
+                  />
+                  <span>×</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={selectedNode.data.stride?.[1] || 1}
+                    onChange={(e) =>
+                      updateParameter("stride", [
+                        selectedNode.data.stride?.[0] || 1,
+                        parseInt(e.target.value) || 1,
+                      ])
+                    }
+                    className="parameter-input"
+                  />
+                </div>
+              </div>
+
+              <div className="parameter-section">
+                <div className="parameter-section-title">Block Features</div>
+                <label>
+                  Activation:
+                  <div className="parameter-hint">
+                    <i className="fas fa-info-circle"></i>
+                    <span className="hint-text">
+                      {getParameterHint("activation")}
+                    </span>
+                  </div>
+                </label>
+                <select
+                  value={selectedNode.data.activation || "ReLU"}
+                  onChange={(e) =>
+                    updateParameter("activation", e.target.value)
+                  }
+                  className="activation-select"
+                >
+                  <option value="None">None</option>
+                  <option value="ReLU">ReLU</option>
+                  <option value="Sigmoid">Sigmoid</option>
+                  <option value="Tanh">Tanh</option>
+                  <option value="Leaky ReLU">Leaky ReLU</option>
+                </select>
+                {selectedNode.data.activation &&
+                  selectedNode.data.activation !== "None" && (
+                    <div className="activation-preview">
+                      <div className="activation-function-visual">
+                        <div
+                          className={`activation-graph ${selectedNode.data.activation
+                            .replace(" ", "-")
+                            .toLowerCase()}`}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+
+                <label>
+                  Use Skip Connection:
+                  <div className="parameter-hint">
+                    <i className="fas fa-info-circle"></i>
+                    <span className="hint-text">
+                      {getParameterHint("useSkipConnection")}
+                    </span>
+                  </div>
+                </label>
+                <select
+                  name="useSkipConnection"
+                  value={selectedNode.data.useSkipConnection ? "true" : "false"}
+                  onChange={(e) =>
+                    updateParameter(
+                      "useSkipConnection",
+                      e.target.value === "true"
+                    )
+                  }
+                  className="parameter-input"
+                >
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+
+                <label>
+                  Downsample Type:
+                  <div className="parameter-hint">
+                    <i className="fas fa-info-circle"></i>
+                    <span className="hint-text">
+                      {getParameterHint("downsampleType")}
+                    </span>
+                  </div>
+                </label>
+                <select
+                  name="downsampleType"
+                  value={selectedNode.data.downsampleType || "None"}
+                  onChange={(e) =>
+                    updateParameter("downsampleType", e.target.value)
+                  }
+                  className="parameter-input"
+                >
+                  <option value="None">None</option>
+                  <option value="Conv1x1">Conv 1x1</option>
+                  <option value="AvgPool">Average Pooling</option>
+                </select>
+              </div>
+
+              <div className="parameter-section">
+                <div className="parameter-section-title">
+                  Block Visualization
+                </div>
+                <div className="resnet-visualization">
+                  <div className="resnet-flow">
+                    <div className="resnet-input block"></div>
+                    <div className="resnet-layers">
+                      {selectedNode.data.blockType === "Bottleneck" ? (
+                        <>
+                          <div className="resnet-layer">Conv 1x1</div>
+                          <div className="resnet-layer">Conv 3x3</div>
+                          <div className="resnet-layer">Conv 1x1</div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="resnet-layer">Conv 3x3</div>
+                          <div className="resnet-layer">Conv 3x3</div>
+                        </>
+                      )}
+                    </div>
+                    {selectedNode.data.useSkipConnection && (
+                      <div className="resnet-skip">
+                        <div className="skip-line"></div>
+                        {(selectedNode.data.inChannels !==
+                          selectedNode.data.outChannels ||
+                          (selectedNode.data.stride?.[0] || 1) > 1 ||
+                          (selectedNode.data.stride?.[1] || 1) > 1) && (
+                          <div className="downsample">
+                            {selectedNode.data.downsampleType === "Conv1x1"
+                              ? "1×1 Conv"
+                              : selectedNode.data.downsampleType === "AvgPool"
+                              ? "Avg Pool"
+                              : ""}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div className="resnet-output block"></div>
+                  </div>
+                </div>
+              </div>
             </>
           )}
         </div>
@@ -2698,7 +3958,7 @@ const NewBuildPage: React.FC = () => {
     );
   };
 
-  // Add the handleExport function before the return statement
+  // Add the handleExport function
   const handleExport = async (format: string) => {
     if (!selectedDataset) {
       alert("⚠️ Please select a dataset before exporting.");

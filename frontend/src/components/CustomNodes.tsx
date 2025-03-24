@@ -147,6 +147,57 @@ export const InputNode = ({ data }: { data: any }) => (
   </div>
 );
 
+// ResNetBlock Node
+export const ResNetBlockNode = ({ data }: { data: any }) => (
+  <div
+    className={`custom-node resnetblock-node ${
+      data.blockType?.toLowerCase() || "basic"
+    }-block ${data.useSkipConnection === false ? "no-skip-connection" : ""}`}
+  >
+    <Handle
+      type="target"
+      position={Position.Left}
+      style={{ background: "#555" }}
+      id="target"
+    />
+    <div className="resnet-block-content">
+      <h4>{data.label || "ResNet Block"}</h4>
+      <div className="resnet-block-info">
+        <div className="resnet-block-type">
+          {data.blockType || "Basic"} Block
+        </div>
+        <p>
+          <strong>Channels:</strong> {data.inChannels || "?"} →{" "}
+          {data.outChannels || "?"}
+        </p>
+        <p>
+          <strong>Stride:</strong>{" "}
+          {Array.isArray(data.stride)
+            ? data.stride.join("x")
+            : data.stride || "1x1"}
+        </p>
+        <p>
+          <strong>Activation:</strong> {data.activation || "ReLU"}
+        </p>
+        {data.downsampleType && data.downsampleType !== "None" && (
+          <p>
+            <strong>Downsample:</strong> {data.downsampleType}
+          </p>
+        )}
+      </div>
+      <div className="resnet-skip-connection">
+        <div className="skip-line"></div>
+      </div>
+    </div>
+    <Handle
+      type="source"
+      position={Position.Right}
+      style={{ background: "#555" }}
+      id="source"
+    />
+  </div>
+);
+
 // Output Node
 export const OutputNode = ({ data }: { data: any }) => (
   <div className="custom-node output-node">
