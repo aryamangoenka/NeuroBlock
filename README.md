@@ -9,6 +9,7 @@ A web-based tool that allows users to visually design, train, and export custom 
 - **Real-Time Training Visualization:** Monitor training progress with real-time graphs and logs.
 - **Export Options:** Export trained models in Python Script, Jupyter Notebook, TensorFlow SavedModel and Keras Model.
 - **Customizable Parameters:** Edit layer-specific parameters (neurons, activation functions, dropout rate, etc.).
+- **ResNet Support:** Build and train deep residual networks with ResNet blocks.
 
 ## 🎯 Target Audience
 
@@ -25,6 +26,7 @@ Developing neural networks can be complex and time-consuming, especially for beg
 ## 🛠 Tech Stack
 
 ### **Frontend:**
+
 - **React** with **TypeScript** for the interactive UI
 - **React Flow** for the drag-and-drop interface
 - **SCSS** for custom styling
@@ -34,6 +36,7 @@ Developing neural networks can be complex and time-consuming, especially for beg
 - **Socket.IO Client** for real-time updates
 
 ### **Backend:**
+
 - **Flask** for REST API development
 - **Flask-SocketIO** for real-time communication
 - **TensorFlow** and **Keras** for building and training neural networks
@@ -42,8 +45,10 @@ Developing neural networks can be complex and time-consuming, especially for beg
 - **Matplotlib** and **Seaborn** for plotting metrics
 
 ### **Tools:**
+
 - **Postman** for API testing
 - **GitHub** for version control and collaboration
+- **Unittest** and **Coverage.py** for automated testing
 
 ---
 
@@ -106,32 +111,86 @@ npm run dev
 
 ---
 
+## 📝 Testing
+
+The project includes comprehensive unit tests to ensure reliability and correct functionality. Tests cover model building, API endpoints, WebSocket communication, and ResNet functionality.
+
+### Running Tests
+
+To run all tests with coverage reporting:
+
+```bash
+# Navigate to the backend directory
+cd backend
+
+# Install test dependencies
+pip install coverage
+
+# Run tests with coverage
+python run_tests.py
+```
+
+For more verbose output and HTML coverage reports:
+
+```bash
+# Run with verbose output
+python run_tests.py -v
+
+# Generate HTML coverage reports
+python run_tests.py --html
+```
+
+### Test Components
+
+1. **Model Builder Tests** (`test_main.py`):
+
+   - Tests for building various neural network architectures
+   - ResNet block creation and functionality tests
+   - Custom attention layer tests
+
+2. **API Endpoint Tests** (`test_api.py`):
+   - REST API endpoint tests
+   - Model export functionality tests
+   - WebSocket communication tests
+
+### Continuous Integration
+
+It's recommended to run tests before committing changes to ensure all functionality works as expected.
+
+---
+
 ## 📖 Usage Guide
 
 ### 1. **Select a Dataset**
+
 - On the **Home Page**, choose from predefined datasets like **Iris**, **MNIST**, **Breast Cancer**, **California Housing**, or **CIFAR-10**.
 
 ### 2. **Build the Neural Network**
+
 - Go to the **Build Page**.
 - Drag and drop different layers (Dense, Convolutional, Dropout, etc.) from the sidebar onto the canvas.
 - Connect layers logically to form a valid neural network structure.
 
 ### 3. **Configure Layer Parameters**
+
 - Click on any layer to open the **Parameter Sidebar**.
 - Customize settings like the number of neurons, activation functions, dropout rate, etc.
 
 ### 4. **Train the Model**
+
 - Click the **Train** button.
 - Monitor real-time progress through **interactive** graphs.
 - View logs and metrics during the training process.
 
 ### 5. **Deploy the Trained Model**
+
 - Once training is complete, go to the **Deploy Page**.
 - Choose from multiple export formats:
   - **Python Script** (`.py`)
   - **Jupyter Notebook** (`.ipynb`)
   - **TensorFlow SavedModel**
   - **Keras Model** (`.keras`)
+  - **PyTorch Model** (`.py`)
 - Download the model for further use or deployment.
 
 ---
@@ -139,7 +198,7 @@ npm run dev
 ## 🔮 Future Enhancements
 
 - **Custom Dataset Upload:** Enable users to upload their own datasets for model training.
-- **PyTorch Integration:** Allow users to export models in PyTorch format.
+- **Advanced Architectures:** Support more advanced model architectures and layer types.
 - **Mobile Responsiveness:** Optimize the interface for mobile and tablet devices.
 - **Advanced Visualizations:** Add more in-depth training visualizations (e.g., ROC Curve, Precision-Recall Curve).
 - **Template Marketplace:** Introduce a marketplace for sharing and downloading user-created model templates.

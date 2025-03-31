@@ -4,8 +4,8 @@ from flask_socketio import SocketIO, emit
 import json
 import os
 import time
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Conv2D, Flatten, MaxPooling2D, Dropout, BatchNormalization, Input, MultiHeadAttention, Lambda, Reshape
+from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.layers import Dense, Conv2D, Flatten, MaxPooling2D, Dropout, BatchNormalization, Input, MultiHeadAttention, Lambda, Reshape, Add, AveragePooling2D, ZeroPadding2D, Activation
 from dataset_loader import load_dataset  # Import the load_dataset function
 from tensorflow.keras.callbacks import Callback
 from sklearn.metrics import confusion_matrix, mean_squared_error, r2_score
@@ -368,120 +368,416 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
     if not input_layer or not output_layer:
         raise ValueError("Model must have both an input and an output layer.")
 
-    # Start building the model
-    model = Sequential()
-    model.add(Input(shape=input_shape))  # Always start with an input layer
-
-    # Add layers based on the nodes and edges
-    # First, create a dictionary of nodes by ID for easy lookup
-    nodes_by_id = {node["id"]: node for node in nodes}
+    # Check if we need to use a functional API (for models with skip connections like ResNet)
+    has_resnet_blocks = any(node["type"] == "resnetblock" for node in nodes)
     
-    # Create a dictionary to track which nodes have been processed
-    processed_nodes = {input_layer["id"]: True}
-    
-    # Start with the input layer and follow the edges
-    current_layer_ids = [input_layer["id"]]
-    
-    while current_layer_ids:
-        next_layer_ids = []
+    if has_resnet_blocks:
+        # Use Functional API for models with skip connections
+        inputs = Input(shape=input_shape)
         
-        for layer_id in current_layer_ids:
-            # Find all edges that start from this layer
-            outgoing_edges = [edge for edge in edges if edge["source"] == layer_id]
-            
-            for edge in outgoing_edges:
-                target_id = edge["target"]
+        # Create a dictionary of layers by node ID
+        layers_by_id = {}
+        layers_by_id[input_layer["id"]] = inputs
+        
+        # Create a dictionary to track which nodes have been processed
+        processed_nodes = {input_layer["id"]: True}
+        
+        # Process nodes in topological order
+        nodes_to_process = [node for node in nodes if node["id"] != input_layer["id"]]
+        
+        while nodes_to_process:
+            for node in list(nodes_to_process):
+                # Find all incoming edges to this node
+                incoming_edges = [edge for edge in edges if edge["target"] == node["id"]]
                 
-                # Skip if already processed
-                if target_id in processed_nodes:
-                    continue
-                
-                target_node = nodes_by_id[target_id]
-                layer_type = target_node["type"]
-                layer_data = target_node["data"]
-                
-                # Add the appropriate layer based on type
-                if layer_type == "dense":
-                    model.add(Dense(
-                        units=layer_data["neurons"],
-                        activation=None if layer_data["activation"].lower() == "none" else layer_data["activation"].lower()
-                    ))
-                elif layer_type == "convolution":
-                    model.add(Conv2D(
-                        filters=layer_data["filters"],
-                        kernel_size=tuple(layer_data["kernelSize"]),
-                        strides=tuple(layer_data["stride"]),
-                        activation=None if layer_data["activation"].lower() == "none" else layer_data["activation"].lower()
-                    ))
-                elif layer_type == "maxpooling":
-                    model.add(MaxPooling2D(
-                        pool_size=tuple(layer_data["poolSize"]),
-                        strides=tuple(layer_data["stride"])
-                    ))
-                elif layer_type == "flatten":
-                    model.add(Flatten())
-                elif layer_type == "dropout":
-                    model.add(Dropout(rate=layer_data["rate"]))
-                elif layer_type == "batchnormalization":
-                    model.add(BatchNormalization(
-                        momentum=layer_data["momentum"],
-                        epsilon=layer_data["epsilon"]
-                    ))
-                elif layer_type == "attention":
-                    # Get the attention parameters
-                    num_heads = layer_data.get("heads", 8)
-                    key_dim = layer_data.get("keyDim", 64)
-                    dropout_rate = layer_data.get("dropout", 0.0)
-                    
-                    # For MNIST data, we need to reshape the input for attention
-                    if dataset_name == "MNIST" or dataset_name == "CIFAR-10":
-                        # For image data, we need to reshape before applying attention
-                        # First, add a reshape layer to convert 2D image data to sequence data
-                        model.add(tf.keras.layers.Reshape((-1, input_shape[0])))  # Reshape to (sequence_length, features)
-                        
-                        # Use our custom attention layer instead of Lambda
-                        model.add(CustomAttentionLayer(
-                            num_heads=num_heads,
-                            key_dim=key_dim,
-                            dropout=dropout_rate,
-                            name=f"attention_{target_id}"
-                        ))
-                        
-                        # Reshape back to original shape for subsequent layers if needed
-                        model.add(tf.keras.layers.Reshape(input_shape))
+                # Check if all source nodes of incoming edges have been processed
+                if all(edge["source"] in processed_nodes for edge in incoming_edges):
+                    # Get the input layer(s) for this node
+                    if len(incoming_edges) == 1:
+                        # Single input
+                        input_layer = layers_by_id[incoming_edges[0]["source"]]
                     else:
-                        # For non-image data, apply attention directly using our custom attention layer
-                        model.add(CustomAttentionLayer(
-                            num_heads=num_heads,
-                            key_dim=key_dim,
-                            dropout=dropout_rate,
-                            name=f"attention_{target_id}"
-                        ))
-                elif layer_type == "output":
-                    # Configure the output layer dynamically based on the dataset
-                    output_units = determine_output_units(dataset_name)
-                    activation = layer_data["activation"].lower()
-                    if activation == "none":
-                        activation = None
-                    model.add(Dense(
-                        units=output_units,
-                        activation=activation
-                    ))
-                
-                # Mark this node as processed
-                processed_nodes[target_id] = True
-                
-                # Add to the next layer IDs to process
-                if layer_type != "output":  # Don't process beyond output layer
-                    next_layer_ids.append(target_id)
+                        # Multiple inputs (not typical in sequential models, but handle it)
+                        input_layer = [layers_by_id[edge["source"]] for edge in incoming_edges]
+                    
+                    # Process the node based on its type
+                    layer_type = node["type"]
+                    layer_data = node["data"]
+                    
+                    if layer_type == "resnetblock":
+                        # Create ResNet block
+                        x = create_resnet_block(
+                            input_layer, 
+                            block_type=layer_data.get("blockType", "Basic"),
+                            in_channels=layer_data.get("inChannels", 64),
+                            out_channels=layer_data.get("outChannels", 64),
+                            stride=layer_data.get("stride", [1, 1]),
+                            activation=layer_data.get("activation", "ReLU").lower(),
+                            use_skip_connection=layer_data.get("useSkipConnection", True),
+                            downsample_type=layer_data.get("downsampleType", "None")
+                        )
+                    elif layer_type == "dense":
+                        x = Dense(
+                            units=layer_data["neurons"],
+                            activation=None if layer_data["activation"].lower() == "none" else layer_data["activation"].lower()
+                        )(input_layer)
+                    elif layer_type == "convolution":
+                        x = Conv2D(
+                            filters=layer_data["filters"],
+                            kernel_size=tuple(layer_data["kernelSize"]),
+                            strides=tuple(layer_data["stride"]),
+                            padding=layer_data.get("padding", "same").lower(),
+                            activation=None if layer_data["activation"].lower() == "none" else layer_data["activation"].lower()
+                        )(input_layer)
+                    elif layer_type == "maxpooling":
+                        x = MaxPooling2D(
+                            pool_size=tuple(layer_data["poolSize"]),
+                            strides=tuple(layer_data["stride"]),
+                            padding=layer_data.get("padding", "same").lower()
+                        )(input_layer)
+                    elif layer_type == "flatten":
+                        x = Flatten()(input_layer)
+                    elif layer_type == "dropout":
+                        x = Dropout(rate=layer_data["rate"])(input_layer)
+                    elif layer_type == "batchnormalization":
+                        x = BatchNormalization(
+                            momentum=layer_data["momentum"],
+                            epsilon=layer_data["epsilon"]
+                        )(input_layer)
+                    elif layer_type == "attention":
+                        # Get the attention parameters
+                        num_heads = layer_data.get("heads", 8)
+                        key_dim = layer_data.get("keyDim", 64)
+                        dropout_rate = layer_data.get("dropout", 0.0)
+                        
+                        # For MNIST data, we need to reshape the input for attention
+                        if dataset_name == "MNIST" or dataset_name == "CIFAR-10":
+                            # For image data, we need to reshape before applying attention
+                            # First, add a reshape layer to convert 2D image data to sequence data
+                            reshaped = Reshape((-1, input_shape[0]))(input_layer)  # Reshape to (sequence_length, features)
+                            
+                            # Use our custom attention layer
+                            attention_output = CustomAttentionLayer(
+                                num_heads=num_heads,
+                                key_dim=key_dim,
+                                dropout=dropout_rate,
+                                name=f"attention_{node['id']}"
+                            )(reshaped)
+                            
+                            # Reshape back to original shape for subsequent layers if needed
+                            x = Reshape(input_shape)(attention_output)
+                        else:
+                            # For non-image data, apply attention directly
+                            x = CustomAttentionLayer(
+                                num_heads=num_heads,
+                                key_dim=key_dim,
+                                dropout=dropout_rate,
+                                name=f"attention_{node['id']}"
+                            )(input_layer)
+                    elif layer_type == "output":
+                        # Configure the output layer dynamically based on the dataset
+                        output_units = determine_output_units(dataset_name)
+                        activation = layer_data["activation"].lower()
+                        if activation == "none":
+                            activation = None
+                        x = Dense(
+                            units=output_units,
+                            activation=activation
+                        )(input_layer)
+                    
+                    # Store the output layer in the dictionary
+                    layers_by_id[node["id"]] = x
+                    
+                    # Mark this node as processed
+                    processed_nodes[node["id"]] = True
+                    
+                    # Remove this node from the list of nodes to process
+                    nodes_to_process.remove(node)
         
-        # Update current layer IDs for the next iteration
-        current_layer_ids = next_layer_ids
+        # Build and return the model
+        model = Model(inputs=inputs, outputs=layers_by_id[output_layer["id"]])
+        
+    else:
+        # Start building the model using Sequential API (for models without skip connections)
+        model = Sequential()
+        model.add(Input(shape=input_shape))  # Always start with an input layer
+
+        # Add layers based on the nodes and edges
+        # First, create a dictionary of nodes by ID for easy lookup
+        nodes_by_id = {node["id"]: node for node in nodes}
+        
+        # Create a dictionary to track which nodes have been processed
+        processed_nodes = {input_layer["id"]: True}
+        
+        # Start with the input layer and follow the edges
+        current_layer_ids = [input_layer["id"]]
+        
+        while current_layer_ids:
+            next_layer_ids = []
+            
+            for layer_id in current_layer_ids:
+                # Find all edges that start from this layer
+                outgoing_edges = [edge for edge in edges if edge["source"] == layer_id]
+                
+                for edge in outgoing_edges:
+                    target_id = edge["target"]
+                    
+                    # Skip if already processed
+                    if target_id in processed_nodes:
+                        continue
+                    
+                    target_node = nodes_by_id[target_id]
+                    layer_type = target_node["type"]
+                    layer_data = target_node["data"]
+                    
+                    # Add the appropriate layer based on type
+                    if layer_type == "dense":
+                        model.add(Dense(
+                            units=layer_data["neurons"],
+                            activation=None if layer_data["activation"].lower() == "none" else layer_data["activation"].lower()
+                        ))
+                    elif layer_type == "convolution":
+                        model.add(Conv2D(
+                            filters=layer_data["filters"],
+                            kernel_size=tuple(layer_data["kernelSize"]),
+                            strides=tuple(layer_data["stride"]),
+                            activation=None if layer_data["activation"].lower() == "none" else layer_data["activation"].lower()
+                        ))
+                    elif layer_type == "maxpooling":
+                        model.add(MaxPooling2D(
+                            pool_size=tuple(layer_data["poolSize"]),
+                            strides=tuple(layer_data["stride"])
+                        ))
+                    elif layer_type == "flatten":
+                        model.add(Flatten())
+                    elif layer_type == "dropout":
+                        model.add(Dropout(rate=layer_data["rate"]))
+                    elif layer_type == "batchnormalization":
+                        model.add(BatchNormalization(
+                            momentum=layer_data["momentum"],
+                            epsilon=layer_data["epsilon"]
+                        ))
+                    elif layer_type == "attention":
+                        # Get the attention parameters
+                        num_heads = layer_data.get("heads", 8)
+                        key_dim = layer_data.get("keyDim", 64)
+                        dropout_rate = layer_data.get("dropout", 0.0)
+                        
+                        # For MNIST data, we need to reshape the input for attention
+                        if dataset_name == "MNIST" or dataset_name == "CIFAR-10":
+                            # For image data, we need to reshape before applying attention
+                            # First, add a reshape layer to convert 2D image data to sequence data
+                            model.add(tf.keras.layers.Reshape((-1, input_shape[0])))  # Reshape to (sequence_length, features)
+                            
+                            # Use our custom attention layer instead of Lambda
+                            model.add(CustomAttentionLayer(
+                                num_heads=num_heads,
+                                key_dim=key_dim,
+                                dropout=dropout_rate,
+                                name=f"attention_{target_id}"
+                            ))
+                            
+                            # Reshape back to original shape for subsequent layers if needed
+                            model.add(tf.keras.layers.Reshape(input_shape))
+                        else:
+                            # For non-image data, apply attention directly using our custom attention layer
+                            model.add(CustomAttentionLayer(
+                                num_heads=num_heads,
+                                key_dim=key_dim,
+                                dropout=dropout_rate,
+                                name=f"attention_{target_id}"
+                            ))
+                    elif layer_type == "output":
+                        # Configure the output layer dynamically based on the dataset
+                        output_units = determine_output_units(dataset_name)
+                        activation = layer_data["activation"].lower()
+                        if activation == "none":
+                            activation = None
+                        model.add(Dense(
+                            units=output_units,
+                            activation=activation
+                        ))
+                    
+                    # Mark this node as processed
+                    processed_nodes[target_id] = True
+                    
+                    # Add to the next layer IDs to process
+                    if layer_type != "output":  # Don't process beyond output layer
+                        next_layer_ids.append(target_id)
+            
+            # Update current layer IDs for the next iteration
+            current_layer_ids = next_layer_ids
     
     print(model.summary())
-    print(model.layers)
     
     return model
+
+# Function to create ResNet blocks
+def create_resnet_block(inputs, block_type="Basic", in_channels=64, out_channels=64, 
+                        stride=[1, 1], activation="relu", use_skip_connection=True,
+                        downsample_type="None"):
+    """
+    Create a ResNet block (Basic or Bottleneck)
+    
+    Args:
+        inputs: Input tensor
+        block_type: "Basic" or "Bottleneck"
+        in_channels: Number of input channels
+        out_channels: Number of output channels
+        stride: Stride for convolution
+        activation: Activation function to use
+        use_skip_connection: Whether to use skip connection
+        downsample_type: Type of downsampling for skip connection ("None", "Conv1x1", "AvgPool")
+    
+    Returns:
+        Output tensor
+    """
+    # Convert activation name to lowercase for consistency
+    activation = activation.lower()
+    
+    # Handle Basic block (2 conv layers with skip connection)
+    if block_type == "Basic":
+        # First convolution
+        x = Conv2D(filters=out_channels, 
+                  kernel_size=(3, 3),
+                  strides=tuple(stride),
+                  padding='same')(inputs)
+        x = BatchNormalization()(x)
+        
+        if activation == "relu":
+            x = Activation('relu')(x)
+        elif activation == "leakyrelu":
+            x = tf.keras.layers.LeakyReLU()(x)
+        
+        # Second convolution
+        x = Conv2D(filters=out_channels,
+                  kernel_size=(3, 3),
+                  strides=(1, 1),
+                  padding='same')(x)
+        x = BatchNormalization()(x)
+        
+        # Skip connection
+        if use_skip_connection:
+            # If dimensions change (different number of channels or stride > 1),
+            # we need to project the input to match the output dimensions
+            if in_channels != out_channels or stride[0] > 1 or stride[1] > 1:
+                if downsample_type == "Conv1x1":
+                    # 1x1 convolution to match dimensions
+                    shortcut = Conv2D(filters=out_channels,
+                                     kernel_size=(1, 1),
+                                     strides=tuple(stride),
+                                     padding='same')(inputs)
+                    shortcut = BatchNormalization()(shortcut)
+                elif downsample_type == "AvgPool":
+                    # Average pooling followed by 1x1 conv if needed
+                    shortcut = AveragePooling2D(pool_size=tuple(stride),
+                                               strides=tuple(stride),
+                                               padding='same')(inputs)
+                    if in_channels != out_channels:
+                        shortcut = Conv2D(filters=out_channels,
+                                         kernel_size=(1, 1),
+                                         strides=(1, 1),
+                                         padding='same')(shortcut)
+                        shortcut = BatchNormalization()(shortcut)
+                else:
+                    # Default to 1x1 conv
+                    shortcut = Conv2D(filters=out_channels,
+                                     kernel_size=(1, 1),
+                                     strides=tuple(stride),
+                                     padding='same')(inputs)
+                    shortcut = BatchNormalization()(shortcut)
+            else:
+                shortcut = inputs
+                
+            # Add the skip connection
+            x = Add()([x, shortcut])
+        
+        # Final activation
+        if activation == "relu":
+            x = Activation('relu')(x)
+        elif activation == "leakyrelu":
+            x = tf.keras.layers.LeakyReLU()(x)
+            
+    # Handle Bottleneck block (1x1 -> 3x3 -> 1x1 with skip connection)
+    elif block_type == "Bottleneck":
+        # For bottleneck blocks, out_channels is the final output channels
+        # Typically, the internal channels are lower
+        bottleneck_channels = out_channels // 4
+        
+        # First 1x1 convolution to reduce dimensions
+        x = Conv2D(filters=bottleneck_channels,
+                  kernel_size=(1, 1),
+                  strides=(1, 1),
+                  padding='same')(inputs)
+        x = BatchNormalization()(x)
+        
+        if activation == "relu":
+            x = Activation('relu')(x)
+        elif activation == "leakyrelu":
+            x = tf.keras.layers.LeakyReLU()(x)
+        
+        # 3x3 convolution
+        x = Conv2D(filters=bottleneck_channels,
+                  kernel_size=(3, 3),
+                  strides=tuple(stride),
+                  padding='same')(x)
+        x = BatchNormalization()(x)
+        
+        if activation == "relu":
+            x = Activation('relu')(x)
+        elif activation == "leakyrelu":
+            x = tf.keras.layers.LeakyReLU()(x)
+        
+        # Final 1x1 convolution to restore dimensions
+        x = Conv2D(filters=out_channels,
+                  kernel_size=(1, 1),
+                  strides=(1, 1),
+                  padding='same')(x)
+        x = BatchNormalization()(x)
+        
+        # Skip connection
+        if use_skip_connection:
+            # If dimensions change (different number of channels or stride > 1),
+            # we need to project the input to match the output dimensions
+            if in_channels != out_channels or stride[0] > 1 or stride[1] > 1:
+                if downsample_type == "Conv1x1":
+                    # 1x1 convolution to match dimensions
+                    shortcut = Conv2D(filters=out_channels,
+                                     kernel_size=(1, 1),
+                                     strides=tuple(stride),
+                                     padding='same')(inputs)
+                    shortcut = BatchNormalization()(shortcut)
+                elif downsample_type == "AvgPool":
+                    # Average pooling followed by 1x1 conv if needed
+                    shortcut = AveragePooling2D(pool_size=tuple(stride),
+                                               strides=tuple(stride),
+                                               padding='same')(inputs)
+                    if in_channels != out_channels:
+                        shortcut = Conv2D(filters=out_channels,
+                                         kernel_size=(1, 1),
+                                         strides=(1, 1),
+                                         padding='same')(shortcut)
+                        shortcut = BatchNormalization()(shortcut)
+                else:
+                    # Default to 1x1 conv
+                    shortcut = Conv2D(filters=out_channels,
+                                     kernel_size=(1, 1),
+                                     strides=tuple(stride),
+                                     padding='same')(inputs)
+                    shortcut = BatchNormalization()(shortcut)
+            else:
+                shortcut = inputs
+                
+            # Add the skip connection
+            x = Add()([x, shortcut])
+        
+        # Final activation
+        if activation == "relu":
+            x = Activation('relu')(x)
+        elif activation == "leakyrelu":
+            x = tf.keras.layers.LeakyReLU()(x)
+    
+    return x
     
 def determine_output_units(dataset_name):
     """

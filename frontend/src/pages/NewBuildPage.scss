@@ -11,10 +11,12 @@
 
 // Add a special style for the ResNet Block layer in the sidebar
 .layer-item.resnetblock-layer {
-  background: linear-gradient(135deg, #3949AB, #1A237E);
+  background: linear-gradient(135deg, #4C5FD5, #3F51B5);
   color: white;
   border-radius: 8px;
   transition: all 0.2s ease-in-out;
+  border: 2px solid #2C3E9E;
+  box-shadow: 0 3px 10px rgba(63, 81, 181, 0.2);
 
   span i {
     color: rgba(255, 255, 255, 0.9);
@@ -22,15 +24,16 @@
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(26, 35, 126, 0.3);
+    box-shadow: 0 6px 14px rgba(26, 35, 126, 0.4);
+    background: linear-gradient(135deg, #5D70E9, #4C5FD5);
   }
 
   .add-button {
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: rgba(255, 255, 255, 0.2);
     color: white;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.25);
+      background-color: rgba(255, 255, 255, 0.3);
     }
   }
 }
@@ -54,8 +57,8 @@
 
 // Special styling for ResNet templates
 .template-item.resnet-template {
-  background: linear-gradient(135deg, rgba(57, 73, 171, 0.1), rgba(26, 35, 126, 0.05));
-  border-left: 3px solid #3949AB;
+  background: linear-gradient(135deg, rgba(76, 95, 213, 0.1), rgba(63, 81, 181, 0.05));
+  border-left: 3px solid #4C5FD5;
   
   span {
     display: flex;
@@ -69,11 +72,11 @@
   }
   
   i.fas.fa-code-branch {
-    color: #3949AB;
+    color: #4C5FD5;
   }
   
   &:hover {
-    background: linear-gradient(135deg, rgba(57, 73, 171, 0.15), rgba(26, 35, 126, 0.1));
+    background: linear-gradient(135deg, rgba(76, 95, 213, 0.15), rgba(63, 81, 181, 0.1));
   }
 }
 
@@ -468,36 +471,36 @@
   
   // Special styling for ResNetBlock
   .node-type.resnetblock {
-    color: #3949AB;
+    color: #4C5FD5;
     
     i {
-      background-color: rgba(57, 73, 171, 0.15);
-      color: #3949AB;
-      box-shadow: 0 2px 5px rgba(57, 73, 171, 0.2);
+      background-color: rgba(76, 95, 213, 0.15);
+      color: #4C5FD5;
+      box-shadow: 0 2px 5px rgba(76, 95, 213, 0.2);
     }
   }
   
   // Highlight ResNetBlock fields with block type dropdowns
   select[name="blockType"] {
-    background-color: rgba(57, 73, 171, 0.1);
-    border-color: rgba(57, 73, 171, 0.3);
+    background-color: rgba(76, 95, 213, 0.1);
+    border-color: rgba(76, 95, 213, 0.3);
     font-weight: 600;
     position: relative;
     
     &:focus {
-      border-color: #3949AB;
-      box-shadow: 0 0 0 3px rgba(57, 73, 171, 0.15);
+      border-color: #4C5FD5;
+      box-shadow: 0 0 0 3px rgba(76, 95, 213, 0.15);
     }
   }
   
   // Highlight skip connection options
   select[name="useSkipConnection"],
   select[name="downsampleType"] {
-    border-left: 3px solid #3949AB;
+    border-left: 3px solid #4C5FD5;
     transition: all 0.2s ease;
     
     &:focus {
-      border-left-color: #3949AB;
+      border-left-color: #4C5FD5;
       border-left-width: 3px;
     }
   }
@@ -507,22 +510,22 @@
     // Add visual separator for ResBlock channels 
     input[type="number"] {
       &:focus {
-        border-color: #3949AB;
-        box-shadow: 0 0 0 3px rgba(57, 73, 171, 0.15);
+        border-color: #4C5FD5;
+        box-shadow: 0 0 0 3px rgba(76, 95, 213, 0.15);
       }
     }
     
     // Add visual indicator for skip connections
     select[name="useSkipConnection"] {
       option[value="true"] {
-        background-color: rgba(57, 73, 171, 0.1);
+        background-color: rgba(76, 95, 213, 0.1);
       }
     }
     
     // Adjust stride input group for ResBlocks
     .input-group.stride-group {
       position: relative;
-      background-color: rgba(57, 73, 171, 0.05);
+      background-color: rgba(76, 95, 213, 0.05);
       padding: 12px 15px;
       border-radius: 8px;
       
@@ -533,7 +536,7 @@
         left: 8px;
         right: 8px;
         height: 2px;
-        background: rgba(57, 73, 171, 0.1);
+        background: rgba(76, 95, 213, 0.1);
         z-index: 0;
         pointer-events: none;
       }
@@ -547,7 +550,7 @@
       
       span {
         font-weight: 600;
-        color: #3949AB;
+        color: #4C5FD5;
         z-index: 1;
         position: relative;
       }
@@ -587,21 +590,21 @@
   // Special styling for ResNetBlock parameter sections
   &.resnetblock {
     .parameter-section-title {
-      color: #3949AB;
+      color: #4C5FD5;
       
       &::before {
-        background-color: #3949AB;
+        background-color: #4C5FD5;
       }
     }
     
     .parameter-section {
-      background-color: rgba(57, 73, 171, 0.02);
+      background-color: rgba(76, 95, 213, 0.02);
       border-radius: 8px;
       padding: 16px;
       margin-bottom: 20px;
       
       &:hover {
-        background-color: rgba(57, 73, 171, 0.04);
+        background-color: rgba(76, 95, 213, 0.04);
       }
     }
   }

@@ -151,8 +151,9 @@
 /* ResNetBlock Node */
 .resnetblock-node {
   width: 210px;
-  background: linear-gradient(135deg, #1E88E5, #0D47A1);
-  border-color: #0D47A1;
+  background: linear-gradient(135deg, #4C5FD5, #3F51B5);
+  border: 2px solid #2C3E9E;
+  box-shadow: 0 4px 12px rgba(63, 81, 181, 0.2);
   padding: 12px;
   
   .resnet-block-content {
@@ -163,7 +164,7 @@
   .resnet-block-type {
     display: inline-block;
     padding: 3px 8px;
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(255, 255, 255, 0.25);
     border-radius: 4px;
     margin-bottom: 6px;
     font-weight: 600;
@@ -190,10 +191,10 @@
       left: -10px;
       right: -10px;
       height: 3px;
-      background: rgba(255, 255, 255, 0.6);
+      background: rgba(255, 255, 255, 0.65);
       transform: translateY(-50%);
       border-radius: 1.5px;
-      box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+      box-shadow: 0 0 5px rgba(255, 255, 255, 0.4);
       
       &::before,
       &::after {
@@ -202,7 +203,7 @@
         width: 8px;
         height: 8px;
         border-radius: 50%;
-        background-color: rgba(255, 255, 255, 0.8);
+        background-color: rgba(255, 255, 255, 0.85);
         top: 50%;
         transform: translateY(-50%);
       }
@@ -222,7 +223,7 @@
       right: -5px;
       top: 50%;
       transform: translateY(-50%);
-      color: rgba(255, 255, 255, 0.9);
+      color: rgba(255, 255, 255, 0.95);
       font-size: 16px;
       font-weight: bold;
       z-index: 3;
@@ -230,31 +231,30 @@
   }
   
   &.basic-block {
-    background: linear-gradient(135deg, #3949AB, #1A237E);
-    border-color: #1A237E;
+    background: linear-gradient(135deg, #4C5FD5, #3F51B5);
+    border-color: #2C3E9E;
     
     .resnet-block-type {
-      background-color: rgba(144, 202, 249, 0.25);
+      background-color: rgba(144, 202, 249, 0.3);
     }
     
     .skip-line {
-      background: rgba(144, 202, 249, 0.7);
-      box-shadow: 0 0 5px rgba(144, 202, 249, 0.4);
+      background: rgba(144, 202, 249, 0.75);
+      box-shadow: 0 0 6px rgba(144, 202, 249, 0.5);
     }
-
   }
   
   &.bottleneck-block {
-    background: linear-gradient(135deg, #303F9F, #0D47A1);
-    border-color: #0D47A1;
+    background: linear-gradient(135deg, #5D70E9, #3F51B5);
+    border-color: #2C3E9E;
     
     .resnet-block-type {
-      background-color: rgba(255, 213, 79, 0.25);
+      background-color: rgba(255, 213, 79, 0.3);
     }
     
     .skip-line {
-      background: rgba(255, 213, 79, 0.7);
-      box-shadow: 0 0 5px rgba(255, 213, 79, 0.4);
+      background: rgba(255, 213, 79, 0.75);
+      box-shadow: 0 0 6px rgba(255, 213, 79, 0.5);
     }
   }
   
@@ -267,22 +267,24 @@
   
   // Add a special glow effect on hover to emphasize the block
   &:hover {
-    box-shadow: 0 6px 16px rgba(33, 150, 243, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(76, 95, 213, 0.4);
+    background: linear-gradient(135deg, #5D70E9, #4C5FD5);
     
     .resnet-block-type {
-      background-color: rgba(255, 255, 255, 0.3);
+      background-color: rgba(255, 255, 255, 0.35);
     }
     
     .skip-line {
       height: 4px;
-      background: rgba(255, 255, 255, 0.8);
-      box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.85);
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
       
       &::before, &::after {
         width: 10px;
         height: 10px;
         background-color: rgba(255, 255, 255, 1);
-        box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        box-shadow: 0 0 5px rgba(255, 255, 255, 0.6);
       }
     }
   }
