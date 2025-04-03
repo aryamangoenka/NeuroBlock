@@ -1227,6 +1227,23 @@
   color: #dc3545;
 }
 
+.export-status-message.pending {
+  background: linear-gradient(120deg, #cce5ff, #e6f2ff);
+  color: #004085;
+  border-left: 4px solid #0d6efd;
+}
+
+.export-status-message.pending::before {
+  content: "\f110"; /* spinner icon */
+  color: #0d6efd;
+  animation: fa-spin 2s linear infinite;
+}
+
+@keyframes fa-spin {
+  0% { transform: translateY(-50%) rotate(0deg); }
+  100% { transform: translateY(-50%) rotate(360deg); }
+}
+
 .export-status-message:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 15px rgba(0, 0, 0, 0.12);
@@ -3690,3 +3707,151 @@
 }
 
 // ... existing code ...
+
+/* GlobalAveragePool Layer Styling with ResNet connection */
+.globalaveragepool-layer {
+  background: linear-gradient(145deg, rgba(0, 150, 136, 0.15), rgba(0, 121, 107, 0.25));
+  border-left-color: #009688;
+  position: relative;
+  margin-left: 15px;
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+/* Show visual connection to ResNet */
+.globalaveragepool-layer::before {
+  content: '';
+  position: absolute;
+  left: -15px;
+  top: 50%;
+  width: 15px;
+  height: 2px;
+  background: linear-gradient(to right, #4C5FD5, #009688);
+  transform: translateY(-50%);
+}
+
+.globalaveragepool-layer::after {
+  content: "Optimal for ResNet";
+  position: absolute;
+  top: -10px;
+  right: 8px;
+  background: linear-gradient(145deg, #009688, #00796B);
+  color: white;
+  font-size: 0.65rem;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  box-shadow: 0 2px 5px rgba(0, 121, 107, 0.3);
+  animation: pulse 2s infinite ease-in-out;
+  z-index: 3;
+}
+.globalaveragepool-layer span i {
+  color: #00796B;
+}
+.globalaveragepool-layer .add-button {
+  color: #00796B;
+}
+/* Enhanced hover effect for GlobalAveragePool */
+.globalaveragepool-layer:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 8px 16px rgba(0, 150, 136, 0.25);
+}
+/* Matching pulse animation */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+}
+
+.attention-layer {
+  background: linear-gradient(145deg, rgba(103, 58, 183, 0.15), rgba(81, 45, 168, 0.25));
+  border-left-color: #673AB7;
+}
+
+/* Layer section title styling */
+.layer-section-title {
+  margin-top: 20px;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #555;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.layer-section-title i {
+  color: #4a6ee0;
+}
+
+/* Special styling for ResNet section title */
+.layer-section-title.resnet-section {
+  background: linear-gradient(to right, rgba(76, 95, 213, 0.1), transparent);
+  border-left: 3px solid #4C5FD5;
+  border-radius: 4px;
+}
+
+.layer-section-title.resnet-section i {
+  color: #4C5FD5;
+}
+
+/* ResNet section description */
+.resnet-section-description {
+  font-size: 0.85rem;
+  color: #666;
+  margin: -5px 0 12px 12px;
+  padding-left: 8px;
+  border-left: 2px dashed rgba(76, 95, 213, 0.4);
+  line-height: 1.4;
+}
+
+.resnet-section-description strong {
+  color: #4C5FD5;
+  font-weight: 600;
+}
+
+.node-parameters.maxpooling .node-type i { 
+  background: #dcfce7; 
+  color: #16a34a; 
+}
+
+.node-parameters.globalaveragepool .node-type i { 
+  background: #e0e7ff; 
+  color: #6366f1; 
+}
+
+.node-parameters.dropout .node-type i { 
+  background: #fce7f3; 
+  color: #db2777; 
+}
+
+.maxpooling-layer {
+  border-left-color: #16a34a;
+  
+  i {
+    color: #16a34a;
+  }
+}
+
+.globalaveragepool-layer {
+  border-left-color: #6366f1;
+  
+  i {
+    color: #6366f1;
+  }
+}
+
+.flatten-layer {
+  border-left-color: #FF9800;
+}

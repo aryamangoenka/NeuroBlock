@@ -5,7 +5,8 @@ import json
 import os
 import time
 from tensorflow.keras.models import Sequential, Model
-from tensorflow.keras.layers import Dense, Conv2D, Flatten, MaxPooling2D, Dropout, BatchNormalization, Input, MultiHeadAttention, Lambda, Reshape, Add, AveragePooling2D, ZeroPadding2D, Activation
+from tensorflow.keras.layers import Dense, Conv2D, Flatten, MaxPooling2D, Dropout, BatchNormalization, Input, MultiHeadAttention, Lambda, Reshape, Add, AveragePooling2D, ZeroPadding2D, Activation, GlobalAveragePooling2D
+from tensorflow.keras import backend as K  # Add this import
 from dataset_loader import load_dataset  # Import the load_dataset function
 from tensorflow.keras.callbacks import Callback
 from sklearn.metrics import confusion_matrix, mean_squared_error, r2_score
@@ -82,6 +83,142 @@ def save_model():
         # Save model architecture to a file
         with open(MODEL_ARCHITECTURE_FILE, "w") as f:
             json.dump(data, f)
+            
+        # Print ResNet model structure if ResNet blocks are present
+        nodes = data.get("nodes", [])
+        edges = data.get("edges", [])
+        resnet_blocks = [node for node in nodes if node.get("type") == "resnetblock"]
+        
+        if resnet_blocks:
+            print("\n" + "="*80)
+            print("RESNET MODEL STRUCTURE DETECTED")
+            print("="*80)
+            
+            # Create a dictionary of nodes by ID
+            nodes_by_id = {node["id"]: node for node in nodes}
+            
+            # Create an adjacency list representation of the graph
+            adjacency_list = {node["id"]: [] for node in nodes}
+            for edge in edges:
+                source_id = edge["source"]
+                target_id = edge["target"]
+                if source_id in adjacency_list:
+                    adjacency_list[source_id].append(target_id)
+            
+            # Find the input node
+            input_node = next((node for node in nodes if node["type"] == "input"), None)
+            if not input_node:
+                print("WARNING: Input node not found in the model.")
+                return jsonify({"message": "Model architecture saved successfully"}), 200
+                
+            # Print the model structure using BFS traversal
+            print("\nModel Structure (Resnet):")
+            print("-------------------------")
+            
+            visited = set()
+            queue = [(input_node["id"], 0)]  # (node_id, depth)
+            
+            while queue:
+                node_id, depth = queue.pop(0)
+                
+                if node_id in visited:
+                    continue
+                    
+                visited.add(node_id)
+                node = nodes_by_id[node_id]
+                indent = "  " * depth
+                
+                # Print node information
+                if node["type"] == "resnetblock":
+                    block_type = node["data"].get("blockType", "Basic")
+                    in_channels = node["data"].get("inChannels", 64)
+                    out_channels = node["data"].get("outChannels", 64)
+                    stride = node["data"].get("stride", [1, 1])
+                    use_skip = node["data"].get("useSkipConnection", True)
+                    downsample = node["data"].get("downsampleType", "None")
+                    
+                    print(f"{indent}ResNet {block_type} Block:")
+                    print(f"{indent}  In Channels: {in_channels}")
+                    print(f"{indent}  Out Channels: {out_channels}")
+                    print(f"{indent}  Stride: {stride}")
+                    print(f"{indent}  Skip Connection: {'Yes' if use_skip else 'No'}")
+                    if use_skip and (in_channels != out_channels or stride[0] > 1 or stride[1] > 1):
+                        print(f"{indent}  Downsample Method: {downsample}")
+                else:
+                    print(f"{indent}{node['type'].capitalize()} Layer")
+                    if node["type"] == "convolution":
+                        print(f"{indent}  Filters: {node['data'].get('filters', 'N/A')}")
+                        print(f"{indent}  Kernel Size: {node['data'].get('kernelSize', 'N/A')}")
+                    elif node["type"] == "dense":
+                        print(f"{indent}  Neurons: {node['data'].get('neurons', 'N/A')}")
+                
+                # Add children to the queue
+                for child_id in adjacency_list.get(node_id, []):
+                    queue.append((child_id, depth + 1))
+            
+            # Print additional analysis for ResNet architecture
+            print("\nResNet Architecture Analysis:")
+            print("----------------------------")
+            
+            # Count ResNet blocks by type
+            basic_blocks = sum(1 for node in resnet_blocks if node["data"].get("blockType") == "Basic")
+            bottleneck_blocks = sum(1 for node in resnet_blocks if node["data"].get("blockType") == "Bottleneck")
+            print(f"Total ResNet Blocks: {len(resnet_blocks)}")
+            print(f"  - Basic Blocks: {basic_blocks}")
+            print(f"  - Bottleneck Blocks: {bottleneck_blocks}")
+            
+            # Check for typical ResNet patterns
+            has_batch_norm = any(node["type"] == "batchnormalization" for node in nodes)
+            print(f"BatchNormalization Layers: {'Present' if has_batch_norm else 'Missing'}")
+            
+            # Calculate total parameters (approximate)
+            total_params = 0
+            for block in resnet_blocks:
+                block_type = block["data"].get("blockType", "Basic")
+                in_channels = block["data"].get("inChannels", 64)
+                out_channels = block["data"].get("outChannels", 64)
+                
+                if block_type == "Basic":
+                    # 3x3 conv: in_channels * out_channels * 3 * 3 + out_channels (bias)
+                    # 3x3 conv: out_channels * out_channels * 3 * 3 + out_channels (bias)
+                    # BatchNorm: 4 * out_channels (mean, var, gamma, beta)
+                    params = (in_channels * out_channels * 9 + out_channels) + (out_channels * out_channels * 9 + out_channels) + (4 * out_channels * 2)
+                    
+                    # Skip connection if dimensions change
+                    if in_channels != out_channels or block["data"].get("stride", [1, 1])[0] > 1:
+                        params += in_channels * out_channels + out_channels + 4 * out_channels  # 1x1 conv + BatchNorm
+                    
+                    total_params += params
+                    
+                elif block_type == "Bottleneck":
+                    bottleneck_channels = out_channels // 4
+                    # 1x1 conv: in_channels * bottleneck_channels + bottleneck_channels (bias)
+                    # 3x3 conv: bottleneck_channels * bottleneck_channels * 9 + bottleneck_channels (bias)
+                    # 1x1 conv: bottleneck_channels * out_channels + out_channels (bias)
+                    # BatchNorm: 4 * (bottleneck_channels * 2 + out_channels)
+                    params = (in_channels * bottleneck_channels + bottleneck_channels) + (bottleneck_channels * bottleneck_channels * 9 + bottleneck_channels) + (bottleneck_channels * out_channels + out_channels) + (4 * (bottleneck_channels * 2 + out_channels))
+                    
+                    # Skip connection if dimensions change
+                    if in_channels != out_channels or block["data"].get("stride", [1, 1])[0] > 1:
+                        params += in_channels * out_channels + out_channels + 4 * out_channels  # 1x1 conv + BatchNorm
+                    
+                    total_params += params
+            
+            print(f"Approximate Parameters in ResNet Blocks: {total_params:,}")
+            
+            # Detect common ResNet architectures
+            if 16 <= len(resnet_blocks) <= 18 and basic_blocks > bottleneck_blocks:
+                print("Detected Architecture: Similar to ResNet-18")
+            elif 30 <= len(resnet_blocks) <= 34 and basic_blocks > bottleneck_blocks:
+                print("Detected Architecture: Similar to ResNet-34")
+            elif 48 <= len(resnet_blocks) <= 52 and bottleneck_blocks > basic_blocks:
+                print("Detected Architecture: Similar to ResNet-50")
+            elif 100 <= len(resnet_blocks) <= 104 and bottleneck_blocks > basic_blocks:
+                print("Detected Architecture: Similar to ResNet-101")
+            elif 150 <= len(resnet_blocks) <= 154 and bottleneck_blocks > basic_blocks:
+                print("Detected Architecture: Similar to ResNet-152")
+            
+            print("="*80 + "\n")
 
         return jsonify({"message": "Model architecture saved successfully"}), 200
     except Exception as e:
@@ -430,11 +567,29 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
                             activation=None if layer_data["activation"].lower() == "none" else layer_data["activation"].lower()
                         )(input_layer)
                     elif layer_type == "maxpooling":
-                        x = MaxPooling2D(
-                            pool_size=tuple(layer_data["poolSize"]),
-                            strides=tuple(layer_data["stride"]),
-                            padding=layer_data.get("padding", "same").lower()
-                        )(input_layer)
+                        # Check for potential size issues with MaxPooling
+                        pool_size = tuple(layer_data["poolSize"])
+                        
+                        # For ResNet models, handle large pool sizes that might cause issues
+                        if has_resnet_blocks and (pool_size[0] > 3 or pool_size[1] > 3):
+                            # Use safer pooling parameters
+                            print(f"WARNING: Large pool size {pool_size} detected in ResNet model, using safer parameters")
+                            safe_pool_size = (min(pool_size[0], 3), min(pool_size[1], 3))
+                            x = MaxPooling2D(
+                                pool_size=safe_pool_size,
+                                strides=tuple(layer_data["stride"]),
+                                padding=layer_data.get("padding", "same").lower()
+                            )(input_layer)
+                        else:
+                            # Use regular pooling
+                            x = MaxPooling2D(
+                                pool_size=pool_size,
+                                strides=tuple(layer_data["stride"]),
+                                padding=layer_data.get("padding", "same").lower()
+                            )(input_layer)
+                    elif layer_type == "globalaveragepool":
+                        # Add support for Global Average Pooling
+                        x = GlobalAveragePooling2D()(input_layer)
                     elif layer_type == "flatten":
                         x = Flatten()(input_layer)
                     elif layer_type == "dropout":
@@ -475,6 +630,18 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
                                 name=f"attention_{node['id']}"
                             )(input_layer)
                     elif layer_type == "output":
+                        # For ResNet models, check if we should add a GlobalAveragePooling layer
+                        # before the output layer if there's a feature map
+                        if has_resnet_blocks and len(K.int_shape(input_layer)) > 2:
+                            # Get the shape of the input tensor
+                            input_shape = K.int_shape(input_layer)
+                            
+                            # If the input has spatial dimensions (height and width), add GlobalAveragePooling
+                            if len(input_shape) == 4 and input_shape[1] is not None and input_shape[2] is not None:
+                                print(f"Adding automatic GlobalAveragePooling2D before output for ResNet (input shape: {input_shape})")
+                                pooled = GlobalAveragePooling2D()(input_layer)
+                                input_layer = pooled
+                                
                         # Configure the output layer dynamically based on the dataset
                         output_units = determine_output_units(dataset_name)
                         activation = layer_data["activation"].lower()
@@ -546,8 +713,11 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
                     elif layer_type == "maxpooling":
                         model.add(MaxPooling2D(
                             pool_size=tuple(layer_data["poolSize"]),
-                            strides=tuple(layer_data["stride"])
+                            strides=tuple(layer_data["stride"]),
+                            padding=layer_data.get("padding", "same").lower()
                         ))
+                    elif layer_type == "globalaveragepool":
+                        model.add(GlobalAveragePooling2D())
                     elif layer_type == "flatten":
                         model.add(Flatten())
                     elif layer_type == "dropout":

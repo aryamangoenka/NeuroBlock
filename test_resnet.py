@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Dense, Conv2D, Flatten, MaxPooling2D, BatchNormalization, Input, AveragePooling2D, Add, Activation
+from tensorflow.keras.layers import Dense, Conv2D, Flatten, MaxPooling2D, BatchNormalization, Input, AveragePooling2D, Add, Activation, GlobalAveragePooling2D
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping
 
@@ -64,8 +64,7 @@ def build_resnet_basic_model():
     )
     
     # Global Average Pooling
-    x = AveragePooling2D(pool_size=(4, 4))(x)
-    x = Flatten()(x)
+    x = GlobalAveragePooling2D()(x)
     
     # Dense output layer
     outputs = Dense(10, activation='softmax')(x)
@@ -108,8 +107,7 @@ def build_resnet_bottleneck_model():
     )
     
     # Global Average Pooling
-    x = AveragePooling2D(pool_size=(4, 4))(x)
-    x = Flatten()(x)
+    x = GlobalAveragePooling2D()(x)
     
     # Dense output layer
     outputs = Dense(10, activation='softmax')(x)
@@ -152,8 +150,7 @@ def build_plain_model():
     )
     
     # Global Average Pooling
-    x = AveragePooling2D(pool_size=(4, 4))(x)
-    x = Flatten()(x)
+    x = GlobalAveragePooling2D()(x)
     
     # Dense output layer
     outputs = Dense(10, activation='softmax')(x)

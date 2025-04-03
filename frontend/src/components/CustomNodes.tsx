@@ -1,8 +1,23 @@
 import { Handle, Position } from "reactflow";
 import "../styles/components/CustomNodes.scss";
 
+// Export all node components
+export {
+  DenseNode,
+  ConvolutionNode,
+  MaxPoolingNode,
+  GlobalAveragePoolNode,
+  FlattenNode,
+  DropoutNode,
+  BatchNormalizationNode,
+  AttentionNode,
+  InputNode,
+  ResNetBlockNode,
+  OutputNode,
+};
+
 // Dense Node
-export const DenseNode = ({ data }: { data: any }) => (
+const DenseNode = ({ data }: { data: any }) => (
   <div className="custom-node dense-node">
     <Handle
       type="target"
@@ -21,7 +36,7 @@ export const DenseNode = ({ data }: { data: any }) => (
 );
 
 // Convolutional Node
-export const ConvolutionNode = ({ data }: { data: any }) => (
+const ConvolutionNode = ({ data }: { data: any }) => (
   <div className="custom-node convolution-node">
     <Handle
       type="target"
@@ -42,7 +57,7 @@ export const ConvolutionNode = ({ data }: { data: any }) => (
 );
 
 // MaxPooling Node
-export const MaxPoolingNode = ({ data }: { data: any }) => (
+const MaxPoolingNode = ({ data }: { data: any }) => (
   <div className="custom-node maxpooling-node">
     <Handle
       type="target"
@@ -61,8 +76,25 @@ export const MaxPoolingNode = ({ data }: { data: any }) => (
   </div>
 );
 
+// GlobalAveragePooling Node
+const GlobalAveragePoolNode = ({ data }: { data: any }) => (
+  <div className="custom-node globalaveragepool-node">
+    <Handle
+      type="target"
+      position={Position.Left}
+      style={{ background: "#555" }}
+    />
+    <h4>{data.label || "GlobalAveragePooling Layer"}</h4>
+    <Handle
+      type="source"
+      position={Position.Right}
+      style={{ background: "#555" }}
+    />
+  </div>
+);
+
 // Flatten Node
-export const FlattenNode = ({ data }: { data: any }) => (
+const FlattenNode = ({ data }: { data: any }) => (
   <div className="custom-node flatten-node">
     <Handle
       type="target"
@@ -79,7 +111,7 @@ export const FlattenNode = ({ data }: { data: any }) => (
 );
 
 // Dropout Node
-export const DropoutNode = ({ data }: { data: any }) => (
+const DropoutNode = ({ data }: { data: any }) => (
   <div className="custom-node dropout-node">
     <Handle
       type="target"
@@ -97,7 +129,7 @@ export const DropoutNode = ({ data }: { data: any }) => (
 );
 
 // Batch Normalization Node
-export const BatchNormalizationNode = ({ data }: { data: any }) => (
+const BatchNormalizationNode = ({ data }: { data: any }) => (
   <div className="custom-node batchnormalization-node">
     <Handle
       type="target"
@@ -116,7 +148,7 @@ export const BatchNormalizationNode = ({ data }: { data: any }) => (
 );
 
 // Attention Node
-export const AttentionNode = ({ data }: { data: any }) => (
+const AttentionNode = ({ data }: { data: any }) => (
   <div className="custom-node attention-node">
     <Handle
       type="target"
@@ -136,7 +168,7 @@ export const AttentionNode = ({ data }: { data: any }) => (
 );
 
 // Input Node
-export const InputNode = ({ data }: { data: any }) => (
+const InputNode = ({ data }: { data: any }) => (
   <div className="custom-node input-node">
     <h4>{data.label || "Input Layer"}</h4>
     <Handle
@@ -148,7 +180,7 @@ export const InputNode = ({ data }: { data: any }) => (
 );
 
 // ResNetBlock Node
-export const ResNetBlockNode = ({ data }: { data: any }) => (
+const ResNetBlockNode = ({ data }: { data: any }) => (
   <div
     className={`custom-node resnetblock-node ${
       data.blockType?.toLowerCase() || "basic"
@@ -199,7 +231,7 @@ export const ResNetBlockNode = ({ data }: { data: any }) => (
 );
 
 // Output Node
-export const OutputNode = ({ data }: { data: any }) => (
+const OutputNode = ({ data }: { data: any }) => (
   <div className="custom-node output-node">
     <Handle
       type="target"
