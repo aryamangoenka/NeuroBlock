@@ -1180,6 +1180,34 @@
   color: #F37626;
 }
 
+/* 3D View */
+.export-button.view-3d {
+  background: linear-gradient(145deg, #6366f1, #4f46e5);
+  color: white;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+  border: none;
+}
+
+.export-button.view-3d:hover:not(:disabled) {
+  background: linear-gradient(145deg, #4f46e5, #4338ca);
+  box-shadow: 0 6px 15px rgba(99, 102, 241, 0.3);
+  transform: translateY(-3px);
+}
+
+.export-button.view-3d:active:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(99, 102, 241, 0.2);
+}
+
+.export-button.view-3d i {
+  color: white;
+}
+
+.export-button.view-3d:disabled {
+  background: linear-gradient(145deg, #a5b4fc, #818cf8);
+  opacity: 0.7;
+}
+
 /* Export Status Message */
 .export-status-message {
   padding: 14px 16px;
@@ -3854,4 +3882,208 @@
 
 .flatten-layer {
   border-left-color: #FF9800;
+}
+
+.threejs-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  
+  #network-3d-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .threejs-overlay {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    z-index: 10;
+  }
+  
+  .threejs-info-overlay {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 10;
+    
+    .threejs-info {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(5px);
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      
+      .training-stat {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 6px;
+        font-size: 14px;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+        
+        span {
+          margin-right: 10px;
+          color: #64748b;
+        }
+        
+        strong {
+          color: #0f172a;
+        }
+      }
+    }
+  }
+}
+
+.visualization-info {
+  margin-top: 15px;
+  background-color: #f1f5f9;
+  border-radius: 8px;
+  padding: 12px 15px;
+  
+  p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #475569;
+    
+    i {
+      color: #3b82f6;
+      margin-right: 6px;
+    }
+  }
+}
+
+.start-visualization-btn {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+  transition: all 0.2s ease-in-out;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(124, 58, 237, 0.25);
+  }
+  
+  &:disabled {
+    background: #cbd5e1;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  
+  i {
+    font-size: 16px;
+  }
+}
+
+.save-model-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 15px;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+  transition: all 0.2s ease-in-out;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.25);
+  }
+  
+  &:disabled {
+    background: #cbd5e1;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  
+  i {
+    font-size: 16px;
+  }
+}
+
+/* 3D Network Visualization Styles */
+.network-3d-container-wrapper {
+  position: relative;
+  width: 100%;
+  height: 500px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.network-3d-container {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Visualization info */
+.visualization-info {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: rgba(52, 152, 219, 0.1);
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.visualization-info p {
+  margin: 0;
+  color: #2c3e50;
+}
+
+.visualization-info i {
+  color: #3498db;
+  margin-right: 6px;
+}
+
+/* Export buttons */
+.export-button {
+  // ... existing styles ...
+  
+  /* 3D View button styling */
+  &.view-3d {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: white;
+    
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, #4338ca, #6d28d9);
+      transform: translateY(-2px);
+    }
+    
+    &:disabled {
+      background: linear-gradient(135deg, #a5b4fc, #c4b5fd);
+      opacity: 0.7;
+    }
+  }
 }
