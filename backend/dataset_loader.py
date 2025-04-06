@@ -1,9 +1,15 @@
-from datasets.iris import load_iris_dataset
-from datasets.mnist import load_mnist_dataset
-from datasets.cifar10 import load_cifar10_dataset
-from datasets.california import load_california_housing_dataset
-from datasets.breastcancer import load_breast_cancer_dataset
+import numpy as np
+from backend.utils.logging import get_logger
+from backend.datasets.iris import load_iris_dataset
+from backend.datasets.mnist import load_mnist_dataset
+from backend.datasets.cifar10 import load_cifar10_dataset
+from backend.datasets.california import load_california_housing_dataset
+from backend.datasets.breastcancer import load_breast_cancer_dataset
 import json
+
+# Initialize logger
+logger = get_logger(__name__)
+
 DATASET_LOADERS = {
     "Iris": load_iris_dataset,
     "MNIST": load_mnist_dataset,
@@ -20,19 +26,30 @@ dataset_name=model.get("dataset")
 
 def load_dataset(dataset_name):
     """
-    Load the dataset dynamically based on the dataset name.
-
+    Load and preprocess a dataset based on its name.
+    
     Args:
-        dataset_name (str): Name of the dataset to load.
-
+        dataset_name (str): Name of the dataset to load ('Iris', 'MNIST', 'CIFAR-10', 'California Housing', 'Breast Cancer')
+        
     Returns:
-        Tuple: (x_train, y_train), (x_test, y_test)
+        tuple: ((x_train, y_train), (x_test, y_test)) - Training and test data
     """
-
-
-    if dataset_name not in DATASET_LOADERS:
-        raise ValueError(f"Dataset '{dataset_name}' is not supported.")
-    return DATASET_LOADERS[dataset_name]()
+    logger.info(f"Loading dataset: {dataset_name}")
+    
+    if dataset_name == "Iris":
+        return load_iris_dataset()
+    elif dataset_name == "MNIST":
+        return load_mnist_dataset()
+    elif dataset_name == "CIFAR-10":
+        return load_cifar10_dataset()
+    elif dataset_name == "California Housing":
+        return load_california_housing_dataset()
+    elif dataset_name == "Breast Cancer":
+        return load_breast_cancer_dataset()
+    else:
+        error_msg = f"Unknown dataset: {dataset_name}. Only 'Iris', 'MNIST', 'CIFAR-10', 'California Housing', and 'Breast Cancer' are supported."
+        logger.error(error_msg)
+        raise ValueError(error_msg)
 
 if __name__ == "__main__":
     (x_train, y_train), (x_test, y_test) = load_dataset(dataset_name)

@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "dnd-neural-network"
+version = "0.1.0"
+description = "A drag-and-drop neural network builder"
+authors = ["Your Name <your.email@example.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.12"
+flask = "^3.1.0"
+flask-cors = "^5.0.1"
+flask-socketio = "^5.5.1"
+tensorflow = "^2.15.0"
+scikit-learn = "^1.6.1"
+numpy = "^1.26.0"
+pandas = "^2.2.3"
+matplotlib = "^3.10.1"
+seaborn = "^0.13.2"
+python-socketio = {extras = ["client"], version = "^5.12.1"}
+torch = "^2.6.0"
+eventlet = "^0.39.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.5"
+pytest-cov = "^6.1.1"
+pytest-mock = "^3.14.0"
+mock = "^5.2.0"
+coverage = "^7.8.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
