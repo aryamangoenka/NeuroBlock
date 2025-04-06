@@ -4108,18 +4108,6 @@ const NewBuildPage = (): JSX.Element => {
     }
   };
 
-  // Function to navigate to 3D visualization page
-  const handleOpen3DView = () => {
-    navigate("/network3d", {
-      state: {
-        nodes,
-        edges,
-        trainingProgress,
-        isTraining,
-      },
-    });
-  };
-
   return (
     <div className="new-build-page">
       <div className="new-build-container">
@@ -4341,16 +4329,6 @@ const NewBuildPage = (): JSX.Element => {
                 title="Export as Jupyter Notebook with model code and visualization"
               >
                 <i className="fas fa-book"></i> Notebook
-              </button>
-
-              {/* 3D View button */}
-              <button
-                className="export-button view-3d"
-                disabled={nodes.length === 0}
-                onClick={handleOpen3DView}
-                title="Open 3D neural network visualization in a dedicated view"
-              >
-                <i className="fas fa-cube"></i> 3D View
               </button>
             </div>
 

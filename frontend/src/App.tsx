@@ -2,7 +2,6 @@ import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import NewBuildPage from "./pages/NewBuildPage";
 import TutorialPage from "./pages/TutorialPage";
-import Network3DPage from "./pages/Network3DPage";
 import NavBar from "./components/NavBar";
 import axios from "axios";
 
@@ -34,7 +33,6 @@ const AppContent: React.FC = () => {
         <Routes>
           <Route path="/newbuild" element={<NewBuildPage />} />
           <Route path="/tutorial" element={<TutorialPage />} />
-          <Route path="/network3d" element={<Network3DPage />} />
           <Route path="*" element={<Navigate to="/newbuild" replace />} />
         </Routes>
       </div>
