@@ -60,8 +60,84 @@ Developing neural networks can be complex and time-consuming, especially for beg
 - **Node.js:** Latest LTS version (18.x or later)
 - **npm:** Latest version (comes with Node.js)
 - **pip:** Python package installer
+- **Poetry:** Python dependency management tool (recommended)
 
 ### 2. **Backend Setup (Flask)**
+
+#### Option 1: Using Poetry (Recommended)
+
+```bash
+# Clone the repository
+git clone https://github.com/aryamangoenka/dnd-neural-network.git
+cd dnd-neural-network
+
+# Install Poetry if you don't have it already
+# For macOS/Linux/WSL:
+curl -sSL https://install.python-poetry.org | python3 -
+
+# For Windows PowerShell:
+# (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
+
+# Install dependencies using Poetry
+poetry install
+
+# Run the Flask server using the provided script
+chmod +x ./run_backend.sh  # Make the script executable (macOS/Linux only)
+./run_backend.sh
+```
+
+The `run_backend.sh` script automatically:
+- Sets the correct Python path to ensure imports work properly
+- Activates the Poetry virtual environment
+- Runs the Flask server with the proper configuration
+
+#### About run_backend.sh
+
+The `run_backend.sh` is a convenience script that simplifies starting the backend server. It handles several important tasks:
+
+```bash
+#!/bin/bash
+cd "$(dirname "$0")"                     # Change to the directory containing the script
+export PYTHONPATH="$PYTHONPATH:$(pwd)"   # Add the current directory to Python path
+poetry run python -m backend.main        # Run the backend through Poetry's environment
+```
+
+This script ensures:
+1. The proper Python module paths are set up
+2. The application runs in the Poetry-managed virtual environment
+3. You don't need to manually activate the virtual environment
+4. The backend server starts with consistent configuration
+
+#### Why Poetry?
+
+Poetry offers several advantages over traditional Python package management:
+
+- **Dependency Resolution**: Poetry automatically resolves dependencies and their versions to avoid conflicts.
+- **Reproducible Environments**: The `poetry.lock` file ensures everyone uses the exact same dependency versions.
+- **Virtual Environment Management**: Poetry automatically creates and manages virtual environments for your projects.
+- **Simple Commands**: Poetry simplifies commands for installing, updating, and managing packages.
+- **Project Isolation**: Each project's dependencies are isolated, preventing conflicts between different projects.
+
+#### Managing Dependencies with Poetry
+
+```bash
+# Add a new dependency
+poetry add package-name
+
+# Add a development dependency
+poetry add --dev package-name
+
+# Update all dependencies
+poetry update
+
+# Show currently installed packages
+poetry show
+
+# Activate the virtual environment shell
+poetry shell
+```
+
+#### Option 2: Using pip and venv
 
 ```bash
 # Clone the repository
@@ -83,9 +159,6 @@ python3 main.py
 ### 3. **Frontend Setup (React)**
 
 ```bash
-# Activate the virtual environment (if not already active)
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
 # Navigate to the frontend directory
 cd frontend
 
@@ -116,6 +189,48 @@ npm run dev
 The project includes comprehensive unit tests to ensure reliability and correct functionality. Tests cover model building, API endpoints, WebSocket communication, and ResNet functionality.
 
 ### Running Tests
+
+#### Option 1: Using Poetry (Recommended)
+
+```bash
+# Run tests with the provided script
+chmod +x ./run_tests.sh  # Make the script executable (macOS/Linux only)
+./run_tests.sh
+```
+
+The `run_tests.sh` script automatically:
+- Sets the correct Python path
+- Activates the Poetry virtual environment
+- Runs the test suite with proper configuration
+
+You can also pass additional options to the test runner:
+
+```bash
+# Run tests with verbose output
+./run_tests.sh -v
+
+# Generate HTML coverage reports
+./run_tests.sh --html
+```
+
+#### About run_tests.sh
+
+The `run_tests.sh` is a convenience script that simplifies running tests:
+
+```bash
+#!/bin/bash
+cd "$(dirname "$0")"                     # Change to the directory containing the script
+export PYTHONPATH="$PYTHONPATH:$(pwd)"   # Add the current directory to Python path
+poetry run python -m backend.run_tests "$@"  # Run tests through Poetry's environment with any arguments passed
+```
+
+This script ensures:
+1. Tests run in the Poetry-managed virtual environment
+2. The proper Python module paths are set up
+3. Command-line arguments are passed to the test runner
+4. Tests are run with consistent configuration
+
+#### Option 2: Using venv
 
 To run all tests with coverage reporting:
 
@@ -210,6 +325,7 @@ It's recommended to run tests before committing changes to ensure all functional
 - **React Flow:** For providing the core drag-and-drop functionality.
 - **TensorFlow/Keras:** For model building and training.
 - **Flask-SocketIO:** For real-time communication.
+- **Poetry:** For Python dependency management.
 - I would like to thank My Prof. Cooper Sigrist for his mentorship and guidance in this project
 - Inspiration from existing neural network visual builders and educational tools.
 
@@ -222,4 +338,3 @@ This project is licensed under the **MIT License**.
 ```
 MIT License
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software...
-```
