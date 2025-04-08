@@ -401,6 +401,56 @@ const NewBuildPage = (): JSX.Element => {
     };
   }, []);
 
+  // Listen for changes to isTraining and selectedDataset and emit events
+  useEffect(() => {
+    const event = new CustomEvent("trainingStateChange", {
+      detail: { isTraining },
+    });
+    window.dispatchEvent(event);
+  }, [isTraining]);
+
+  useEffect(() => {
+    const event = new CustomEvent("datasetChange", {
+      detail: { dataset: selectedDataset },
+    });
+    window.dispatchEvent(event);
+  }, [selectedDataset]);
+
+  // Add an event listener for the train model event
+  useEffect(() => {
+    const trainModelHandler = () => {
+      // Only start training if there's a dataset selected and we're not already training
+      if (selectedDataset && !isTraining) {
+        handleStartTraining();
+      } else if (!selectedDataset) {
+        alert("No dataset selected! Please select a dataset before training.");
+      }
+    };
+
+    window.addEventListener("trainModel", trainModelHandler);
+
+    // Cleanup function
+    return () => {
+      window.removeEventListener("trainModel", trainModelHandler);
+    };
+  }, [selectedDataset, isTraining]);
+
+  // Listen for stop training event from NavBar
+  useEffect(() => {
+    const stopTrainingHandler = () => {
+      if (isTraining) {
+        handleStopTraining();
+      }
+    };
+
+    window.addEventListener("stopTraining", stopTrainingHandler);
+
+    // Cleanup function
+    return () => {
+      window.removeEventListener("stopTraining", stopTrainingHandler);
+    };
+  }, [isTraining]);
+
   // Function to normalize dataset name for the backend
   const normalizeDatasetName = (datasetName: string): string => {
     // Convert dataset names to lowercase and replace spaces with underscores
@@ -4230,36 +4280,15 @@ const NewBuildPage = (): JSX.Element => {
               {/* Any training info that should remain in the right panel */}
             </div>
 
-            {/* Add save and train buttons next to each other */}
-            <div className="action-buttons-container">
-              <button
-                className="save-button"
-                onClick={handleSaveModel}
-                disabled={isTraining}
-              >
-                <i className="fas fa-save"></i> Save Model
-              </button>
-              <button
-                className="train-button"
-                disabled={!selectedDataset || isTraining}
-                onClick={handleStartTraining}
-              >
-                {isTraining ? (
-                  <>
-                    <span className="spinner"></span> Training...
-                  </>
-                ) : (
-                  "Train Model"
-                )}
-              </button>
+            {/* Training controls (train button moved to navbar) */}
+            <div className="training-controls">
+              {/* Stop training button (only shown when training) */}
+              {isTraining && (
+                <button className="stop-button" onClick={handleStopTraining}>
+                  <i className="fas fa-stop-circle"></i> Stop Training
+                </button>
+              )}
             </div>
-
-            {/* Stop training button (only shown when training) */}
-            {isTraining && (
-              <button className="stop-button" onClick={handleStopTraining}>
-                <i className="fas fa-stop-circle"></i> Stop Training
-              </button>
-            )}
           </div>
 
           <div className="visualization-section">

@@ -145,6 +145,118 @@
     font-size: 1rem;
 }
 
+.save-model-button {
+    background: linear-gradient(to bottom, #0d6efd, #0a58ca);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.save-model-button:hover {
+    background: linear-gradient(to bottom, #0a58ca, #084298);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+.save-model-button i {
+    font-size: 1rem;
+}
+
+.train-button-red {
+    background: #dc2626; /* bg-red-600 equivalent */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+}
+
+.train-button-red:hover {
+    background: #b91c1c; /* hover:bg-red-700 equivalent */
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(220, 38, 38, 0.3);
+}
+
+.train-button-red i {
+    font-size: 1rem;
+}
+
+.train-button-red:disabled {
+    background: #9ca3af; /* Gray color when disabled */
+    cursor: not-allowed;
+    opacity: 0.7;
+    transform: none;
+    box-shadow: none;
+}
+
+.train-button-red.training {
+    background: #b91c1c; /* Darker red when training */
+    box-shadow: 0 0 8px rgba(220, 38, 38, 0.5);
+}
+
+.train-button-red .fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.stop-button-red {
+    background: #ef4444; /* Bright red */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+}
+
+.stop-button-red:hover:not(:disabled) {
+    background: #dc2626; /* Darker red on hover */
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(239, 68, 68, 0.3);
+}
+
+.stop-button-red i {
+    font-size: 1rem;
+}
+
+.stop-button-red:disabled, .stop-button-red.disabled {
+    background: #9ca3af; /* Gray color when disabled */
+    cursor: not-allowed;
+    opacity: 0.7;
+    transform: none;
+    box-shadow: none;
+}
+
 /* Responsive Adjustments */
 
 @media (max-width: 768px) {
@@ -162,6 +274,14 @@
     }
     
     .tutorial-button span {
+        display: none;
+    }
+    
+    .save-model-button span {
+        display: none;
+    }
+    
+    .train-button-red span {
         display: none;
     }
 }
