@@ -20,6 +20,35 @@ const triggerStopTraining = () => {
   window.dispatchEvent(event);
 };
 
+// Function to check if dataset is properly selected
+const checkDatasetSelected = () => {
+  // This will return a promise that resolves with true/false
+  return new Promise((resolve) => {
+    console.log("Checking if dataset is properly selected...");
+
+    // Create and dispatch an event to check dataset
+    const checkEvent = new CustomEvent("checkDatasetSelected", {
+      detail: {
+        callback: (hasDataset: boolean, datasetName: string) => {
+          console.log(
+            `Dataset check result: ${hasDataset}, dataset: ${datasetName}`
+          );
+          resolve(hasDataset);
+        },
+      },
+    });
+
+    console.log("Dispatching checkDatasetSelected event");
+    window.dispatchEvent(checkEvent);
+
+    // Set a timeout in case the event isn't handled
+    setTimeout(() => {
+      console.warn("Dataset check timed out");
+      resolve(false);
+    }, 500);
+  });
+};
+
 const NavBar: React.FC = () => {
   const [isTraining, setIsTraining] = useState<boolean>(false);
   const [hasSelectedDataset, setHasSelectedDataset] = useState<boolean>(false);
@@ -31,7 +60,14 @@ const NavBar: React.FC = () => {
     };
 
     const handleDatasetChange = (event: CustomEvent) => {
-      setHasSelectedDataset(!!event.detail.dataset);
+      const datasetName = event.detail.dataset;
+      console.log("Dataset change event received in NavBar:", datasetName);
+
+      // Only set true if the dataset name is not empty
+      const hasDataset = !!datasetName && datasetName.trim() !== "";
+      console.log("Setting hasSelectedDataset to:", hasDataset);
+
+      setHasSelectedDataset(hasDataset);
     };
 
     window.addEventListener(
@@ -55,12 +91,44 @@ const NavBar: React.FC = () => {
     };
   }, []);
 
-  const handleSaveModelClick = () => {
-    triggerSaveModel();
+  const handleSaveModelClick = async () => {
+    console.log(
+      "Save button clicked. Current hasSelectedDataset state:",
+      hasSelectedDataset
+    );
+
+    // Double-check dataset selection from the context directly
+    const datasetConfirmed = await checkDatasetSelected();
+    console.log("Dataset confirmed from NewBuildPage:", datasetConfirmed);
+
+    if (!datasetConfirmed) {
+      console.warn("Dataset not detected when trying to save");
+      alert(
+        "No dataset selected! Please select a dataset in the Settings tab before saving."
+      );
+      return;
+    }
+
+    // At this point we're confident the model has a dataset selected
+    console.log("Dataset is selected, triggering save model event");
+
+    // Use a custom event that includes diagnostic info
+    const event = new CustomEvent("saveModel", {
+      detail: {
+        source: "NavBar",
+        timestamp: new Date().toISOString(),
+      },
+    });
+    window.dispatchEvent(event);
   };
 
   const handleTrainModelClick = () => {
-    if (hasSelectedDataset && !isTraining) {
+    if (!hasSelectedDataset) {
+      alert("No dataset selected! Please select a dataset before training.");
+      return;
+    }
+
+    if (!isTraining) {
       triggerTrainModel();
     }
   };
@@ -109,7 +177,7 @@ const NavBar: React.FC = () => {
                 : "Train your model"
             }
             onClick={handleTrainModelClick}
-            disabled={!hasSelectedDataset || isTraining}
+            disabled={isTraining}
           >
             {isTraining ? (
               <>

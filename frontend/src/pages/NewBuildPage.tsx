@@ -387,19 +387,10 @@ const NewBuildPage = (): JSX.Element => {
     };
   }, []);
 
-  // Add an event listener for the save model event
+  // Debug log for selectedDataset changes
   useEffect(() => {
-    const saveModelHandler = () => {
-      handleSaveModel();
-    };
-
-    window.addEventListener("saveModel", saveModelHandler);
-
-    // Cleanup function
-    return () => {
-      window.removeEventListener("saveModel", saveModelHandler);
-    };
-  }, []);
+    console.log("Selected dataset changed to:", selectedDataset || "none");
+  }, [selectedDataset]);
 
   // Listen for changes to isTraining and selectedDataset and emit events
   useEffect(() => {
@@ -410,46 +401,192 @@ const NewBuildPage = (): JSX.Element => {
   }, [isTraining]);
 
   useEffect(() => {
+    console.log("Dataset changed in NewBuildPage:", selectedDataset);
+
     const event = new CustomEvent("datasetChange", {
       detail: { dataset: selectedDataset },
     });
+
+    console.log("Dispatching datasetChange event with data:", event.detail);
     window.dispatchEvent(event);
   }, [selectedDataset]);
 
-  // Add an event listener for the train model event
+  // Add event listener for dataset selection check
   useEffect(() => {
-    const trainModelHandler = () => {
-      // Only start training if there's a dataset selected and we're not already training
-      if (selectedDataset && !isTraining) {
-        handleStartTraining();
-      } else if (!selectedDataset) {
-        alert("No dataset selected! Please select a dataset before training.");
+    const handleCheckDataset = (event: CustomEvent) => {
+      console.log("Received checkDatasetSelected event");
+      const callback = event.detail.callback;
+
+      // Make a comprehensive check
+      const hasDataset = !!selectedDataset && selectedDataset.trim() !== "";
+      console.log("Current dataset state:", {
+        selectedDataset,
+        hasDataset,
+        numberOfNodes: nodes.length,
+        numberOfEdges: edges.length,
+        modelIsReady: hasDataset && nodes.length >= 2 && edges.length > 0,
+      });
+
+      if (typeof callback === "function") {
+        // Pass back both the boolean result and the dataset name
+        callback(hasDataset, selectedDataset || "none");
       }
     };
 
-    window.addEventListener("trainModel", trainModelHandler);
+    window.addEventListener(
+      "checkDatasetSelected",
+      handleCheckDataset as EventListener
+    );
 
-    // Cleanup function
     return () => {
-      window.removeEventListener("trainModel", trainModelHandler);
+      window.removeEventListener(
+        "checkDatasetSelected",
+        handleCheckDataset as EventListener
+      );
     };
-  }, [selectedDataset, isTraining]);
+  }, [selectedDataset, nodes, edges]);
 
-  // Listen for stop training event from NavBar
+  // Add an event listener for the save model event
   useEffect(() => {
-    const stopTrainingHandler = () => {
-      if (isTraining) {
-        handleStopTraining();
+    const saveModelHandler = (event: CustomEvent) => {
+      // Log detailed diagnostic information
+      const eventDetails = event.detail || {
+        source: "unknown",
+        timestamp: new Date().toISOString(),
+      };
+      console.log(
+        `Save model event received in NewBuildPage at ${new Date().toISOString()}.`,
+        {
+          eventSource: eventDetails.source,
+          eventTimestamp: eventDetails.timestamp,
+          timeDifference: eventDetails.timestamp
+            ? new Date().getTime() - new Date(eventDetails.timestamp).getTime()
+            : "unknown",
+          currentDataset: selectedDataset,
+          hasDataset: !!selectedDataset && selectedDataset.trim() !== "",
+          modelState: {
+            nodes: nodes.length,
+            edges: edges.length,
+            hasInputLayer: nodes.some((node) => node.type === "input"),
+            hasOutputLayer: nodes.some((node) => node.type === "output"),
+          },
+        }
+      );
+
+      if (!selectedDataset || selectedDataset === "") {
+        console.error("Error: No dataset selected when trying to save");
+        alert("No dataset selected! Please select a dataset before saving.");
+        return;
       }
+
+      // Pre-validate to check if there are any issues
+      const validationIssues = preValidateModel();
+      if (validationIssues) {
+        console.warn("Pre-validation failed:", validationIssues);
+        alert(`Cannot save model: ${validationIssues}`);
+        return;
+      }
+
+      console.log("Dataset is selected, proceeding with save");
+      handleSaveModel();
     };
 
-    window.addEventListener("stopTraining", stopTrainingHandler);
+    window.addEventListener("saveModel", saveModelHandler as EventListener);
 
     // Cleanup function
     return () => {
-      window.removeEventListener("stopTraining", stopTrainingHandler);
+      window.removeEventListener(
+        "saveModel",
+        saveModelHandler as EventListener
+      );
     };
-  }, [isTraining]);
+  }, [selectedDataset, nodes, edges]); // Include all relevant dependencies
+
+  // Pre-validation to check basic requirements before attempting to save or train
+  const preValidateModel = (): string | null => {
+    console.log("Pre-validating model");
+
+    // Check if dataset is selected
+    if (!selectedDataset) {
+      return "Please select a dataset first";
+    }
+
+    // Check if we have nodes
+    if (nodes.length < 2) {
+      return "Your model needs at least an input and output layer";
+    }
+
+    // Check if input and output layers exist
+    const inputLayer = nodes.find((node) => node.type === "input");
+    const outputLayer = nodes.find((node) => node.type === "output");
+
+    if (!inputLayer) {
+      return "Your model needs an input layer";
+    }
+
+    if (!outputLayer) {
+      return "Your model needs an output layer";
+    }
+
+    // Check connections
+    if (edges.length === 0) {
+      return "Your model needs connections between layers";
+    }
+
+    // Check if input is connected
+    const isInputConnected = edges.some(
+      (edge) => edge.source === inputLayer.id
+    );
+    if (!isInputConnected) {
+      return "Input layer must be connected to other layers";
+    }
+
+    // Check if output is connected
+    const isOutputConnected = edges.some(
+      (edge) => edge.target === outputLayer.id
+    );
+    if (!isOutputConnected) {
+      return "Output layer must be connected to other layers";
+    }
+
+    // Check for disconnected nodes
+    const connectedNodeIds = new Set<string>();
+    edges.forEach((edge) => {
+      connectedNodeIds.add(edge.source);
+      connectedNodeIds.add(edge.target);
+    });
+
+    const disconnectedNodes = nodes.filter(
+      (node) => !connectedNodeIds.has(node.id)
+    );
+    if (disconnectedNodes.length > 0) {
+      return `Some layers are disconnected: ${disconnectedNodes
+        .map((n) => n.id)
+        .join(", ")}`;
+    }
+
+    // For regression datasets, ensure output activation is appropriate
+    if (selectedDataset === "California Housing" && outputLayer) {
+      if (outputLayer.data?.activation === "Softmax") {
+        return "Regression tasks should not use Softmax activation in the output layer";
+      }
+    }
+
+    // For classification datasets, ensure output activation is appropriate
+    if (
+      (selectedDataset === "MNIST" ||
+        selectedDataset === "CIFAR-10" ||
+        selectedDataset === "Iris" ||
+        selectedDataset === "Breast Cancer") &&
+      outputLayer &&
+      outputLayer.data?.activation !== "Softmax"
+    ) {
+      return "Classification tasks should use Softmax activation in the output layer";
+    }
+
+    console.log("Basic pre-validation passed");
+    return null;
+  };
 
   // Function to normalize dataset name for the backend
   const normalizeDatasetName = (datasetName: string): string => {
@@ -497,17 +634,44 @@ const NewBuildPage = (): JSX.Element => {
 
   // Function to handle saving the model
   const handleSaveModel = async (): Promise<void> => {
-    // Check if dataset is selected
-    if (!selectedDataset) {
+    console.log(
+      "handleSaveModel called. Current selectedDataset:",
+      selectedDataset
+    );
+
+    // Double check if dataset is selected
+    if (!selectedDataset || selectedDataset.trim() === "") {
+      console.error("Error: No dataset selected in handleSaveModel");
       alert("No dataset selected! Please select a dataset before saving.");
       return;
     }
 
-    // Validate the model architecture
+    // Get validation issues but don't block saving on warnings
     const errors = validateLayerParameters();
-    if (errors.length > 0) {
+    console.log("Validation results:", errors);
+
+    // Filter critical errors (those marked with [Critical])
+    const criticalErrors = errors.filter((error) =>
+      error.includes("[Critical]")
+    );
+
+    // Filter warnings and suggestions
+    const warnings = errors.filter((error) => !error.includes("[Critical]"));
+
+    if (criticalErrors.length > 0) {
+      console.warn("Critical validation errors found:", criticalErrors);
       setValidationErrors(errors);
       displayValidationErrors(errors);
+
+      // Show only critical errors in the alert, without the [Critical] prefix
+      const formattedErrors = criticalErrors.map((err) =>
+        err.replace("[Critical] ", "")
+      );
+      alert(
+        `Cannot save model due to critical issues:\n${formattedErrors.join(
+          "\n"
+        )}`
+      );
       return;
     }
 
@@ -604,11 +768,11 @@ const NewBuildPage = (): JSX.Element => {
 
   // Start training the model
   const handleStartTraining = async () => {
-    // Validate the model architecture
-    const errors = validateLayerParameters();
-    if (errors.length > 0) {
-      setValidationErrors(errors);
-      displayValidationErrors(errors);
+    // Skip full validation and just check critical requirements using preValidateModel
+    const validationIssue = preValidateModel();
+    if (validationIssue) {
+      console.warn("Cannot start training:", validationIssue);
+      alert(`Cannot start training: ${validationIssue}`);
       return;
     }
 
@@ -1222,13 +1386,17 @@ const NewBuildPage = (): JSX.Element => {
 
     // Check if dataset is selected
     if (!selectedDataset) {
-      errors.push("Please select a dataset before saving or training");
+      errors.push(
+        "[Critical] Please select a dataset before saving or training"
+      );
       return errors;
     }
 
     // Check if there are at least two nodes (input and output)
     if (nodes.length < 2) {
-      errors.push("Model must have at least input and output layers");
+      errors.push(
+        "[Critical] Model must have at least input and output layers"
+      );
       return errors;
     }
 
@@ -1238,7 +1406,7 @@ const NewBuildPage = (): JSX.Element => {
 
     // Check if input layer exists
     if (!inputLayer) {
-      errors.push("Model must have an input layer");
+      errors.push("[Critical] Model must have an input layer");
     } else {
       // Check if input layer is connected
       const isInputConnected = edges.some(
@@ -1246,14 +1414,14 @@ const NewBuildPage = (): JSX.Element => {
       );
       if (!isInputConnected) {
         errors.push(
-          `Input layer ${inputLayer.id} must have at least one outgoing connection`
+          `[Critical] Input layer ${inputLayer.id} must have at least one outgoing connection`
         );
       }
     }
 
     // Check if output layer exists
     if (!outputLayer) {
-      errors.push("Model must have an output layer");
+      errors.push("[Critical] Model must have an output layer");
     } else {
       // Check if output layer is connected
       const isOutputConnected = edges.some(
@@ -1261,7 +1429,7 @@ const NewBuildPage = (): JSX.Element => {
       );
       if (!isOutputConnected) {
         errors.push(
-          `Output layer ${outputLayer.id} must have at least one incoming connection`
+          `[Critical] Output layer ${outputLayer.id} must have at least one incoming connection`
         );
       }
     }
@@ -1281,7 +1449,7 @@ const NewBuildPage = (): JSX.Element => {
     );
     if (disconnectedNodes.length > 0) {
       errors.push(
-        `The following layers are disconnected: ${disconnectedNodes
+        `[Critical] The following layers are disconnected: ${disconnectedNodes
           .map((node) => node.id)
           .join(", ")}`
       );
@@ -2667,7 +2835,21 @@ const NewBuildPage = (): JSX.Element => {
                 <div className="training-card-body">
                   <select
                     value={selectedDataset}
-                    onChange={(e) => setSelectedDataset(e.target.value)}
+                    onChange={(e) => {
+                      const newDataset = e.target.value;
+                      console.log(
+                        "Selected dataset from dropdown:",
+                        newDataset
+                      );
+                      setSelectedDataset(newDataset);
+
+                      // Manually trigger a dataset change event
+                      const event = new CustomEvent("datasetChange", {
+                        detail: { dataset: newDataset },
+                      });
+                      console.log("Manually dispatching datasetChange event");
+                      window.dispatchEvent(event);
+                    }}
                     className="dataset-select"
                   >
                     <option value="">Select Dataset</option>
@@ -4157,6 +4339,58 @@ const NewBuildPage = (): JSX.Element => {
       }, 5000);
     }
   };
+
+  // Add an event listener for the train model event
+  useEffect(() => {
+    const trainModelHandler = () => {
+      // Quick check for dataset selection
+      if (!selectedDataset) {
+        alert("No dataset selected! Please select a dataset before training.");
+        return;
+      }
+
+      // Check if already training
+      if (isTraining) {
+        console.log("Already training, ignoring train request");
+        return;
+      }
+
+      // Do basic pre-validation
+      const validationIssue = preValidateModel();
+      if (validationIssue) {
+        console.warn("Cannot start training:", validationIssue);
+        alert(`Cannot start training: ${validationIssue}`);
+        return;
+      }
+
+      // Proceed with training
+      console.log("All validation passed, starting training...");
+      handleStartTraining();
+    };
+
+    window.addEventListener("trainModel", trainModelHandler);
+
+    // Cleanup function
+    return () => {
+      window.removeEventListener("trainModel", trainModelHandler);
+    };
+  }, [selectedDataset, isTraining, nodes, edges]); // Include relevant dependencies
+
+  // Listen for stop training event from NavBar
+  useEffect(() => {
+    const stopTrainingHandler = () => {
+      if (isTraining) {
+        handleStopTraining();
+      }
+    };
+
+    window.addEventListener("stopTraining", stopTrainingHandler);
+
+    // Cleanup function
+    return () => {
+      window.removeEventListener("stopTraining", stopTrainingHandler);
+    };
+  }, [isTraining]);
 
   return (
     <div className="new-build-page">
