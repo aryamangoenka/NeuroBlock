@@ -4392,6 +4392,30 @@ const NewBuildPage = (): JSX.Element => {
     };
   }, [isTraining]);
 
+  // Listen for export model event from NavBar
+  useEffect(() => {
+    const exportModelHandler = (event: CustomEvent) => {
+      const format = event.detail?.format;
+      if (!format) {
+        console.error("Export format not specified");
+        return;
+      }
+
+      console.log(`Export model event received with format: ${format}`);
+      handleExport(format);
+    };
+
+    window.addEventListener("exportModel", exportModelHandler as EventListener);
+
+    // Cleanup function
+    return () => {
+      window.removeEventListener(
+        "exportModel",
+        exportModelHandler as EventListener
+      );
+    };
+  }, [selectedDataset, isModelSaved, isTraining]);
+
   return (
     <div className="new-build-page">
       <div className="new-build-container">

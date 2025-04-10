@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { NavLink } from "react-router-dom";
 import "../styles/components/NavBar.scss";
 
@@ -17,6 +17,14 @@ const triggerTrainModel = () => {
 // Define a custom event for stopping the training
 const triggerStopTraining = () => {
   const event = new CustomEvent("stopTraining");
+  window.dispatchEvent(event);
+};
+
+// Define a custom event for exporting the model
+const triggerExportModel = (format: string) => {
+  const event = new CustomEvent("exportModel", {
+    detail: { format },
+  });
   window.dispatchEvent(event);
 };
 
@@ -52,6 +60,8 @@ const checkDatasetSelected = () => {
 const NavBar: React.FC = () => {
   const [isTraining, setIsTraining] = useState<boolean>(false);
   const [hasSelectedDataset, setHasSelectedDataset] = useState<boolean>(false);
+  const [exportDropdownOpen, setExportDropdownOpen] = useState<boolean>(false);
+  const exportDropdownRef = useRef<HTMLDivElement>(null);
 
   // Listen for training state changes
   useEffect(() => {
@@ -88,6 +98,23 @@ const NavBar: React.FC = () => {
         "datasetChange",
         handleDatasetChange as EventListener
       );
+    };
+  }, []);
+
+  // Listen for export model event
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        exportDropdownRef.current &&
+        !exportDropdownRef.current.contains(event.target as Node)
+      ) {
+        setExportDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -137,6 +164,20 @@ const NavBar: React.FC = () => {
     if (isTraining) {
       triggerStopTraining();
     }
+  };
+
+  const handleExportClick = (format: string) => {
+    if (!hasSelectedDataset) {
+      alert("No dataset selected! Please select a dataset before exporting.");
+      return;
+    }
+
+    triggerExportModel(format);
+    setExportDropdownOpen(false);
+  };
+
+  const toggleExportDropdown = () => {
+    setExportDropdownOpen(!exportDropdownOpen);
   };
 
   return (
@@ -205,6 +246,61 @@ const NavBar: React.FC = () => {
             <i className="fas fa-stop-circle"></i>
             <span>Stop</span>
           </button>
+
+          <div
+            className="export-dropdown-container ms-3"
+            ref={exportDropdownRef}
+          >
+            <button
+              className="export-button-black"
+              title="Export your model"
+              onClick={toggleExportDropdown}
+              disabled={isTraining}
+            >
+              <i className="fas fa-file-export"></i>
+              <span>Export</span>
+              <i
+                className={`fas fa-caret-down ms-1 ${
+                  exportDropdownOpen ? "dropdown-open" : ""
+                }`}
+              ></i>
+            </button>
+
+            {exportDropdownOpen && (
+              <div className="export-dropdown">
+                <button
+                  onClick={() => handleExportClick("py")}
+                  className="export-option"
+                >
+                  <i className="fab fa-python"></i> Python
+                </button>
+                <button
+                  onClick={() => handleExportClick("keras")}
+                  className="export-option"
+                >
+                  <i className="fas fa-cube"></i> Keras
+                </button>
+                <button
+                  onClick={() => handleExportClick("pytorch")}
+                  className="export-option"
+                >
+                  <i className="fas fa-fire"></i> PyTorch
+                </button>
+                <button
+                  onClick={() => handleExportClick("savedmodel")}
+                  className="export-option"
+                >
+                  <i className="fas fa-save"></i> SavedModel
+                </button>
+                <button
+                  onClick={() => handleExportClick("ipynb")}
+                  className="export-option"
+                >
+                  <i className="fas fa-book"></i> Notebook
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </nav>

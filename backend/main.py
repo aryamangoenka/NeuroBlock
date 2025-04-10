@@ -26,7 +26,7 @@ register_routes(app)
 register_socket_events(socketio)
 
 # Ensure export folder exists
-EXPORT_FOLDER = "exports"
+EXPORT_FOLDER = "export"
 os.makedirs(EXPORT_FOLDER, exist_ok=True)
 
 logger.info("Application initialized", extra={"context": {"export_folder": EXPORT_FOLDER}})

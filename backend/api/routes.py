@@ -138,27 +138,66 @@ def register_routes(app):
         """
         logger.info(f"Export model endpoint called for format: {format}")
         try:
-            # Load the latest trained model, not the dummy one
-            if not os.path.exists(TRAINED_MODEL_PATH):
-                logger.warning("No trained model found for export")
-                return jsonify({"error": "No trained model found. Please train the model first."}), 400
-
-            # Enable unsafe deserialization for Lambda layers
-            tf.keras.config.enable_unsafe_deserialization()
+            # Make sure the export directory exists
+            os.makedirs(EXPORT_FOLDER, exist_ok=True)
             
-            logger.debug("Loading trained model")
-            model = tf.keras.models.load_model(TRAINED_MODEL_PATH, compile=False)
+            # Check if the saved model exists
+            trained_model_exists = os.path.exists(TRAINED_MODEL_PATH)
             
-            # Get the dataset name from the latest training config
+            # If the trained model doesn't exist, try to use the saved architecture to create a model
+            if not trained_model_exists:
+                logger.warning("No trained model found, attempting to use saved architecture")
+                
+                # Check if model architecture exists
+                if not os.path.exists(MODEL_ARCHITECTURE_FILE):
+                    logger.error("No model architecture found for export")
+                    return jsonify({"error": "No model found. Please create and save a model first."}), 400
+                
+                # Load the model architecture
+                with open(MODEL_ARCHITECTURE_FILE, "r") as f:
+                    model_architecture = json.load(f)
+                
+                if not model_architecture or not model_architecture.get("nodes"):
+                    logger.error("Model architecture is empty or invalid")
+                    return jsonify({"error": "Model architecture is invalid. Please create a valid model."}), 400
+                
+                # Create a dummy dataset shape if needed
+                dummy_shape = x_train_shape if x_train_shape is not None else (None, 28, 28, 1)  # Default MNIST-like shape
+                
+                # Get dataset name
+                dataset_name = model_architecture.get("dataset", "")
+                
+                # Build model from architecture
+                try:
+                    from backend.models.builder import build_model_from_architecture
+                    model = build_model_from_architecture(model_architecture, dummy_shape, dataset_name)
+                    logger.info("Successfully created model from saved architecture")
+                except Exception as build_error:
+                    logger.error(f"Error building model from architecture: {str(build_error)}", exc_info=True)
+                    return jsonify({"error": f"Could not build model: {str(build_error)}"}), 500
+            else:
+                # Load the trained model
+                logger.debug("Loading trained model")
+                # Enable unsafe deserialization for Lambda layers
+                tf.keras.config.enable_unsafe_deserialization()
+                model = tf.keras.models.load_model(TRAINED_MODEL_PATH, compile=False)
+            
+            # Get the dataset name from the latest training config or model architecture
             dataset_name = latest_training_config.get("dataset", "")
+            if not dataset_name and os.path.exists(MODEL_ARCHITECTURE_FILE):
+                with open(MODEL_ARCHITECTURE_FILE, "r") as f:
+                    model_arch = json.load(f)
+                    dataset_name = model_arch.get("dataset", "")
+            
             logger.debug(f"Dataset for export: {dataset_name}")
 
+            # Use the architecture and model for export operations
             # Export according to the requested format
             if format == "py":
                 logger.info("Generating Python script")
                 file_path = os.path.join(EXPORT_FOLDER, "trained_model.py")
                 with open(file_path, "w") as f:
-                    f.write(generate_python_script(model, latest_training_config, x_train_shape))
+                    f.write(generate_python_script(model, latest_training_config or {"dataset": dataset_name}, x_train_shape or model.input_shape))
                 logger.info(f"Python script saved to {file_path}")
                 return send_file(file_path, as_attachment=True)
 
@@ -166,7 +205,7 @@ def register_routes(app):
                 logger.info("Generating Jupyter notebook")
                 file_path = os.path.join(EXPORT_FOLDER, "trained_model.ipynb")
                 with open(file_path, "w") as f:
-                    f.write(generate_notebook(model, latest_training_config, x_train_shape))
+                    f.write(generate_notebook(model, latest_training_config or {"dataset": dataset_name}, x_train_shape or model.input_shape))
                 logger.info(f"Jupyter notebook saved to {file_path}")
                 return send_file(file_path, as_attachment=True)
 
@@ -478,37 +517,39 @@ Please use the 'load_model.py' script in the 'weights_only' directory to load th
                 except Exception as save_error:
                     logger.warning(f"Could not save model directly: {str(save_error)}")
                     
-                    # Alternative approach: Rebuild the model from architecture and copy weights
-                    try:
-                        logger.debug("Rebuilding model from architecture for Keras export")
-                        # Get the model architecture from the saved file
-                        with open(MODEL_ARCHITECTURE_FILE, "r") as f:
-                            model_architecture = json.load(f)
-                        
-                        # Build a fresh model from the architecture
-                        from backend.models.builder import build_model_from_architecture
-                        fresh_model = build_model_from_architecture(
-                            model_architecture, 
-                            x_train_shape, 
-                            dataset_name
-                        )
-                        
-                        # Copy weights from the trained model to the fresh model
-                        fresh_model.set_weights(model.get_weights())
-                        
-                        # Save the fresh model
-                        fresh_model.save(file_path, include_optimizer=False)
-                        logger.info(f"Rebuilt model saved to {file_path}")
-                    except Exception as rebuild_error:
-                        logger.error(f"Could not save model after rebuilding: {str(rebuild_error)}", exc_info=True)
-                        return jsonify({"error": f"Could not save model: {str(rebuild_error)}"}), 500
-                    
+                    # If we already built the model from architecture above, no need to rebuild
+                    if trained_model_exists:
+                        # Alternative approach: Rebuild the model from architecture and copy weights
+                        try:
+                            logger.debug("Rebuilding model from architecture for Keras export")
+                            # Get the model architecture from the saved file
+                            with open(MODEL_ARCHITECTURE_FILE, "r") as f:
+                                model_architecture = json.load(f)
+                            
+                            # Build a fresh model from the architecture
+                            from backend.models.builder import build_model_from_architecture
+                            fresh_model = build_model_from_architecture(
+                                model_architecture, 
+                                x_train_shape or model.input_shape, 
+                                dataset_name
+                            )
+                            
+                            # Copy weights from the trained model to the fresh model
+                            fresh_model.set_weights(model.get_weights())
+                            
+                            # Save the fresh model
+                            fresh_model.save(file_path, include_optimizer=False)
+                            logger.info(f"Rebuilt model saved to {file_path}")
+                        except Exception as rebuild_error:
+                            logger.error(f"Could not save model after rebuilding: {str(rebuild_error)}", exc_info=True)
+                            return jsonify({"error": f"Could not save model: {str(rebuild_error)}"}), 500
+                
                 return send_file(file_path, as_attachment=True)
             
             elif format == "pytorch":
                 logger.info("Exporting to PyTorch format")
                 # Convert Keras model to PyTorch manually
-                pytorch_script = generate_pytorch_script(model, latest_training_config, x_train_shape)
+                pytorch_script = generate_pytorch_script(model, latest_training_config or {"dataset": dataset_name}, x_train_shape or model.input_shape)
 
                 # Save to a file
                 file_path = os.path.join(EXPORT_FOLDER, "trained_model_pytorch.py")
