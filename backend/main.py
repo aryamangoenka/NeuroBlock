@@ -25,8 +25,8 @@ socketio = SocketIO(app, cors_allowed_origins="*", ping_timeout=300, ping_interv
 register_routes(app)
 register_socket_events(socketio)
 
-# Ensure export folder exists
-EXPORT_FOLDER = "export"
+# Ensure export folder exists - using the same path as in routes.py and sockets.py
+EXPORT_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), "exports")
 os.makedirs(EXPORT_FOLDER, exist_ok=True)
 
 logger.info("Application initialized", extra={"context": {"export_folder": EXPORT_FOLDER}})

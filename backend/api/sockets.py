@@ -25,11 +25,11 @@ stop_flags = {}
 latest_training_config = {}
 x_train_shape=()
 
-# Path to store the trained model
-EXPORT_FOLDER = "exports"
+# Path to store the trained model - use absolute paths based on project root
+EXPORT_FOLDER = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "exports")
 os.makedirs(EXPORT_FOLDER, exist_ok=True)  # Ensure the folder exists
 TRAINED_MODEL_PATH = os.path.join(EXPORT_FOLDER, "trained_model.keras")
-MODEL_ARCHITECTURE_FILE = "saved_model.json"
+MODEL_ARCHITECTURE_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "saved_model.json")
 
 def get_stop_flag(client_id):
     """Get the stop flag for a client."""

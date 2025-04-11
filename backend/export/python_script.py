@@ -190,9 +190,64 @@ def generate_python_script(model, training_config, x_train_shape):
     script.append("# Define the model")
     script.append("model = Sequential()")
     
-    # Add model summary placeholder (actual layers would be populated here)
+    # Add model layers with actual code instead of a placeholder comment
+    # First, add the input layer
     script.append(f"model.add(Input(shape={input_shape_str}))")
-    script.append("# ... Model layers would be added here based on your trained model ...")
+    
+    # Iterate through model layers and generate code for each one (skip input layer if it exists)
+    start_idx = 1 if "input" in str(model.layers[0].__class__.__name__).lower() else 0
+    
+    for layer in model.layers[start_idx:]:
+        layer_class = layer.__class__.__name__
+        
+        # Handle different layer types
+        if layer_class == "Dense":
+            activation = layer.activation.__name__ if hasattr(layer.activation, '__name__') else 'None'
+            script.append(f"model.add(Dense({layer.units}, activation='{activation}'))")
+            
+        elif layer_class == "Conv2D":
+            kernel_size = tuple(layer.kernel_size) if hasattr(layer, 'kernel_size') else (3, 3)
+            strides = tuple(layer.strides) if hasattr(layer, 'strides') else (1, 1)
+            padding = "'" + layer.padding + "'" if hasattr(layer, 'padding') else "'valid'"
+            activation = layer.activation.__name__ if hasattr(layer.activation, '__name__') else 'None'
+            script.append(f"model.add(Conv2D({layer.filters}, kernel_size={kernel_size}, strides={strides}, padding={padding}, activation='{activation}'))")
+            
+        elif layer_class == "MaxPooling2D":
+            pool_size = tuple(layer.pool_size) if hasattr(layer, 'pool_size') else (2, 2)
+            strides = tuple(layer.strides) if hasattr(layer, 'strides') else None
+            padding = "'" + layer.padding + "'" if hasattr(layer, 'padding') else "'valid'"
+            
+            if strides is None:
+                script.append(f"model.add(MaxPooling2D(pool_size={pool_size}, padding={padding}))")
+            else:
+                script.append(f"model.add(MaxPooling2D(pool_size={pool_size}, strides={strides}, padding={padding}))")
+            
+        elif layer_class == "Flatten":
+            script.append(f"model.add(Flatten())")
+            
+        elif layer_class == "Dropout":
+            script.append(f"model.add(Dropout({layer.rate}))")
+            
+        elif layer_class == "BatchNormalization":
+            momentum = layer.momentum if hasattr(layer, 'momentum') else 0.99
+            epsilon = layer.epsilon if hasattr(layer, 'epsilon') else 0.001
+            script.append(f"model.add(BatchNormalization(momentum={momentum}, epsilon={epsilon}))")
+            
+        elif layer_class == "Reshape":
+            target_shape = layer.target_shape if hasattr(layer, 'target_shape') else (None,)
+            script.append(f"model.add(Reshape({target_shape}))")
+            
+        elif "attention" in layer_class.lower() or "multihead" in layer_class.lower():
+            # Add attention layer with custom parameters if available
+            num_heads = layer.num_heads if hasattr(layer, 'num_heads') else 8
+            key_dim = layer.key_dim if hasattr(layer, 'key_dim') else 64
+            dropout = layer.dropout if hasattr(layer, 'dropout') else 0.0
+            script.append(f"model.add(CustomAttentionLayer(num_heads={num_heads}, key_dim={key_dim}, dropout={dropout}))")
+            
+        else:
+            # For any other layer types, add a comment
+            script.append(f"# Layer type '{layer_class}' is not explicitly handled - adjust if needed")
+            script.append(f"# model.add({layer_class}(...))")
     
     # Add compilation and training
     loss_function = training_config.get("lossFunction", "categorical_crossentropy")

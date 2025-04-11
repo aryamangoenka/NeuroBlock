@@ -723,14 +723,15 @@
 
 /* Right Panel - Training & Export */
 .right-panel {
-  width: 27.5%;
+  width: 25%;
   height: 100%;
-  background-color: #f8f9fa;
-  border-left: 1px solid #e9ecef;
+  border-left: 1px solid rgba(0, 0, 0, 0.06);
   padding: 20px;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  background-color: white;
+  position: relative; /* Added for smooth transition positioning */
 }
 
 .right-panel h2 {
@@ -1023,7 +1024,8 @@
   transition: width 0.3s ease;
 }
 
-/* Export Options */
+/* Export Options - Removed from right sidebar */
+/*
 .export-container {
   margin-top: auto;
   padding: 25px 20px;
@@ -1100,7 +1102,9 @@
   position: relative;
   overflow: hidden;
 }
+*/
 
+/* Keep these styles for potential use in the NavBar export dropdown */
 .export-button::before {
   content: '';
   position: absolute;
@@ -1150,32 +1154,27 @@
   box-shadow: none;
 }
 
-/* Python */
+/* Export button variant colors */
 .export-button.python i {
   color: #306998;
 }
 
-/* Keras */
 .export-button.keras i {
   color: #D00000;
 }
 
-/* PyTorch */
 .export-button.pytorch i {
   color: #EE4C2C;
 }
 
-/* SavedModel */
 .export-button.savedmodel i {
   color: #FF6F00;
 }
 
-/* ONNX */
 .export-button.onnx i {
   color: #2496ED;
 }
 
-/* Notebook */
 .export-button.notebook i {
   color: #F37626;
 }
@@ -1208,7 +1207,7 @@
   opacity: 0.7;
 }
 
-/* Export Status Message */
+/* Export Status Message - Keep for use in dropdown navbar alerts */
 .export-status-message {
   padding: 14px 16px;
   border-radius: 10px;
@@ -1499,10 +1498,74 @@
 
 /* Visualization Section */
 .visualization-section {
-  margin-top: 10px;
+  margin-top: 20px;
   flex-grow: 1;
   display: flex;
   flex-direction: column;
+  animation: fadeInUp 0.5s ease forwards;
+  border-top: 1px solid #e9ecef;
+  padding-top: 20px;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.visualization-section h3 {
+  color: #1e293b;
+  margin-bottom: 15px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-align: center;
+  position: relative;
+  padding-bottom: 12px;
+  letter-spacing: 0.5px;
+}
+
+.visualization-section h3::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(to right, #0ea5e9, #2563eb);
+  border-radius: 3px;
+}
+
+.visualization-notification {
+  background: linear-gradient(120deg, #d4edda, #e3f6ea);
+  color: #155724;
+  border-left: 4px solid #28a745;
+  padding: 12px 15px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  animation: notificationPulse 2s ease-in-out;
+}
+
+.visualization-notification i {
+  font-size: 1.2rem;
+  color: #28a745;
+}
+
+@keyframes notificationPulse {
+  0% { transform: scale(1); opacity: 0; }
+  50% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .visualization-controls {
@@ -1571,6 +1634,55 @@
   border-radius: 4px;
   color: #6c757d;
   font-style: italic;
+}
+
+/* Visualization placeholder for when training hasn't started */
+.visualization-placeholder-section {
+  margin-top: 30px;
+  padding: 30px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  border: 1px dashed #ced4da;
+}
+
+.visualization-placeholder-section .placeholder-icon {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background-color: #e9ecef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.visualization-placeholder-section .placeholder-icon i {
+  font-size: 2rem;
+  color: #adb5bd;
+}
+
+.visualization-placeholder-section h3 {
+  color: #495057;
+  margin-bottom: 10px;
+  font-size: 1.3rem;
+}
+
+.visualization-placeholder-section p {
+  color: #6c757d;
+  margin-bottom: 8px;
+  font-size: 1rem;
+  max-width: 90%;
+}
+
+.visualization-placeholder-section .placeholder-hint {
+  font-style: italic;
+  font-size: 0.9rem;
+  color: #adb5bd;
+  margin-top: 5px;
 }
 
 /* Heatmap styles */
@@ -4086,4 +4198,642 @@
       opacity: 0.7;
     }
   }
+}
+
+/* Dataset Selection Section */
+.dataset-selection-section {
+  margin-top: 20px;
+  padding: 25px 20px;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  animation: fadeIn 0.5s ease;
+  transition: all 0.5s ease-in-out;
+}
+
+.section-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #f0f5ff, #e6f0ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 15px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.section-icon i {
+  font-size: 1.8rem;
+  color: #0d6efd;
+}
+
+.dataset-selection-section h3 {
+  color: #1e293b;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 5px;
+  text-align: center;
+}
+
+.section-description {
+  color: #64748b;
+  font-size: 1rem;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.dataset-selector {
+  margin-bottom: 25px;
+}
+
+.dataset-select-dropdown {
+  width: 100%;
+  padding: 12px 15px;
+  font-size: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background-color: #f8fafc;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  appearance: none; /* Remove default arrow */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230d6efd'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 20px;
+}
+
+.dataset-select-dropdown:focus {
+  border-color: #0d6efd;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+}
+
+.dataset-select-dropdown option {
+  padding: 10px;
+}
+
+.dataset-info-card {
+  background: linear-gradient(145deg, #f0f9ff, #e6f7ff);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin-bottom: 25px;
+  border: 1px solid #e6f7ff;
+}
+
+.dataset-info-header {
+  background-color: #f0f9ff;
+  padding: 12px 15px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid rgba(0, 149, 255, 0.1);
+}
+
+.dataset-info-header i {
+  color: #0284c7;
+  font-size: 1.2rem;
+  margin-right: 10px;
+}
+
+.dataset-info-header span {
+  font-weight: 600;
+  color: #0369a1;
+}
+
+.dataset-info-content {
+  padding: 15px;
+}
+
+.dataset-info-content p {
+  margin-bottom: 15px;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.dataset-metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.metadata-item {
+  background-color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 149, 255, 0.2);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  color: #0369a1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.metadata-item i {
+  font-size: 0.9rem;
+  color: #0284c7;
+}
+
+.train-hint {
+  background-color: #fffaeb;
+  border: 1px solid #fef3c7;
+  border-radius: 8px;
+  padding: 15px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.train-hint i {
+  font-size: 1.3rem;
+  color: #f59e0b;
+  margin-top: 2px;
+}
+
+.train-hint p {
+  color: #78350f;
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.visualization-placeholder-section .placeholder-icon {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background-color: #e9ecef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.visualization-placeholder-section .placeholder-icon i {
+  font-size: 2rem;
+  color: #adb5bd;
+}
+
+.visualization-placeholder-section h3 {
+  color: #495057;
+  margin-bottom: 10px;
+  font-size: 1.3rem;
+}
+
+.visualization-placeholder-section p {
+  color: #6c757d;
+  margin-bottom: 8px;
+  font-size: 1rem;
+  max-width: 90%;
+}
+
+.visualization-placeholder-section .placeholder-hint {
+  font-style: italic;
+  font-size: 0.9rem;
+  color: #adb5bd;
+  margin-top: 5px;
+}
+
+/* Heatmap styles */
+
+/* Dataset dropdown container in the right panel */
+.dataset-dropdown-container {
+  margin-top: 20px;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.dataset-select-dropdown {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  background-color: white;
+  font-size: 1rem;
+  color: #495057;
+  cursor: pointer;
+  transition: border-color 0.15s ease-in-out;
+  
+  &:focus {
+    border-color: #0ea5e9;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.25);
+  }
+  
+  &:hover {
+    border-color: #adb5bd;
+  }
+}
+
+/* Visualization placeholder for when training hasn't started */
+.right-sidebar-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 0 10px;
+}
+
+/* Dataset dropdown container in the right panel */
+.dataset-dropdown-container {
+  margin-top: 20px;
+  padding: 15px 10px;
+  display: flex;
+  justify-content: center;
+}
+
+.dataset-select-dropdown {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  background-color: white;
+  font-size: 1rem;
+  color: #495057;
+  cursor: pointer;
+  transition: border-color 0.15s ease-in-out;
+  
+  &:focus {
+    border-color: #0ea5e9;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.25);
+  }
+  
+  &:hover {
+    border-color: #adb5bd;
+  }
+}
+
+/* Layer parameters container */
+.layer-params-container {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.layer-params-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px;
+  background: linear-gradient(120deg, #0ea5e9, #2563eb);
+  color: white;
+  
+  i {
+    font-size: 1.2rem;
+  }
+  
+  h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 500;
+  }
+}
+
+.layer-params-content {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Parameter groups */
+.param-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  
+  label {
+    font-size: 0.9rem;
+    color: #4b5563;
+    font-weight: 500;
+  }
+}
+
+/* Inputs and controls */
+.param-input {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 0.95rem;
+  color: #1f2937;
+  transition: all 0.2s ease;
+  
+  &:focus {
+    border-color: #0ea5e9;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.15);
+  }
+  
+  &.full-width {
+    width: 100%;
+  }
+  
+  &.small {
+    width: 60px;
+    text-align: center;
+  }
+}
+
+.param-select {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 0.95rem;
+  color: #1f2937;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:focus {
+    border-color: #0ea5e9;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.15);
+  }
+}
+
+.number-input-with-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  
+  .param-input {
+    flex: 1;
+  }
+}
+
+.param-controls {
+  display: flex;
+  gap: 5px;
+}
+
+.control-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  
+  &:hover {
+    background-color: #e5e7eb;
+    color: #1f2937;
+  }
+  
+  &:active {
+    background-color: #d1d5db;
+  }
+}
+
+.slider-with-value {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  
+  .param-slider {
+    flex: 1;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #d1d5db;
+    border-radius: 3px;
+    outline: none;
+    
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #0ea5e9;
+      cursor: pointer;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+    
+    &::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #0ea5e9;
+      cursor: pointer;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+  }
+}
+
+/* No layer selected message */
+.no-layer-selected {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 20px;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  border: 1px dashed #d1d5db;
+  color: #6b7280;
+  
+  i {
+    font-size: 2rem;
+    margin-bottom: 15px;
+    color: #9ca3af;
+  }
+  
+  p {
+    font-size: 0.95rem;
+    text-align: center;
+    margin: 0;
+  }
+}
+
+.dimension-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  .param-input {
+    flex: 1;
+    text-align: center;
+    max-width: 70px;
+  }
+  
+  span {
+    color: #6b7280;
+    font-weight: 500;
+    font-size: 1rem;
+  }
+}
+
+.param-controls {
+  display: flex;
+  gap: 5px;
+}
+
+.param-info {
+  background-color: #f3f4f6;
+  padding: 10px 15px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: #6b7280;
+  font-style: italic;
+  margin: 0;
+  text-align: center;
+}
+
+/* Hyperparameters Section Styles */
+.hyperparams-container {
+  background: linear-gradient(to right, rgba(59, 130, 246, 0.05), rgba(16, 185, 129, 0.05));
+  border-radius: 10px;
+  margin-top: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(209, 213, 219, 0.5);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  max-height: 320px; /* Reduced height */
+}
+
+.hyperparams-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(145deg, #f8fafc, #f1f5f9);
+  padding: 10px 15px;
+  border-bottom: 1px solid rgba(209, 213, 219, 0.5);
+  
+  i {
+    color: #2563eb;
+    font-size: 1rem;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+  }
+  
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+  }
+}
+
+.hyperparams-content {
+  padding: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Two columns for more compact display */
+  gap: 10px;
+  max-height: 270px;
+  overflow-y: auto;
+  
+  .param-group {
+    margin-bottom: 0;
+    
+    label {
+      font-size: 0.8rem;
+      margin-bottom: 3px;
+    }
+    
+    .param-input, .param-select {
+      padding: 6px 10px;
+      font-size: 0.85rem;
+    }
+    
+    .control-btn {
+      width: 24px;
+      height: 24px;
+    }
+  }
+  
+  /* Full width for Learning Rate with slider */
+  .param-group:nth-child(2) {
+    grid-column: span 2;
+  }
+  
+  /* Make optimizer and loss function full width */
+  .param-group:nth-child(4),
+  .param-group:nth-child(5) {
+    grid-column: span 2;
+  }
+  
+  /* Make validation split param full width */
+  .param-group:nth-child(6) {
+    grid-column: span 2;
+  }
+  
+  .slider-with-value {
+    .param-slider {
+      background: linear-gradient(to right, #3b82f6, #10b981);
+      height: 4px;
+      
+      &::-webkit-slider-thumb {
+        width: 14px;
+        height: 14px;
+        background: linear-gradient(145deg, #3b82f6, #0369a1);
+        box-shadow: 0 1px 5px rgba(37, 99, 235, 0.3);
+      }
+      
+      &::-moz-range-thumb {
+        width: 14px;
+        height: 14px;
+        background: linear-gradient(145deg, #3b82f6, #0369a1);
+        box-shadow: 0 1px 5px rgba(37, 99, 235, 0.3);
+      }
+    }
+    
+    .param-input.small {
+      width: 55px;
+      font-size: 0.8rem;
+    }
+    
+    .param-value {
+      min-width: 35px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #3b82f6;
+      background: rgba(59, 130, 246, 0.1);
+      padding: 4px 8px;
+      border-radius: 12px;
+      display: inline-block;
+    }
+  }
+}
+
+/* Animated glow effect for the hyperparameters container on hover */
+.hyperparams-container:hover {
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+  border-color: rgba(37, 99, 235, 0.3);
+}
+
+/* Add subtle hover effects to controls in hyperparameters */
+.hyperparams-content .param-select:hover,
+.hyperparams-content .param-input:hover {
+  border-color: #3b82f6;
+  transition: all 0.2s ease;
+}
+
+/* Add cool pulse animation for sliders when interacted with */
+@keyframes pulse {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+.param-slider:active + .param-value {
+  animation: pulse 1.5s infinite;
 }

@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from backend.utils.logging import get_logger
 from backend.datasets.iris import load_iris_dataset
 from backend.datasets.mnist import load_mnist_dataset
@@ -18,11 +19,20 @@ DATASET_LOADERS = {
     "Breast Cancer": load_breast_cancer_dataset
 }
 
-MODEL_ARCHITECTURE_FILE = "saved_model.json"
-# Save model architecture to a file
-with open(MODEL_ARCHITECTURE_FILE, "r") as f:
-    model=json.load(f)
-dataset_name=model.get("dataset")
+# Define MODEL_ARCHITECTURE_FILE to point to the project root
+MODEL_ARCHITECTURE_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "saved_model.json")
+
+# Initialize dataset_name to None
+dataset_name = None
+
+# Try to load model architecture if the file exists
+try:
+    if os.path.exists(MODEL_ARCHITECTURE_FILE):
+        with open(MODEL_ARCHITECTURE_FILE, "r") as f:
+            model = json.load(f)
+        dataset_name = model.get("dataset")
+except Exception as e:
+    logger.error(f"Error loading model architecture: {str(e)}")
 
 def load_dataset(dataset_name):
     """

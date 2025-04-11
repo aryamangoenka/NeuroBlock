@@ -3,7 +3,13 @@ import json
 import tensorflow as tf
 from flask import jsonify, request, send_file
 import shutil
-from backend.api.sockets import MODEL_ARCHITECTURE_FILE, EXPORT_FOLDER, TRAINED_MODEL_PATH, latest_training_config, x_train_shape
+from backend.api.sockets import latest_training_config, x_train_shape
+
+# Define the correct export folder path relative to project root
+EXPORT_FOLDER = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "exports")
+TRAINED_MODEL_PATH = os.path.join(EXPORT_FOLDER, "trained_model.keras")
+MODEL_ARCHITECTURE_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "saved_model.json")
+
 from backend.export.python_script import generate_python_script
 from backend.export.notebook import generate_notebook
 from backend.export.pytorch import generate_pytorch_script
@@ -196,10 +202,23 @@ def register_routes(app):
             if format == "py":
                 logger.info("Generating Python script")
                 file_path = os.path.join(EXPORT_FOLDER, "trained_model.py")
+                logger.debug(f"File path for Python export: {file_path}")
+                logger.debug(f"EXPORT_FOLDER: {EXPORT_FOLDER}")
+                logger.debug(f"Current working directory: {os.getcwd()}")
+                
+                # Make sure the file exists
                 with open(file_path, "w") as f:
                     f.write(generate_python_script(model, latest_training_config or {"dataset": dataset_name}, x_train_shape or model.input_shape))
                 logger.info(f"Python script saved to {file_path}")
-                return send_file(file_path, as_attachment=True)
+                
+                # Check if file exists after writing
+                if os.path.exists(file_path):
+                    logger.debug(f"Confirmed file exists at: {file_path}")
+                else:
+                    logger.error(f"File was not created at: {file_path}")
+                
+                # Use absolute path for send_file and set as_attachment to True
+                return send_file(os.path.abspath(file_path), as_attachment=True)
 
             elif format == "ipynb":
                 logger.info("Generating Jupyter notebook")
@@ -207,7 +226,8 @@ def register_routes(app):
                 with open(file_path, "w") as f:
                     f.write(generate_notebook(model, latest_training_config or {"dataset": dataset_name}, x_train_shape or model.input_shape))
                 logger.info(f"Jupyter notebook saved to {file_path}")
-                return send_file(file_path, as_attachment=True)
+                # Use absolute path for send_file
+                return send_file(os.path.abspath(file_path), as_attachment=True)
 
             elif format == "savedmodel":
                 logger.info("Exporting to SavedModel format")
@@ -544,7 +564,8 @@ Please use the 'load_model.py' script in the 'weights_only' directory to load th
                             logger.error(f"Could not save model after rebuilding: {str(rebuild_error)}", exc_info=True)
                             return jsonify({"error": f"Could not save model: {str(rebuild_error)}"}), 500
                 
-                return send_file(file_path, as_attachment=True)
+                # Use absolute path for send_file
+                return send_file(os.path.abspath(file_path), as_attachment=True)
             
             elif format == "pytorch":
                 logger.info("Exporting to PyTorch format")
@@ -557,7 +578,8 @@ Please use the 'load_model.py' script in the 'weights_only' directory to load th
                     f.write(pytorch_script)
                 
                 logger.info(f"PyTorch model saved to {file_path}")
-                return send_file(file_path, as_attachment=True)
+                # Use absolute path for send_file
+                return send_file(os.path.abspath(file_path), as_attachment=True)
                 
             else:
                 logger.warning(f"Unsupported export format requested: {format}")
