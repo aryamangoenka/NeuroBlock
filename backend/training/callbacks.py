@@ -1,22 +1,28 @@
+import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
 from backend.utils.logging import get_logger
+from backend.utils.wandb_integration import wandb_logger
 
 # Initialize logger
 logger = get_logger(__name__)
 
 class RealTimeUpdateCallback(Callback):
     """
-    Custom Keras callback for sending real-time training updates via WebSocket.
+    Callback to emit training progress via WebSockets.
+    
+    This callback sends real-time updates to the client as the model trains.
     """
+    
     def __init__(self, socketio, client_id, total_epochs):
         """
         Initialize the callback.
         
         Args:
-            socketio: The SocketIO instance for emitting events
-            client_id: The client ID to emit events to
+            socketio: The Flask-SocketIO instance
+            client_id: The client ID to emit updates to
             total_epochs: The total number of epochs for training
         """
+        super().__init__()
         self.socketio = socketio
         self.client_id = client_id
         self.total_epochs = total_epochs
@@ -39,6 +45,20 @@ class RealTimeUpdateCallback(Callback):
                             "loss": logs.get("loss"),
                             "accuracy": logs.get("accuracy")
                         }})
+            
+            # Also log to W&B for each epoch
+            try:
+                wandb_metrics = {
+                    "epoch": epoch + 1,
+                    "loss": logs.get("loss"),
+                    "accuracy": logs.get("accuracy"),
+                    "val_loss": logs.get("val_loss"),
+                    "val_accuracy": logs.get("val_accuracy"),
+                }
+                wandb_logger.log_metrics(wandb_metrics, step=epoch + 1)
+            except Exception as e:
+                logger.warning(f"Error logging to W&B in callback: {str(e)}")
+            
             self.socketio.emit("training_progress", {
                 "epoch": epoch + 1,
                 "total_epochs": self.total_epochs,

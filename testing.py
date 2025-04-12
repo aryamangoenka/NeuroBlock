@@ -1,142 +1,124 @@
-
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-from torch.utils.data import DataLoader, TensorDataset
+import tensorflow as tf
 import numpy as np
+import wandb
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Conv2D, Flatten, Dropout, MaxPooling2D, BatchNormalization, Input, Reshape
 
-# Define the dataset name for evaluation logic
-dataset_name = "iris"
+# Initialize Weights & Biases for experiment tracking
+wandb.init(project="dnd-neural-network", name="Iris-model", config={
+    "dataset": "Iris",
+    "optimizer": "adam",
+    "loss_function": "categorical_crossentropy",
+    "batch_size": 32,
+    "epochs": 10,
+    "learning_rate": 0.001
+})
 
+# Load and preprocess the dataset
+# Load Iris dataset
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
-# Load Iris dataset
-data = load_iris()
-X, y = data.data, data.target
+iris = load_iris()
+X = iris.data
+y = iris.target.reshape(-1, 1)
 
-# Standardize features
+# Scale features
 scaler = StandardScaler()
-X = scaler.fit_transform(X)
+X_scaled = scaler.fit_transform(X)
 
-# One-hot encode labels
+# One-hot encode the labels
 encoder = OneHotEncoder(sparse_output=False)
-y = encoder.fit_transform(y.reshape(-1, 1))
+y_encoded = encoder.fit_transform(y)
 
-# Split data
-x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-X_train, X_test = torch.tensor(x_train, dtype=torch.float32), torch.tensor(x_test, dtype=torch.float32)
-y_train, y_test = torch.tensor(y_train, dtype=torch.float32), torch.tensor(y_test, dtype=torch.float32)
+# Split the data
+x_train, x_test, y_train, y_test = train_test_split(X_scaled, y_encoded, test_size=0.2, random_state=42)
 
-# Create TensorDatasets
-train_dataset = TensorDataset(X_train, y_train)
-test_dataset = TensorDataset(X_test, y_test)
+# Define the model
+model = Sequential()
+model.add(Input(shape=(4,)))
+model.add(Dense(64, activation='relu'))
+model.add(Dense(3, activation='softmax'))
+# Compile the model
+model.compile(
+    optimizer='adam',
+    loss='categorical_crossentropy',
+    metrics=['accuracy']
+)
 
-# Create DataLoaders
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+# Display model summary
+model.summary()
 
-# Define the PyTorch model
-class NeuralNetwork(nn.Module):
-    def __init__(self):
-        super(NeuralNetwork, self).__init__()
-        # Fully connected layers
-        self.fc1 = nn.Linear(4, 128)
-        self.fc2 = nn.Linear(128, 64)
-        self.fc3 = nn.Linear(64, 3)  # Output layer sized for dataset: iris
-        self.dropout = nn.Dropout(0.25)
+# Log model architecture with Weights & Biases
+wandb.watch(model, log='all')
 
-    def forward(self, x):
-        # Fully connected layers
-        x = F.relu(self.fc1(x))
-        x = self.dropout(x)
-        x = F.relu(self.fc2(x))
-        x = self.dropout(x)
-        x = self.fc3(x)
-        
-        return x
+# Define Weights & Biases callback for logging
+wandb_callback = wandb.keras.WandbCallback()
 
-# Initialize the model
-model = NeuralNetwork()
+# Train the model
+history = model.fit(
+    x_train, y_train,
+    epochs=10,
+    batch_size=32,
+    validation_split=0.2,
+    callbacks=[wandb_callback]
+)
 
-# Define loss function and optimizer
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+# Evaluate the model
+test_loss, test_acc = model.evaluate(x_test, y_test)
+print(f'Test accuracy: {test_acc:.4f}')
 
-# Training loop
-for epoch in range(10):
-    # Training
-    model.train()
-    running_loss = 0.0
-    for inputs, targets in train_loader:
-        # Zero the gradients
-        optimizer.zero_grad()
-        
-        # Forward pass
-        outputs = model(inputs)
-        
-        # Calculate loss
-        if dataset_name == "iris" and criterion.__class__.__name__ == "CrossEntropyLoss":
-            # Convert one-hot encoded targets to class indices for CrossEntropyLoss
-            _, target_indices = torch.max(targets, 1)
-            loss = criterion(outputs, target_indices)
-        else:
-            loss = criterion(outputs, targets)
-        
-        # Backward pass and optimize
-        loss.backward()
-        optimizer.step()
-        
-        running_loss += loss.item()
+# Log additional evaluation metrics to W&B
+if dataset_name in ['Iris', 'MNIST', 'CIFAR-10', 'Breast Cancer']:
+    # Get predictions
+    predictions = model.predict(x_test)
+    if dataset_name == 'Breast Cancer':
+        y_pred = (predictions > 0.5).astype(int)
+        y_true = y_test
+    else:
+        y_pred = np.argmax(predictions, axis=1)
+        y_true = np.argmax(y_test, axis=1) if len(y_test.shape) > 1 else y_test
     
-    # Evaluation
-    model.eval()
-    correct = 0
-    total = 0
-    with torch.no_grad():
-        for inputs, targets in test_loader:
-            outputs = model(inputs)
-            
-            # Calculate accuracy (classification) or other metrics (regression)
-            if dataset_name == "breast cancer":
-                # Binary classification
-                predicted = (outputs > 0).float()  # Apply sigmoid in loss function
-                total += targets.size(0)
-                correct += (predicted == targets).sum().item()
-            elif dataset_name == "california housing":
-                # Regression - no accuracy calculation, use MSE
-                pass
-            elif dataset_name == "mnist" or dataset_name == "cifar-10":
-                # MNIST/CIFAR-10 have class indices, not one-hot encoded labels
-                _, predicted = torch.max(outputs.data, 1)
-                total += targets.size(0)
-                correct += (predicted == targets).sum().item()
-            elif dataset_name == "iris":
-                # Iris dataset is one-hot encoded in our preprocessing
-                _, predicted = torch.max(outputs.data, 1)
-                _, target_classes = torch.max(targets, 1)
-                total += targets.size(0)
-                correct += (predicted == target_classes).sum().item()
-            else:
-                # Generic classification approach
-                _, predicted = torch.max(outputs.data, 1)
-                total += targets.size(0)
-                if targets.size(1) > 1:  # One-hot encoded
-                    _, target_classes = torch.max(targets, 1)
-                    correct += (predicted == target_classes).sum().item()
-                else:  # Class indices
-                    correct += (predicted == targets).sum().item()
-                
-    # Print epoch statistics
-    print(f"Epoch {epoch+1}/{10}, Loss: {running_loss/len(train_loader):.4f}")
-    if total > 0 and dataset_name != "california housing":
-        print(f"Accuracy: {100 * correct / total:.2f}%")
-    elif dataset_name == "california housing":
-        print(f"Regression task - accuracy metric not applicable")
+    # Log confusion matrix
+    from sklearn.metrics import confusion_matrix
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    
+    cm = confusion_matrix(y_true, y_pred)
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+    plt.title('Confusion Matrix')
+    plt.ylabel('True Label')
+    plt.xlabel('Predicted Label')
+    wandb.log({'confusion_matrix': wandb.Image(plt)})
 
 # Save the model
-torch.save(model.state_dict(), "pytorch_model.pth")
+model.save('trained_model.keras')
+wandb.save('trained_model.keras')  # Also save to W&B
 
-print("Training completed!")
+# Visualize training history
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(12, 4))
+plt.subplot(1, 2, 1)
+plt.plot(history.history['loss'], label='Training Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.title('Loss over Epochs')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.legend()
+
+plt.subplot(1, 2, 2)
+plt.plot(history.history['aaccuracy'], label='Training Accuracy')
+plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+plt.title('Accuracy over Epochs')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.tight_layout()
+wandb.log({'training_curves': wandb.Image(plt)})
+plt.show()
+
+# Finish the W&B run
+wandb.finish()

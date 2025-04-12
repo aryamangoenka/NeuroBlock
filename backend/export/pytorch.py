@@ -45,10 +45,27 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
+import wandb
 """
 
     # Add the dataset name as a variable for the evaluation logic
     pytorch_code += f"\n# Define the dataset name for evaluation logic\ndataset_name = \"{dataset_name}\"\n"
+
+    # Add W&B initialization
+    pytorch_code += f"""
+# Initialize Weights & Biases for experiment tracking
+wandb.init(
+    project="dnd-neural-network",
+    name="{dataset_name}-model-pytorch",
+    config={{
+        "dataset": "{dataset_name}",
+        "optimizer": "{optimizer}",
+        "loss_function": "{loss_function}",
+        "batch_size": {batch_size},
+        "epochs": {epochs}
+    }}
+)
+"""
 
     # Add attention-specific imports if needed
     if has_attention_layer:
@@ -267,6 +284,9 @@ class NeuralNetwork(nn.Module):
 # Initialize the model
 model = NeuralNetwork()
 
+# Log model architecture to W&B
+wandb.watch(model, log="all")
+
 # Define loss function and optimizer
 criterion = {adjusted_loss}
 optimizer = optim.{opt_name}(model.parameters(), lr=0.001)
@@ -276,7 +296,8 @@ for epoch in range({epochs}):
     # Training
     model.train()
     running_loss = 0.0
-    for inputs, targets in train_loader:
+    
+    for batch_idx, (inputs, targets) in enumerate(train_loader):
         # Zero the gradients
         optimizer.zero_grad()
         
@@ -296,14 +317,29 @@ for epoch in range({epochs}):
         optimizer.step()
         
         running_loss += loss.item()
+        
+        # Log batch loss to W&B (every 10 batches)
+        if batch_idx % 10 == 0:
+            wandb.log({{"batch_loss": loss.item()}})
     
     # Evaluation
     model.eval()
     correct = 0
     total = 0
+    test_loss = 0.0
+    
     with torch.no_grad():
         for inputs, targets in test_loader:
             outputs = model(inputs)
+            
+            # Calculate test loss
+            if dataset_name == "iris" and criterion.__class__.__name__ == "CrossEntropyLoss":
+                _, target_indices = torch.max(targets, 1)
+                test_batch_loss = criterion(outputs, target_indices)
+            else:
+                test_batch_loss = criterion(outputs, targets)
+                
+            test_loss += test_batch_loss.item()
             
             # Calculate accuracy (classification) or other metrics (regression)
             if dataset_name == "breast cancer":
@@ -335,17 +371,80 @@ for epoch in range({epochs}):
                 else:  # Class indices
                     correct += (predicted == targets).sum().item()
                 
+    # Calculate epoch metrics
+    epoch_loss = running_loss / len(train_loader)
+    epoch_test_loss = test_loss / len(test_loader)
+    accuracy = 100 * correct / total if total > 0 else 0
+                
     # Print epoch statistics
-    print(f"Epoch {{epoch+1}}/{{{epochs}}}, Loss: {{running_loss/len(train_loader):.4f}}")
+    print(f"Epoch {{epoch+1}}/{{{epochs}}}, Loss: {{epoch_loss:.4f}}, Test Loss: {{epoch_test_loss:.4f}}")
     if total > 0 and dataset_name != "california housing":
-        print(f"Accuracy: {{100 * correct / total:.2f}}%")
+        print(f"Accuracy: {{accuracy:.2f}}%")
     elif dataset_name == "california housing":
         print(f"Regression task - accuracy metric not applicable")
+        
+    # Log metrics to W&B
+    metrics = {{
+        "epoch": epoch + 1,
+        "train_loss": epoch_loss,
+        "val_loss": epoch_test_loss,
+    }}
+    
+    if dataset_name != "california housing":
+        metrics["accuracy"] = accuracy / 100  # Convert percentage to decimal
+        
+    wandb.log(metrics)
+
+# Final evaluation
+model.eval()
+predictions = []
+actual_labels = []
+
+with torch.no_grad():
+    for inputs, targets in test_loader:
+        outputs = model(inputs)
+        
+        # Process predictions based on dataset type
+        if dataset_name == "breast cancer":
+            preds = (outputs > 0).float()
+            predictions.extend(preds.cpu().numpy())
+            actual_labels.extend(targets.cpu().numpy())
+        elif dataset_name == "california housing":
+            predictions.extend(outputs.cpu().numpy())
+            actual_labels.extend(targets.cpu().numpy())
+        else:
+            _, preds = torch.max(outputs, 1)
+            if targets.size(1) > 1:  # One-hot encoded
+                _, target_classes = torch.max(targets, 1)
+                predictions.extend(preds.cpu().numpy())
+                actual_labels.extend(target_classes.cpu().numpy())
+            else:
+                predictions.extend(preds.cpu().numpy())
+                actual_labels.extend(targets.cpu().numpy())
+
+# Log confusion matrix for classification tasks
+if dataset_name != "california housing":
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    from sklearn.metrics import confusion_matrix
+    
+    cm = confusion_matrix(actual_labels, predictions)
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+    plt.title('Confusion Matrix')
+    plt.ylabel('True Label')
+    plt.xlabel('Predicted Label')
+    plt.tight_layout()
+    
+    # Log to W&B
+    wandb.log({{"confusion_matrix": wandb.Image(plt)}})
 
 # Save the model
 torch.save(model.state_dict(), "pytorch_model.pth")
+wandb.save("pytorch_model.pth")  # Also save to W&B
 
 print("Training completed!")
+wandb.finish()  # Close the W&B run
 """
 
     return pytorch_code 

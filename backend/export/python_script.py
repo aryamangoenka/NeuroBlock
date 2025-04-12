@@ -23,6 +23,7 @@ def generate_python_script(model, training_config, x_train_shape):
     script = [
         "import tensorflow as tf",
         "import numpy as np",
+        "import wandb",
         "from tensorflow.keras.models import Sequential",
         "from tensorflow.keras.layers import Dense, Conv2D, Flatten, Dropout, MaxPooling2D, BatchNormalization, Input, Reshape"
     ]
@@ -79,6 +80,18 @@ def generate_python_script(model, training_config, x_train_shape):
     
     # Get dataset name from training config
     dataset_name = training_config.get("dataset", "Unknown")
+    
+    # Add WandB initialization
+    script.append("")
+    script.append("# Initialize Weights & Biases for experiment tracking")
+    script.append(f"wandb.init(project=\"dnd-neural-network\", name=\"{dataset_name}-model\", config={{")
+    script.append(f"    \"dataset\": \"{dataset_name}\",")
+    script.append(f"    \"optimizer\": \"{training_config.get('optimizer', 'adam')}\",")
+    script.append(f"    \"loss_function\": \"{training_config.get('lossFunction', 'categorical_crossentropy')}\",")
+    script.append(f"    \"batch_size\": {training_config.get('batchSize', 32)},")
+    script.append(f"    \"epochs\": {training_config.get('epochs', 10)},")
+    script.append(f"    \"learning_rate\": {training_config.get('learningRate', 0.001)}")
+    script.append("})")
     
     # Determine input shape based on dataset
     input_shape_str = str(x_train_shape[1:]) if len(x_train_shape) > 1 else "(None,)"
@@ -315,20 +328,60 @@ def generate_python_script(model, training_config, x_train_shape):
     script.append("# Display model summary")
     script.append("model.summary()")
     script.append("")
+    
+    # Add W&B model watching
+    script.append("# Log model architecture with Weights & Biases")
+    script.append("wandb.watch(model, log='all')")
+    script.append("")
+    
+    # Define WandB callback
+    script.append("# Define Weights & Biases callback for logging")
+    script.append("wandb_callback = wandb.keras.WandbCallback()")
+    script.append("")
+    
     script.append("# Train the model")
     script.append(f"history = model.fit(")
     script.append(f"    x_train, y_train,")
     script.append(f"    epochs={epochs},")
     script.append(f"    batch_size={batch_size},")
-    script.append(f"    validation_split={validation_split}")
+    script.append(f"    validation_split={validation_split},")
+    script.append(f"    callbacks=[wandb_callback]")
     script.append(f")")
     script.append("")
     script.append("# Evaluate the model")
     script.append("test_loss, test_acc = model.evaluate(x_test, y_test)")
     script.append("print(f'Test accuracy: {test_acc:.4f}')")
     script.append("")
+    
+    # Add W&B logging for additional metrics
+    script.append("# Log additional evaluation metrics to W&B")
+    script.append("if dataset_name in ['Iris', 'MNIST', 'CIFAR-10', 'Breast Cancer']:")
+    script.append("    # Get predictions")
+    script.append("    predictions = model.predict(x_test)")
+    script.append("    if dataset_name == 'Breast Cancer':")
+    script.append("        y_pred = (predictions > 0.5).astype(int)")
+    script.append("        y_true = y_test")
+    script.append("    else:")
+    script.append("        y_pred = np.argmax(predictions, axis=1)")
+    script.append("        y_true = np.argmax(y_test, axis=1) if len(y_test.shape) > 1 else y_test")
+    script.append("    ")
+    script.append("    # Log confusion matrix")
+    script.append("    from sklearn.metrics import confusion_matrix")
+    script.append("    import matplotlib.pyplot as plt")
+    script.append("    import seaborn as sns")
+    script.append("    ")
+    script.append("    cm = confusion_matrix(y_true, y_pred)")
+    script.append("    plt.figure(figsize=(10, 8))")
+    script.append("    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')")
+    script.append("    plt.title('Confusion Matrix')")
+    script.append("    plt.ylabel('True Label')")
+    script.append("    plt.xlabel('Predicted Label')")
+    script.append("    wandb.log({'confusion_matrix': wandb.Image(plt)})")
+    script.append("")
+    
     script.append("# Save the model")
     script.append("model.save('trained_model.keras')")
+    script.append("wandb.save('trained_model.keras')  # Also save to W&B")
     script.append("")
     script.append("# Visualize training history")
     script.append("import matplotlib.pyplot as plt")
@@ -350,6 +403,10 @@ def generate_python_script(model, training_config, x_train_shape):
     script.append("plt.ylabel('Accuracy')")
     script.append("plt.legend()")
     script.append("plt.tight_layout()")
+    script.append("wandb.log({'training_curves': wandb.Image(plt)})")
     script.append("plt.show()")
+    script.append("")
+    script.append("# Finish the W&B run")
+    script.append("wandb.finish()")
     
     return "\n".join(script) 

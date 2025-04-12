@@ -14,6 +14,7 @@ import io
 import base64
 import pandas as pd
 from backend.utils.logging import get_logger
+from backend.utils.wandb_integration import wandb_logger
 
 # Initialize logger
 logger = get_logger(__name__)
@@ -99,7 +100,7 @@ def register_socket_events(socketio):
                 emit("training_error", {"error": "Dataset information missing in model architecture"})
                 return
 
-            training_config = data  # Training config comes from WebSocket payload
+            training_config = data
             logger.info("Training configuration received", 
                        extra={"context": {
                            "client_id": client_id,
@@ -162,8 +163,24 @@ def register_socket_events(socketio):
                 metrics=["accuracy"]
             )
 
+            # Initialize Weights & Biases
+            wandb_config = {
+                "dataset": dataset,
+                "optimizer": training_config["optimizer"].lower(),
+                "loss_function": loss_function,
+                "batch_size": batch_size,
+                "epochs": training_config["epochs"],
+                "model_architecture": model_architecture.get("architecture", [])
+            }
+            run_id = wandb_logger.init(model=model, config=wandb_config)
+            logger.info(f"W&B run initialized with ID: {run_id}",
+                       extra={"context": {"client_id": client_id}})
+            
             # Emit a message that training is starting
-            emit("training_start", {"message": "Training has started!"})
+            emit("training_start", {
+                "message": "Training has started!",
+                "wandb_run_url": wandb_logger.get_run_url()
+            })
             logger.info("Training started", extra={"context": {"client_id": client_id}})
             
             # Define total epochs and stage size
@@ -186,6 +203,7 @@ def register_socket_events(socketio):
                     logger.info(f"Training stopped by client", 
                                extra={"context": {"client_id": client_id}})
                     emit("training_stopped", {"message": "Training was stopped by the client."})
+                    wandb_logger.finish()  # Finish W&B run on stop
                     return
                 
                 # Calculate the number of epochs for this stage
@@ -212,6 +230,16 @@ def register_socket_events(socketio):
                     epoch = stage_start + epoch_offset + 1
                     logger.debug(f"Emitting progress for epoch {epoch}",
                                 extra={"context": {"client_id": client_id}})
+                    
+                    # Log metrics to W&B
+                    wandb_metrics = {
+                        "loss": history.history["loss"][epoch_offset],
+                        "accuracy": history.history["accuracy"][epoch_offset],
+                        "val_loss": history.history["val_loss"][epoch_offset],
+                        "val_accuracy": history.history["val_accuracy"][epoch_offset],
+                    }
+                    wandb_logger.log_metrics(wandb_metrics, step=epoch)
+                    
                     emit("training_progress_stage", {
                         "epoch": epoch,
                         "total_epochs": total_epochs,
@@ -244,6 +272,18 @@ def register_socket_events(socketio):
                 final_metrics["confusion_matrix"] = conf_matrix
                 logger.debug("Confusion matrix calculated", 
                            extra={"context": {"client_id": client_id}})
+                
+                # Log confusion matrix to W&B
+                class_labels = []
+                if dataset == "Iris":
+                    class_labels = ["Setosa", "Versicolor", "Virginica"]
+                elif dataset == "MNIST" or dataset == "CIFAR-10":
+                    if dataset == "MNIST":
+                        class_labels = [str(i) for i in range(10)]
+                    else:  # CIFAR-10
+                        class_labels = ["Airplane", "Automobile", "Bird", "Cat", "Deer", "Dog", "Frog", "Horse", "Ship", "Truck"]
+                
+                wandb_logger.log_confusion_matrix(y_true, y_pred, labels=class_labels)
                 
             elif dataset == "California Housing":
                 logger.debug("Calculating regression metrics", 
@@ -360,9 +400,19 @@ def register_socket_events(socketio):
                 except Exception as weights_error:
                     logger.error(f"Could not save model weights: {str(weights_error)}",
                                 extra={"context": {"client_id": client_id}})
+            
+            # Finish W&B run
+            wandb_logger.finish()
+            logger.info("W&B run completed", extra={"context": {"client_id": client_id}})
                 
         except Exception as e:
             logger.error(f"Training error: {str(e)}", 
                         extra={"context": {"client_id": client_id}}, 
                         exc_info=True)
-            emit("training_error", {"error": str(e)}) 
+            emit("training_error", {"error": str(e)})
+            
+            # Ensure W&B run is properly closed even on error
+            try:
+                wandb_logger.finish()
+            except:
+                pass 

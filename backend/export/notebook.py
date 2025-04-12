@@ -180,6 +180,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Conv2D, Flatten, Dropout, MaxPooling2D, BatchNormalization, Input, Reshape
 import numpy as np
 import matplotlib.pyplot as plt
+import wandb
 """
 
     # Add attention imports if needed
@@ -190,9 +191,25 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Conv2D, Flatten, Dropout, MaxPooling2D, BatchNormalization, Input, MultiHeadAttention, Lambda, Reshape
 import numpy as np
 import matplotlib.pyplot as plt
+import wandb
 
 # Enable unsafe deserialization for Lambda layers
 tf.keras.config.enable_unsafe_deserialization()
+"""
+
+    # Add WandB initialization
+    wandb_init_code = f"""
+# Initialize Weights & Biases for experiment tracking
+wandb.init(project="dnd-neural-network", 
+           name="{dataset_name}-model",
+           config={{
+               "dataset": "{dataset_name}",
+               "optimizer": "{optimizer}",
+               "loss_function": "{loss_value}",
+               "batch_size": {batch_size},
+               "epochs": {epochs},
+               "validation_split": {validation_split}
+           }})
 """
 
     # Generate model definition using the actual model architecture
@@ -298,16 +315,28 @@ model.add(Input(shape={x_train_shape[1:]}))
             model_definition_code += f"\n# Adding appropriate output layer for {dataset_name}\n"
             model_definition_code += f"model.add(Dense({expected_output_units}, activation='softmax'))\n"
     
-    # Add model compilation
+    # Add model compilation and W&B model watching
     model_definition_code += f"""
 # Compile the model
 model.compile(optimizer='{optimizer}', loss='{loss_value}', metrics=['accuracy'])
 model.summary()
+
+# Log model architecture with Weights & Biases
+wandb.watch(model, log='all')
 """
 
     training_code = f"""
+# Define Weights & Biases callback for logging
+wandb_callback = wandb.keras.WandbCallback()
+
 # Train the model
-history = model.fit(x_train, y_train, epochs={epochs}, batch_size={batch_size}, validation_split={validation_split})
+history = model.fit(
+    x_train, y_train, 
+    epochs={epochs}, 
+    batch_size={batch_size}, 
+    validation_split={validation_split},
+    callbacks=[wandb_callback]
+)
 
 # Evaluate the model
 loss, accuracy = model.evaluate(x_test, y_test)
@@ -316,6 +345,7 @@ print(f"Test Accuracy: {{accuracy}}")
 
 # Save the model
 model.save('trained_model.keras')
+wandb.save('trained_model.keras')  # Also save to W&B
 """
 
     visualization_code = """
@@ -337,7 +367,41 @@ plt.xlabel('Epoch')
 plt.ylabel('Accuracy')
 plt.legend()
 plt.tight_layout()
+
+# Log visualizations to W&B
+wandb.log({"training_curves": wandb.Image(plt)})
 plt.show()
+
+# Log additional metrics for classification tasks
+if any(dataset in "{dataset_name}".lower() for dataset in ["iris", "mnist", "cifar-10", "breast cancer"]):
+    # Get predictions
+    predictions = model.predict(x_test)
+    
+    # Process predictions based on dataset type
+    if "breast cancer" in "{dataset_name}".lower():
+        y_pred = (predictions > 0.5).astype(int)
+        y_true = y_test
+    else:
+        y_pred = np.argmax(predictions, axis=1)
+        y_true = np.argmax(y_test, axis=1) if len(y_test.shape) > 1 else y_test
+    
+    # Create confusion matrix
+    from sklearn.metrics import confusion_matrix
+    import seaborn as sns
+    
+    cm = confusion_matrix(y_true, y_pred)
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+    plt.title('Confusion Matrix')
+    plt.ylabel('True Label')
+    plt.xlabel('Predicted Label')
+    
+    # Log to W&B
+    wandb.log({"confusion_matrix": wandb.Image(plt)})
+    plt.show()
+
+# Finish the W&B run
+wandb.finish()
 """
 
     # Create the notebook in JSON format
@@ -356,6 +420,21 @@ plt.show()
             }
         ]
     }
+
+    # Add W&B initialization
+    notebook["cells"].extend([
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": ["## Initialize Weights & Biases"]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "source": [wandb_init_code]
+        }
+    ])
     
     # Only add the attention layer cell if needed
     if has_attention_layer:

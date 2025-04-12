@@ -225,6 +225,9 @@ const NewBuildPage = (): JSX.Element => {
   // but these state variables are still needed for export functionality from the navbar
   const [exportStatusMessage, setExportStatusMessage] = useState<string>("");
 
+  // First, let's add a state variable for the W&B URL
+  const [wandbUrl, setWandbUrl] = useState<string | null>(null);
+
   // Reset isModelSaved when nodes or edges change
   useEffect(() => {
     setIsModelSaved(false);
@@ -270,6 +273,11 @@ const NewBuildPage = (): JSX.Element => {
     // Listen for training start
     socket.on("training_start", (data) => {
       console.log("Training started:", data.message);
+      // Check if we have a W&B URL
+      if (data.wandb_run_url) {
+        console.log("W&B run URL:", data.wandb_run_url);
+        setWandbUrl(data.wandb_run_url);
+      }
       // Reset chart data when training starts
       setLabels([]);
       setLossData([]);
@@ -849,6 +857,7 @@ const NewBuildPage = (): JSX.Element => {
       socketRef.current.emit("stop_training");
       console.log("Stop training signal sent");
       setIsTraining(false);
+      setWandbUrl(null); // Clear W&B URL when stopping training
       alert("Training stopped by user");
     }
   };
@@ -4620,6 +4629,27 @@ const NewBuildPage = (): JSX.Element => {
           <div className="training-container">
             <div className="training-info">
               {/* Any training info that should remain in the right panel */}
+              {wandbUrl && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-blue-700">
+                      Weights & Biases Dashboard:
+                    </span>
+                    <a
+                      href={wandbUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Open Dashboard ↗
+                    </a>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Monitor your model training in real-time with advanced
+                    visualizations and metrics.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Training controls (train button moved to navbar) */}
