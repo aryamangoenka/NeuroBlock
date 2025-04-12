@@ -134,7 +134,7 @@ def generate_python_script(model, training_config, x_train_shape):
             "X_scaled = scaler.fit_transform(X)",
             "",
             "# One-hot encode the labels",
-            "encoder = OneHotEncoder(sparse=False)",
+            "encoder = OneHotEncoder(sparse_output=False)",
             "y_encoded = encoder.fit_transform(y)",
             "",
             "# Split the data",
@@ -197,13 +197,43 @@ def generate_python_script(model, training_config, x_train_shape):
     # Iterate through model layers and generate code for each one (skip input layer if it exists)
     start_idx = 1 if "input" in str(model.layers[0].__class__.__name__).lower() else 0
     
+    # Check if we need to validate output layer
+    has_output_layer = False
+    expected_output_units = None
+    
+    # Determine expected output units based on dataset
+    if dataset_name == "Iris":
+        expected_output_units = 3
+    elif dataset_name == "Breast Cancer":
+        expected_output_units = 1
+    elif dataset_name == "California Housing":
+        expected_output_units = 1
+    elif dataset_name == "MNIST" or dataset_name == "CIFAR-10":
+        expected_output_units = 10
+        
     for layer in model.layers[start_idx:]:
         layer_class = layer.__class__.__name__
         
         # Handle different layer types
         if layer_class == "Dense":
             activation = layer.activation.__name__ if hasattr(layer.activation, '__name__') else 'None'
-            script.append(f"model.add(Dense({layer.units}, activation='{activation}'))")
+            
+            # Check if this is potentially an output layer (last layer)
+            if layer == model.layers[-1] and expected_output_units is not None:
+                if layer.units != expected_output_units:
+                    # This is an output layer with incorrect units
+                    script.append(f"# Note: Modified output layer to match dataset requirements")
+                    script.append(f"model.add(Dense({expected_output_units}, activation='{activation}'))")
+                    has_output_layer = True
+                else:
+                    script.append(f"model.add(Dense({layer.units}, activation='{activation}'))")
+                    has_output_layer = True
+            else:
+                script.append(f"model.add(Dense({layer.units}, activation='{activation}'))")
+                
+                # If this is the last layer, mark that we have an output layer
+                if layer == model.layers[-1]:
+                    has_output_layer = True
             
         elif layer_class == "Conv2D":
             kernel_size = tuple(layer.kernel_size) if hasattr(layer, 'kernel_size') else (3, 3)
@@ -249,6 +279,18 @@ def generate_python_script(model, training_config, x_train_shape):
             script.append(f"# Layer type '{layer_class}' is not explicitly handled - adjust if needed")
             script.append(f"# model.add({layer_class}(...))")
     
+    # Add appropriate output layer if one is missing and we know what it should be
+    if not has_output_layer and expected_output_units is not None:
+        if dataset_name == "Breast Cancer" or dataset_name == "California Housing":
+            activation = "sigmoid" if dataset_name == "Breast Cancer" else "linear"
+            script.append(f"")
+            script.append(f"# Adding appropriate output layer for {dataset_name}")
+            script.append(f"model.add(Dense({expected_output_units}, activation='{activation}'))")
+        else:
+            script.append(f"")
+            script.append(f"# Adding appropriate output layer for {dataset_name}")
+            script.append(f"model.add(Dense({expected_output_units}, activation='softmax'))")
+            
     # Add compilation and training
     loss_function = training_config.get("lossFunction", "categorical_crossentropy")
     optimizer = training_config.get("optimizer", "adam")

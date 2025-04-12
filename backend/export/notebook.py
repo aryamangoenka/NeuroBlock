@@ -195,17 +195,112 @@ import matplotlib.pyplot as plt
 tf.keras.config.enable_unsafe_deserialization()
 """
 
-    # Generate placeholder model structure
+    # Generate model definition using the actual model architecture
     model_definition_code = f"""
 # Define the model
 model = Sequential()
 model.add(Input(shape={x_train_shape[1:]}))
 
-# ... Additional layers would be added here based on your model ...
-
-# Placeholder for final layer
-model.add(Dense(units=10, activation='softmax'))  # Replace with actual output size and activation
-
+"""
+    
+    # Iterate through model layers and generate code for each one (skip input layer if it exists)
+    start_idx = 1 if "input" in str(model.layers[0].__class__.__name__).lower() else 0
+    
+    # Determine expected output units based on dataset
+    expected_output_units = None
+    if dataset_name.lower() == "iris":
+        expected_output_units = 3
+    elif dataset_name.lower() == "breast cancer":
+        expected_output_units = 1
+    elif dataset_name.lower() == "california housing":
+        expected_output_units = 1
+    elif dataset_name.lower() == "mnist" or dataset_name.lower() == "cifar-10":
+        expected_output_units = 10
+    
+    # Flag to track if we've processed the output layer
+    has_output_layer = False
+    
+    for layer in model.layers[start_idx:]:
+        layer_class = layer.__class__.__name__
+        
+        # Handle different layer types
+        if layer_class == "Dense":
+            activation = layer.activation.__name__ if hasattr(layer.activation, '__name__') else 'None'
+            
+            # Check if this is potentially an output layer (last layer)
+            if layer == model.layers[-1] and expected_output_units is not None:
+                if layer.units != expected_output_units:
+                    # This is an output layer with incorrect units
+                    model_definition_code += f"# Note: Modified output layer to match dataset requirements\n"
+                    model_definition_code += f"model.add(Dense({expected_output_units}, activation='{activation}'))\n"
+                    has_output_layer = True
+                else:
+                    model_definition_code += f"model.add(Dense({layer.units}, activation='{activation}'))\n"
+                    has_output_layer = True
+            else:
+                model_definition_code += f"model.add(Dense({layer.units}, activation='{activation}'))\n"
+                
+                # If this is the last layer, mark that we have an output layer
+                if layer == model.layers[-1]:
+                    has_output_layer = True
+            
+        elif layer_class == "Conv2D":
+            kernel_size = tuple(layer.kernel_size) if hasattr(layer, 'kernel_size') else (3, 3)
+            strides = tuple(layer.strides) if hasattr(layer, 'strides') else (1, 1)
+            padding = "'" + layer.padding + "'" if hasattr(layer, 'padding') else "'valid'"
+            activation = layer.activation.__name__ if hasattr(layer.activation, '__name__') else 'None'
+            model_definition_code += f"model.add(Conv2D({layer.filters}, kernel_size={kernel_size}, strides={strides}, padding={padding}, activation='{activation}'))\n"
+            
+        elif layer_class == "MaxPooling2D":
+            pool_size = tuple(layer.pool_size) if hasattr(layer, 'pool_size') else (2, 2)
+            strides = tuple(layer.strides) if hasattr(layer, 'strides') else None
+            padding = "'" + layer.padding + "'" if hasattr(layer, 'padding') else "'valid'"
+            
+            if strides is None:
+                model_definition_code += f"model.add(MaxPooling2D(pool_size={pool_size}, padding={padding}))\n"
+            else:
+                model_definition_code += f"model.add(MaxPooling2D(pool_size={pool_size}, strides={strides}, padding={padding}))\n"
+            
+        elif layer_class == "Flatten":
+            model_definition_code += f"model.add(Flatten())\n"
+            
+        elif layer_class == "Dropout":
+            model_definition_code += f"model.add(Dropout({layer.rate}))\n"
+            
+        elif layer_class == "BatchNormalization":
+            momentum = layer.momentum if hasattr(layer, 'momentum') else 0.99
+            epsilon = layer.epsilon if hasattr(layer, 'epsilon') else 0.001
+            model_definition_code += f"model.add(BatchNormalization(momentum={momentum}, epsilon={epsilon}))\n"
+            
+        elif layer_class == "Reshape":
+            target_shape = layer.target_shape if hasattr(layer, 'target_shape') else (None,)
+            model_definition_code += f"model.add(Reshape({target_shape}))\n"
+            
+        elif "attention" in layer_class.lower() or "multihead" in layer_class.lower():
+            # Add attention layer with custom parameters if available
+            num_heads = layer.num_heads if hasattr(layer, 'num_heads') else 8
+            key_dim = layer.key_dim if hasattr(layer, 'key_dim') else 64
+            dropout = layer.dropout if hasattr(layer, 'dropout') else 0.0
+            model_definition_code += f"model.add(CustomAttentionLayer(num_heads={num_heads}, key_dim={key_dim}, dropout={dropout}))\n"
+            
+        else:
+            # For any other layer types, add a comment
+            model_definition_code += f"# Layer type '{layer_class}' is not explicitly handled - adjust if needed\n"
+            model_definition_code += f"# model.add({layer_class}(...))\n"
+    
+    # Add appropriate output layer if one is missing and we know what it should be
+    if not has_output_layer and expected_output_units is not None:
+        if dataset_name.lower() == "breast cancer" or dataset_name.lower() == "california housing":
+            activation = "sigmoid" if dataset_name.lower() == "breast cancer" else "linear"
+            model_definition_code += f"\n# Adding appropriate output layer for {dataset_name}\n"
+            model_definition_code += f"model.add(Dense({expected_output_units}, activation='{activation}'))\n"
+        else:
+            model_definition_code += f"\n# Adding appropriate output layer for {dataset_name}\n"
+            model_definition_code += f"model.add(Dense({expected_output_units}, activation='softmax'))\n"
+    
+    # Add model compilation
+    model_definition_code += f"""
+# Compile the model
 model.compile(optimizer='{optimizer}', loss='{loss_value}', metrics=['accuracy'])
 model.summary()
 """

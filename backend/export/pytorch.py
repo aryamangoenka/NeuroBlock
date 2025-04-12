@@ -47,6 +47,9 @@ from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
 """
 
+    # Add the dataset name as a variable for the evaluation logic
+    pytorch_code += f"\n# Define the dataset name for evaluation logic\ndataset_name = \"{dataset_name}\"\n"
+
     # Add attention-specific imports if needed
     if has_attention_layer:
         pytorch_code += """
@@ -182,16 +185,27 @@ class NeuralNetwork(nn.Module):
         super(NeuralNetwork, self).__init__()
 """
 
+    # Determine expected output units based on dataset
+    expected_output_units = 10  # default
+    if dataset_name == "iris":
+        expected_output_units = 3
+    elif dataset_name == "breast cancer":
+        expected_output_units = 1
+    elif dataset_name == "california housing":
+        expected_output_units = 1
+    elif dataset_name == "mnist" or dataset_name == "cifar-10":
+        expected_output_units = 10
+
     # Placeholder for layers based on model type
     if 'Conv2D' in str(model.layers):
         # It's a CNN-like model
-        pytorch_code += """        # Convolutional layers
+        pytorch_code += f"""        # Convolutional layers
         self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1)  # Adjust parameters as needed
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
         self.flatten = nn.Flatten()
         self.fc1 = nn.Linear(64 * 7 * 7, 128)  # Adjust input size based on your model
-        self.fc2 = nn.Linear(128, 10)  # Adjust output size based on your model
+        self.fc2 = nn.Linear(128, {expected_output_units})  # Output layer sized for dataset: {dataset_name}
         self.dropout = nn.Dropout(0.25)
 """
     else:
@@ -200,7 +214,7 @@ class NeuralNetwork(nn.Module):
         pytorch_code += f"""        # Fully connected layers
         self.fc1 = nn.Linear({input_size}, 128)
         self.fc2 = nn.Linear(128, 64)
-        self.fc3 = nn.Linear(64, 10)  # Adjust output size based on your model
+        self.fc3 = nn.Linear(64, {expected_output_units})  # Output layer sized for dataset: {dataset_name}
         self.dropout = nn.Dropout(0.25)
 """
 
@@ -239,12 +253,22 @@ class NeuralNetwork(nn.Module):
     opt_map = {"adam": "Adam", "sgd": "SGD", "rmsprop": "RMSprop", "adagrad": "Adagrad"}
     opt_name = opt_map.get(optimizer, "Adam")
     
+    # Adjust criterion based on dataset type for better compatibility
+    if dataset_name == "iris" or dataset_name == "mnist" or dataset_name == "cifar-10":
+        adjusted_loss = loss_value  # Use the mapped loss (usually CrossEntropyLoss for classification)
+    elif dataset_name == "breast cancer":
+        adjusted_loss = "nn.BCEWithLogitsLoss()"  # Better for binary classification
+    elif dataset_name == "california housing":
+        adjusted_loss = "nn.MSELoss()"  # Better for regression
+    else:
+        adjusted_loss = loss_value
+    
     pytorch_code += f"""
 # Initialize the model
 model = NeuralNetwork()
 
 # Define loss function and optimizer
-criterion = {loss_value}
+criterion = {adjusted_loss}
 optimizer = optim.{opt_name}(model.parameters(), lr=0.001)
 
 # Training loop
@@ -260,7 +284,12 @@ for epoch in range({epochs}):
         outputs = model(inputs)
         
         # Calculate loss
-        loss = criterion(outputs, targets)
+        if dataset_name == "iris" and criterion.__class__.__name__ == "CrossEntropyLoss":
+            # Convert one-hot encoded targets to class indices for CrossEntropyLoss
+            _, target_indices = torch.max(targets, 1)
+            loss = criterion(outputs, target_indices)
+        else:
+            loss = criterion(outputs, targets)
         
         # Backward pass and optimize
         loss.backward()
@@ -277,15 +306,41 @@ for epoch in range({epochs}):
             outputs = model(inputs)
             
             # Calculate accuracy (classification) or other metrics (regression)
-            if criterion.__class__.__name__ in ["CrossEntropyLoss", "BCELoss"]:
+            if dataset_name == "breast cancer":
+                # Binary classification
+                predicted = (outputs > 0).float()  # Apply sigmoid in loss function
+                total += targets.size(0)
+                correct += (predicted == targets).sum().item()
+            elif dataset_name == "california housing":
+                # Regression - no accuracy calculation, use MSE
+                pass
+            elif dataset_name == "mnist" or dataset_name == "cifar-10":
+                # MNIST/CIFAR-10 have class indices, not one-hot encoded labels
                 _, predicted = torch.max(outputs.data, 1)
                 total += targets.size(0)
                 correct += (predicted == targets).sum().item()
+            elif dataset_name == "iris":
+                # Iris dataset is one-hot encoded in our preprocessing
+                _, predicted = torch.max(outputs.data, 1)
+                _, target_classes = torch.max(targets, 1)
+                total += targets.size(0)
+                correct += (predicted == target_classes).sum().item()
+            else:
+                # Generic classification approach
+                _, predicted = torch.max(outputs.data, 1)
+                total += targets.size(0)
+                if targets.size(1) > 1:  # One-hot encoded
+                    _, target_classes = torch.max(targets, 1)
+                    correct += (predicted == target_classes).sum().item()
+                else:  # Class indices
+                    correct += (predicted == targets).sum().item()
                 
     # Print epoch statistics
     print(f"Epoch {{epoch+1}}/{{{epochs}}}, Loss: {{running_loss/len(train_loader):.4f}}")
-    if total > 0:
+    if total > 0 and dataset_name != "california housing":
         print(f"Accuracy: {{100 * correct / total:.2f}}%")
+    elif dataset_name == "california housing":
+        print(f"Regression task - accuracy metric not applicable")
 
 # Save the model
 torch.save(model.state_dict(), "pytorch_model.pth")
