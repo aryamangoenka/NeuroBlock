@@ -74,14 +74,7 @@ const nodeTypes = {
 };
 
 // Define the sidebar navigation options
-type SidebarOption =
-  | "layers"
-  | "templates"
-  | "settings"
-  | "hyperparameters"
-  | "training"
-  | "model_config"
-  | "layer_params";
+type SidebarOption = "layers" | "templates" | "training";
 
 // Add these near the top of the file with other type definitions
 type ValidationErrors = string[];
@@ -1343,6 +1336,650 @@ const NewBuildPage = (): JSX.Element => {
           type: "output",
         },
       ],
+
+      // Add ResNet-34 template
+      "ResNet-34": [
+        {
+          id: "input-1",
+          data: { label: "Input Layer" },
+          position: { x: 250, y: 25 },
+          type: "input",
+        },
+        {
+          id: "conv-1",
+          data: {
+            label: "Initial Conv Layer",
+            filters: 64,
+            kernelSize: [7, 7],
+            stride: [2, 2],
+            padding: "same",
+            activation: "ReLU",
+          },
+          position: { x: 250, y: 100 },
+          type: "convolution",
+        },
+        {
+          id: "batchnorm-1",
+          data: {
+            label: "BatchNorm Layer",
+            momentum: 0.9,
+            epsilon: 1e-5,
+          },
+          position: { x: 250, y: 175 },
+          type: "batchnormalization",
+        },
+        {
+          id: "maxpool-1",
+          data: {
+            label: "Initial MaxPool",
+            poolSize: [3, 3],
+            stride: [2, 2],
+            padding: "same",
+          },
+          position: { x: 250, y: 250 },
+          type: "maxpooling",
+        },
+        // Layer 1 - 3 Basic Blocks for ResNet-34
+        {
+          id: "resblock-1-1",
+          data: {
+            label: "ResBlock 1-1",
+            blockType: "Basic",
+            inChannels: 64,
+            outChannels: 64,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 325 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-1-2",
+          data: {
+            label: "ResBlock 1-2",
+            blockType: "Basic",
+            inChannels: 64,
+            outChannels: 64,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 400 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-1-3",
+          data: {
+            label: "ResBlock 1-3",
+            blockType: "Basic",
+            inChannels: 64,
+            outChannels: 64,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 475 },
+          type: "resnetblock",
+        },
+        // Layer 2 - 4 Basic Blocks
+        {
+          id: "resblock-2-1",
+          data: {
+            label: "ResBlock 2-1",
+            blockType: "Basic",
+            inChannels: 64,
+            outChannels: 128,
+            stride: [2, 2],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "Conv1x1",
+          },
+          position: { x: 250, y: 550 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-2-2",
+          data: {
+            label: "ResBlock 2-2",
+            blockType: "Basic",
+            inChannels: 128,
+            outChannels: 128,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 625 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-2-3",
+          data: {
+            label: "ResBlock 2-3",
+            blockType: "Basic",
+            inChannels: 128,
+            outChannels: 128,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 700 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-2-4",
+          data: {
+            label: "ResBlock 2-4",
+            blockType: "Basic",
+            inChannels: 128,
+            outChannels: 128,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 775 },
+          type: "resnetblock",
+        },
+        // Layer 3 - 6 Basic Blocks
+        {
+          id: "resblock-3-1",
+          data: {
+            label: "ResBlock 3-1",
+            blockType: "Basic",
+            inChannels: 128,
+            outChannels: 256,
+            stride: [2, 2],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "Conv1x1",
+          },
+          position: { x: 250, y: 850 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-3-2",
+          data: {
+            label: "ResBlock 3-2",
+            blockType: "Basic",
+            inChannels: 256,
+            outChannels: 256,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 925 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-3-3",
+          data: {
+            label: "ResBlock 3-3",
+            blockType: "Basic",
+            inChannels: 256,
+            outChannels: 256,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1000 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-3-4",
+          data: {
+            label: "ResBlock 3-4",
+            blockType: "Basic",
+            inChannels: 256,
+            outChannels: 256,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1075 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-3-5",
+          data: {
+            label: "ResBlock 3-5",
+            blockType: "Basic",
+            inChannels: 256,
+            outChannels: 256,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1150 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-3-6",
+          data: {
+            label: "ResBlock 3-6",
+            blockType: "Basic",
+            inChannels: 256,
+            outChannels: 256,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1225 },
+          type: "resnetblock",
+        },
+        // Layer 4 - 3 Basic Blocks
+        {
+          id: "resblock-4-1",
+          data: {
+            label: "ResBlock 4-1",
+            blockType: "Basic",
+            inChannels: 256,
+            outChannels: 512,
+            stride: [2, 2],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "Conv1x1",
+          },
+          position: { x: 250, y: 1300 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-4-2",
+          data: {
+            label: "ResBlock 4-2",
+            blockType: "Basic",
+            inChannels: 512,
+            outChannels: 512,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1375 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-4-3",
+          data: {
+            label: "ResBlock 4-3",
+            blockType: "Basic",
+            inChannels: 512,
+            outChannels: 512,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1450 },
+          type: "resnetblock",
+        },
+        // Global Average Pooling
+        {
+          id: "avgpool-1",
+          data: {
+            label: "Global AvgPool",
+            poolSize: [7, 7],
+            stride: [1, 1],
+            padding: "valid",
+          },
+          position: { x: 250, y: 1525 },
+          type: "maxpooling",
+        },
+        {
+          id: "flatten-1",
+          data: { label: "Flatten Layer" },
+          position: { x: 250, y: 1600 },
+          type: "flatten",
+        },
+        {
+          id: "dense-1",
+          data: {
+            label: "FC Layer",
+            neurons: 1000,
+            activation: "ReLU",
+          },
+          position: { x: 250, y: 1675 },
+          type: "dense",
+        },
+        {
+          id: "output-1",
+          data: { label: "Output Layer", activation: "Softmax" },
+          position: { x: 250, y: 1750 },
+          type: "output",
+        },
+      ],
+
+      // Add ResNet-50 template
+      "ResNet-50": [
+        {
+          id: "input-1",
+          data: { label: "Input Layer" },
+          position: { x: 250, y: 25 },
+          type: "input",
+        },
+        {
+          id: "conv-1",
+          data: {
+            label: "Initial Conv Layer",
+            filters: 64,
+            kernelSize: [7, 7],
+            stride: [2, 2],
+            padding: "same",
+            activation: "ReLU",
+          },
+          position: { x: 250, y: 100 },
+          type: "convolution",
+        },
+        {
+          id: "batchnorm-1",
+          data: {
+            label: "BatchNorm Layer",
+            momentum: 0.9,
+            epsilon: 1e-5,
+          },
+          position: { x: 250, y: 175 },
+          type: "batchnormalization",
+        },
+        {
+          id: "maxpool-1",
+          data: {
+            label: "Initial MaxPool",
+            poolSize: [3, 3],
+            stride: [2, 2],
+            padding: "same",
+          },
+          position: { x: 250, y: 250 },
+          type: "maxpooling",
+        },
+        // Layer 1 - 3 Bottleneck Blocks for ResNet-50
+        {
+          id: "resblock-1-1",
+          data: {
+            label: "ResBlock 1-1",
+            blockType: "Bottleneck",
+            inChannels: 64,
+            outChannels: 256,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "Conv1x1",
+          },
+          position: { x: 250, y: 325 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-1-2",
+          data: {
+            label: "ResBlock 1-2",
+            blockType: "Bottleneck",
+            inChannels: 256,
+            outChannels: 256,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 400 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-1-3",
+          data: {
+            label: "ResBlock 1-3",
+            blockType: "Bottleneck",
+            inChannels: 256,
+            outChannels: 256,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 475 },
+          type: "resnetblock",
+        },
+        // Layer 2 - 4 Bottleneck Blocks
+        {
+          id: "resblock-2-1",
+          data: {
+            label: "ResBlock 2-1",
+            blockType: "Bottleneck",
+            inChannels: 256,
+            outChannels: 512,
+            stride: [2, 2],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "Conv1x1",
+          },
+          position: { x: 250, y: 550 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-2-2",
+          data: {
+            label: "ResBlock 2-2",
+            blockType: "Bottleneck",
+            inChannels: 512,
+            outChannels: 512,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 625 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-2-3",
+          data: {
+            label: "ResBlock 2-3",
+            blockType: "Bottleneck",
+            inChannels: 512,
+            outChannels: 512,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 700 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-2-4",
+          data: {
+            label: "ResBlock 2-4",
+            blockType: "Bottleneck",
+            inChannels: 512,
+            outChannels: 512,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 775 },
+          type: "resnetblock",
+        },
+        // Layer 3 - 6 Bottleneck Blocks
+        {
+          id: "resblock-3-1",
+          data: {
+            label: "ResBlock 3-1",
+            blockType: "Bottleneck",
+            inChannels: 512,
+            outChannels: 1024,
+            stride: [2, 2],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "Conv1x1",
+          },
+          position: { x: 250, y: 850 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-3-2",
+          data: {
+            label: "ResBlock 3-2",
+            blockType: "Bottleneck",
+            inChannels: 1024,
+            outChannels: 1024,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 925 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-3-3",
+          data: {
+            label: "ResBlock 3-3",
+            blockType: "Bottleneck",
+            inChannels: 1024,
+            outChannels: 1024,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1000 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-3-4",
+          data: {
+            label: "ResBlock 3-4",
+            blockType: "Bottleneck",
+            inChannels: 1024,
+            outChannels: 1024,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1075 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-3-5",
+          data: {
+            label: "ResBlock 3-5",
+            blockType: "Bottleneck",
+            inChannels: 1024,
+            outChannels: 1024,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1150 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-3-6",
+          data: {
+            label: "ResBlock 3-6",
+            blockType: "Bottleneck",
+            inChannels: 1024,
+            outChannels: 1024,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1225 },
+          type: "resnetblock",
+        },
+        // Layer 4 - 3 Bottleneck Blocks
+        {
+          id: "resblock-4-1",
+          data: {
+            label: "ResBlock 4-1",
+            blockType: "Bottleneck",
+            inChannels: 1024,
+            outChannels: 2048,
+            stride: [2, 2],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "Conv1x1",
+          },
+          position: { x: 250, y: 1300 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-4-2",
+          data: {
+            label: "ResBlock 4-2",
+            blockType: "Bottleneck",
+            inChannels: 2048,
+            outChannels: 2048,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1375 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-4-3",
+          data: {
+            label: "ResBlock 4-3",
+            blockType: "Bottleneck",
+            inChannels: 2048,
+            outChannels: 2048,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1450 },
+          type: "resnetblock",
+        },
+        // Global Average Pooling
+        {
+          id: "avgpool-1",
+          data: {
+            label: "Global AvgPool",
+            poolSize: [7, 7],
+            stride: [1, 1],
+            padding: "valid",
+          },
+          position: { x: 250, y: 1525 },
+          type: "maxpooling",
+        },
+        {
+          id: "flatten-1",
+          data: { label: "Flatten Layer" },
+          position: { x: 250, y: 1600 },
+          type: "flatten",
+        },
+        {
+          id: "dense-1",
+          data: {
+            label: "FC Layer",
+            neurons: 1000,
+            activation: "ReLU",
+          },
+          position: { x: 250, y: 1675 },
+          type: "dense",
+        },
+        {
+          id: "output-1",
+          data: { label: "Output Layer", activation: "Softmax" },
+          position: { x: 250, y: 1750 },
+          type: "output",
+        },
+      ],
     };
 
     // Get the template and set it as our nodes
@@ -1387,7 +2024,7 @@ const NewBuildPage = (): JSX.Element => {
 
   const onNodeClick = (_: React.MouseEvent, node: Node): void => {
     setSelectedNode(node);
-    setActiveSidebarOption("layer_params");
+    setActiveSidebarOption("layers");
   };
 
   // Validate layer parameters before saving or training
@@ -2111,16 +2748,6 @@ const NewBuildPage = (): JSX.Element => {
         return (
           <div className="sidebar-content-section">
             <h3>Available Layers</h3>
-            <div className="layer-intro">
-              <div className="layer-intro-icon">
-                <i className="fas fa-puzzle-piece"></i>
-              </div>
-              <p>
-                Drag and drop these layers to design your neural network. Each
-                layer has specific properties that can be customized after
-                adding.
-              </p>
-            </div>
             <div className="layer-list">
               {/* Basic Layers */}
               <div className="layer-item dense-layer">
@@ -2158,7 +2785,7 @@ const NewBuildPage = (): JSX.Element => {
               </div>
               <div className="layer-item globalaveragepool-layer">
                 <span>
-                  <i className="fas fa-compress"></i> GlobalAveragePooling
+                  <i className="fas fa-compress"></i> Global Avg Pool
                 </span>
                 <button
                   className="add-button"
@@ -2212,17 +2839,6 @@ const NewBuildPage = (): JSX.Element => {
                 </button>
               </div>
 
-              {/* ResNet Architecture Section */}
-              <div className="layer-section-title resnet-section">
-                <i className="fas fa-code-branch"></i> ResNet Architecture
-              </div>
-
-              <div className="resnet-section-description">
-                For optimal ResNet models, use <strong>ResNet Blocks</strong>{" "}
-                followed by <strong>GlobalAveragePooling</strong> before the
-                output layer.
-              </div>
-
               <div className="layer-item resnetblock-layer">
                 <span>
                   <i className="fas fa-code-branch"></i> ResNet Block
@@ -2248,72 +2864,22 @@ const NewBuildPage = (): JSX.Element => {
             </div>
           </div>
         );
-      case "layer_params":
-        return (
-          <div className="sidebar-content-section">
-            <h3>
-              <i className="fas fa-sliders-h"></i> Layer Parameters
-            </h3>
-            <div className="sidebar-intro layer-params-intro">
-              <div className="sidebar-intro-icon">
-                <i className="fas fa-sliders-h"></i>
-              </div>
-              <p>
-                Select a layer on the canvas to view and edit its parameters.
-                Each layer type has different configurable options that affect
-                how your model processes data.
-              </p>
-            </div>
-
-            {!selectedNode ? (
-              <div className="layer-params-empty-state">
-                <div className="empty-state-animation">
-                  <div className="pulse-ring"></div>
-                  <i className="fas fa-mouse-pointer"></i>
-                </div>
-                <p>Click on a layer in the canvas to edit its parameters</p>
-                <div className="empty-state-hint">
-                  <i className="fas fa-info-circle"></i>
-                  <span>
-                    Layer parameters control how your neural network processes
-                    data
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="node-parameters">{renderNodeParameters()}</div>
-            )}
-          </div>
-        );
       case "templates":
         return (
           <div className="sidebar-content-section">
             <h3>
               <i className="fas fa-shapes"></i> Model Templates
             </h3>
-            <div className="template-intro">
-              <div className="template-intro-icon">
-                <i className="fas fa-shapes"></i>
-              </div>
-              <p>
-                Start with pre-designed model architectures for common machine
-                learning tasks. Select a template that fits your needs and
-                customize it further.
-              </p>
-            </div>
             <div className="template-list">
-              <div className="template-section-title">
-                <i className="fas fa-cubes"></i> Basic Templates
-              </div>
               <div className="template-item simple-feedforward">
                 <span>
                   <i className="fas fa-network-wired"></i> Simple Feedforward
                 </span>
                 <button
-                  className="load-button"
+                  className="add-button"
                   onClick={() => loadTemplate("Simple Feedforward")}
                 >
-                  <i className="fas fa-download"></i> Load
+                  <i className="fas fa-plus"></i>
                 </button>
               </div>
               <div className="template-item">
@@ -2321,25 +2887,21 @@ const NewBuildPage = (): JSX.Element => {
                   <i className="fas fa-border-all"></i> Convolutional Network
                 </span>
                 <button
-                  className="load-button"
+                  className="add-button"
                   onClick={() => loadTemplate("Convolutional Network")}
                 >
-                  <i className="fas fa-download"></i> Load
+                  <i className="fas fa-plus"></i>
                 </button>
-              </div>
-
-              <div className="template-section-title">
-                <i className="fas fa-brain"></i> Advanced Templates
               </div>
               <div className="template-item transformer-template">
                 <span>
                   <i className="fas fa-random"></i> Transformer Model
                 </span>
                 <button
-                  className="load-button"
+                  className="add-button"
                   onClick={() => loadTemplate("Transformer Model")}
                 >
-                  <i className="fas fa-download"></i> Load
+                  <i className="fas fa-plus"></i>
                 </button>
               </div>
               <div className="template-item regression-template">
@@ -2348,25 +2910,21 @@ const NewBuildPage = (): JSX.Element => {
                   Regression
                 </span>
                 <button
-                  className="load-button"
+                  className="add-button"
                   onClick={() => loadTemplate("Fully Connected Regression")}
                 >
-                  <i className="fas fa-download"></i> Load
+                  <i className="fas fa-plus"></i>
                 </button>
-              </div>
-
-              <div className="template-section-title">
-                <i className="fas fa-code-branch"></i> ResNet Templates
               </div>
               <div className="template-item resnet-template">
                 <span>
                   <i className="fas fa-code-branch"></i> ResNet-18
                 </span>
                 <button
-                  className="load-button"
+                  className="add-button"
                   onClick={() => loadTemplate("ResNet-18")}
                 >
-                  <i className="fas fa-download"></i> Load
+                  <i className="fas fa-plus"></i>
                 </button>
               </div>
               <div className="template-item resnet-template">
@@ -2374,10 +2932,10 @@ const NewBuildPage = (): JSX.Element => {
                   <i className="fas fa-code-branch"></i> ResNet-34
                 </span>
                 <button
-                  className="load-button"
+                  className="add-button"
                   onClick={() => loadTemplate("ResNet-34")}
                 >
-                  <i className="fas fa-download"></i> Load
+                  <i className="fas fa-plus"></i>
                 </button>
               </div>
               <div className="template-item resnet-template">
@@ -2385,82 +2943,11 @@ const NewBuildPage = (): JSX.Element => {
                   <i className="fas fa-code-branch"></i> ResNet-50
                 </span>
                 <button
-                  className="load-button"
+                  className="add-button"
                   onClick={() => loadTemplate("ResNet-50")}
                 >
-                  <i className="fas fa-download"></i> Load
+                  <i className="fas fa-plus"></i>
                 </button>
-              </div>
-            </div>
-          </div>
-        );
-      case "hyperparameters":
-        return (
-          <div className="sidebar-content-section">
-            <h3>
-              <i className="fas fa-cogs"></i> Hyperparameters
-            </h3>
-            <div className="hyperparams-intro">
-              <div className="hyperparams-intro-icon">
-                <i className="fas fa-cogs"></i>
-              </div>
-              <p>
-                Configure the key hyperparameters that control how your model
-                learns. These settings significantly impact your model's
-                performance and training speed.
-              </p>
-            </div>
-            <div className="settings-list hyperparams-list">
-              <div className="setting-item">
-                <label>
-                  <i className="fas fa-layer-group"></i> Batch Size
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={trainingConfig.batchSize}
-                  className="batch-size-input"
-                  onChange={(e) =>
-                    setTrainingConfig({
-                      ...trainingConfig,
-                      batchSize: parseInt(e.target.value) || 32,
-                    })
-                  }
-                />
-              </div>
-              <div className="setting-item">
-                <label>
-                  <i className="fas fa-tachometer-alt"></i> Learning Rate
-                </label>
-                <input
-                  type="number"
-                  min="0.0001"
-                  max="1"
-                  step="0.0001"
-                  value={trainingConfig.learningRate}
-                  onChange={(e) =>
-                    setTrainingConfig({
-                      ...trainingConfig,
-                      learningRate: parseFloat(e.target.value) || 0.001,
-                    })
-                  }
-                />
-              </div>
-              <div className="setting-item">
-                <label>
-                  <i className="fas fa-redo"></i> Epochs
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={trainingConfig.epochs}
-                  onChange={(e) =>
-                    setTrainingConfig({
-                      ...trainingConfig,
-                      epochs: parseInt(e.target.value) || 10,
-                    })
-                  }
-                />
               </div>
             </div>
           </div>
@@ -2696,235 +3183,12 @@ const NewBuildPage = (): JSX.Element => {
             </div>
           </div>
         );
-      case "model_config":
-        return (
-          <div className="sidebar-content-section">
-            <h3>Model Configuration</h3>
-            <div className="model-config-intro">
-              <div className="model-config-intro-icon">
-                <i className="fas fa-project-diagram"></i>
-              </div>
-              <p>
-                View your model's configuration settings and key parameters for
-                building and training your neural network.
-              </p>
-            </div>
-
-            <div className="model-config-container compact-config">
-              {/* Data Section */}
-              <div className="model-config-section data-section">
-                <h4>
-                  <i className="fas fa-database"></i> Data
-                </h4>
-                <div className="dataset-display">
-                  {selectedDataset ? (
-                    <div className="dataset-info-container">
-                      <div className="dataset-header">
-                        <div className="dataset-icon">
-                          <i
-                            className={`fas ${
-                              selectedDataset === "MNIST" ||
-                              selectedDataset === "CIFAR-10"
-                                ? "fa-image"
-                                : selectedDataset === "California Housing"
-                                ? "fa-home"
-                                : "fa-table"
-                            }`}
-                          ></i>
-                        </div>
-                        <div className="dataset-name">
-                          <span>{selectedDataset}</span>
-                          <small className="dataset-type">
-                            {selectedDataset === "MNIST" ||
-                            selectedDataset === "CIFAR-10"
-                              ? "Image Classification"
-                              : selectedDataset === "Iris" ||
-                                selectedDataset === "Breast Cancer"
-                              ? "Classification"
-                              : selectedDataset === "California Housing"
-                              ? "Regression"
-                              : "Dataset"}
-                          </small>
-                        </div>
-                      </div>
-
-                      <div className="dataset-details">
-                        {selectedDataset !== "California Housing" && (
-                          <div className="dataset-classes">
-                            <span className="detail-label">
-                              <i className="fas fa-tags"></i> Classes
-                            </span>
-                            <div className="class-labels">
-                              {getClassLabels(selectedDataset).map(
-                                (label, index) => (
-                                  <span key={index} className="class-tag">
-                                    {label}
-                                  </span>
-                                )
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="dataset-features">
-                          <span className="detail-label">
-                            <i className="fas fa-chart-bar"></i> Features
-                          </span>
-                          <span className="feature-info">
-                            {selectedDataset === "MNIST"
-                              ? "28×28 grayscale images"
-                              : selectedDataset === "CIFAR-10"
-                              ? "32×32 color images"
-                              : selectedDataset === "Iris"
-                              ? "4 numeric features"
-                              : selectedDataset === "Breast Cancer"
-                              ? "30 numeric features"
-                              : selectedDataset === "California Housing"
-                              ? "8 numeric features"
-                              : "Multiple features"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="no-dataset-selected">
-                      <i className="fas fa-exclamation-circle"></i>
-                      <span>No dataset selected</span>
-                      <small>
-                        Select a dataset in Settings to train your model
-                      </small>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Architecture Section */}
-              <div className="model-config-section">
-                <h4>
-                  <i className="fas fa-network-wired"></i> Architecture
-                </h4>
-                <div className="model-config-grid">
-                  <div className="model-config-item">
-                    <span className="model-config-label">
-                      <i className="fas fa-cubes"></i> Layers
-                    </span>
-                    <span className="model-config-value">{nodes.length}</span>
-                  </div>
-                  <div className="model-config-item">
-                    <span className="model-config-label">
-                      <i className="fas fa-project-diagram"></i> Connections
-                    </span>
-                    <span className="model-config-value">{edges.length}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      case "settings":
-        return (
-          <div className="sidebar-content-section">
-            <h3>Dataset Settings</h3>
-            <div className="settings-intro">
-              <div className="settings-intro-icon">
-                <i className="fas fa-database"></i>
-              </div>
-              <p>
-                Select a dataset to train your neural network. The dataset will
-                determine the input and output dimensions for your model.
-              </p>
-            </div>
-
-            <div className="training-options-container">
-              {/* Dataset Selection Card */}
-              <div className="training-card dataset-card">
-                <div className="training-card-header">
-                  <i className="fas fa-table"></i>
-                  <span>Dataset</span>
-                </div>
-                <div className="training-card-body">
-                  <select
-                    value={selectedDataset}
-                    onChange={(e) => {
-                      const newDataset = e.target.value;
-                      console.log(
-                        "Selected dataset from dropdown:",
-                        newDataset
-                      );
-                      setSelectedDataset(newDataset);
-
-                      // Manually trigger a dataset change event
-                      const event = new CustomEvent("datasetChange", {
-                        detail: { dataset: newDataset },
-                      });
-                      console.log("Manually dispatching datasetChange event");
-                      window.dispatchEvent(event);
-                    }}
-                    className="dataset-select"
-                  >
-                    <option value="">Select Dataset</option>
-                    <option value="MNIST">MNIST</option>
-                    <option value="CIFAR-10">CIFAR-10</option>
-                    <option value="Iris">Iris</option>
-                    <option value="Breast Cancer">Breast Cancer</option>
-                    <option value="California Housing">
-                      California Housing
-                    </option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Dataset Info Card */}
-              {selectedDataset && (
-                <div className="training-card dataset-info-card">
-                  <div className="training-card-header">
-                    <i className="fas fa-info-circle"></i>
-                    <span>Dataset Information</span>
-                  </div>
-                  <div className="training-card-body">
-                    <div className="dataset-info-content">
-                      {selectedDataset === "MNIST" && (
-                        <p>
-                          A database of handwritten digits with 60,000 training
-                          examples and 10,000 test examples. Each image is 28x28
-                          pixels (grayscale).
-                        </p>
-                      )}
-                      {selectedDataset === "CIFAR-10" && (
-                        <p>
-                          A collection of 60,000 32x32 color images in 10
-                          different classes, with 6,000 images per class.
-                        </p>
-                      )}
-                      {selectedDataset === "Iris" && (
-                        <p>
-                          A classic dataset containing 3 classes of 50 instances
-                          each, where each class refers to a type of iris plant.
-                        </p>
-                      )}
-                      {selectedDataset === "Breast Cancer" && (
-                        <p>
-                          Features are computed from a digitized image of a fine
-                          needle aspirate of a breast mass. The task is to
-                          classify whether the mass is malignant or benign.
-                        </p>
-                      )}
-                      {selectedDataset === "California Housing" && (
-                        <p>
-                          This dataset contains information about house prices
-                          in California, with features including median income,
-                          house age, and average rooms.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        );
       default:
-        return null;
+        return (
+          <div className="sidebar-content-section">
+            <h3>Select a sidebar option</h3>
+          </div>
+        );
     }
   };
 
@@ -4555,48 +4819,12 @@ const NewBuildPage = (): JSX.Element => {
             </div>
             <div
               className={`sidebar-nav-item ${
-                activeSidebarOption === "layer_params" ? "active" : ""
-              }`}
-              onClick={() => setActiveSidebarOption("layer_params")}
-            >
-              <i className="fas fa-sliders-h"></i>
-              <span>Layer Params</span>
-            </div>
-            <div
-              className={`sidebar-nav-item ${
-                activeSidebarOption === "hyperparameters" ? "active" : ""
-              }`}
-              onClick={() => setActiveSidebarOption("hyperparameters")}
-            >
-              <i className="fas fa-cogs"></i>
-              <span>Hyperparams</span>
-            </div>
-            <div
-              className={`sidebar-nav-item ${
                 activeSidebarOption === "training" ? "active" : ""
               }`}
               onClick={() => setActiveSidebarOption("training")}
             >
               <i className="fas fa-play"></i>
               <span>Training</span>
-            </div>
-            <div
-              className={`sidebar-nav-item ${
-                activeSidebarOption === "model_config" ? "active" : ""
-              }`}
-              onClick={() => setActiveSidebarOption("model_config")}
-            >
-              <i className="fas fa-project-diagram"></i>
-              <span>Model Config</span>
-            </div>
-            <div
-              className={`sidebar-nav-item ${
-                activeSidebarOption === "settings" ? "active" : ""
-              }`}
-              onClick={() => setActiveSidebarOption("settings")}
-            >
-              <i className="fas fa-cog"></i>
-              <span>Settings</span>
             </div>
           </div>
           <div className="sidebar-content">{renderSidebarContent()}</div>
