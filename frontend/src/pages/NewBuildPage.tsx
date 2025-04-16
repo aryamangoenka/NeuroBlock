@@ -855,6 +855,14 @@ const NewBuildPage = (): JSX.Element => {
     }
   };
 
+  // Function to handle back button click in visualization section
+  const handleBackButtonClick = (): void => {
+    // Reset the training state and labels to return to the dataset options view
+    setIsTraining(false);
+    setLabels([]);
+    setWandbUrl(null); // Clear Weights & Biases URL to remove the dashboard section
+  };
+
   // Function to add a new layer
   const addLayer = (type: string): void => {
     // Get count of existing layers of this type to create a unique name
@@ -3569,6 +3577,7 @@ const NewBuildPage = (): JSX.Element => {
                 <option value="ReLU">ReLU</option>
                 <option value="Sigmoid">Sigmoid</option>
                 <option value="Tanh">Tanh</option>
+                <option value="Softmax">Softmax</option>
                 <option value="Leaky ReLU">Leaky ReLU</option>
               </select>
               {selectedNode.data.activation &&
@@ -4893,8 +4902,20 @@ const NewBuildPage = (): JSX.Element => {
 
           {/* Visualization section - only visible during or after training */}
           {isTraining || labels.length > 0 ? (
-            <div className="visualization-section">
+            <div
+              className={`visualization-section ${
+                isTraining ? "training-active" : ""
+              }`}
+            >
               <h3>Visualizations</h3>
+              <div className="visualization-back-button-container">
+                <button
+                  className="visualization-back-button"
+                  onClick={handleBackButtonClick}
+                >
+                  <i className="fas fa-arrow-left"></i> Back
+                </button>
+              </div>
               {!isTraining && labels.length > 0 && (
                 <div className="visualization-notification">
                   <i className="fas fa-chart-line"></i>
