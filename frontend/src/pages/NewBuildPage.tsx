@@ -74,7 +74,7 @@ const nodeTypes = {
 };
 
 // Define the sidebar navigation options
-type SidebarOption = "layers" | "templates" | "training";
+type SidebarOption = "layers" | "templates";
 
 // Add these near the top of the file with other type definitions
 type ValidationErrors = string[];
@@ -2960,237 +2960,6 @@ const NewBuildPage = (): JSX.Element => {
             </div>
           </div>
         );
-      case "training":
-        return (
-          <div className="sidebar-content-section">
-            <h3>Training Options</h3>
-
-            <div className="training-options-container">
-              {/* Optimizer Card */}
-              <div className="training-card optimizer-card">
-                <div className="training-card-header">
-                  <i className="fas fa-magic"></i>
-                  <span>Optimizer</span>
-                </div>
-                <div className="training-card-body">
-                  <select
-                    value={trainingConfig.optimizer}
-                    className="optimizer-select"
-                    onChange={(e) =>
-                      setTrainingConfig({
-                        ...trainingConfig,
-                        optimizer: e.target.value,
-                      })
-                    }
-                  >
-                    <option value="Adam">Adam</option>
-                    <option value="SGD">SGD</option>
-                    <option value="RMSprop">RMSprop</option>
-                    <option value="Adagrad">Adagrad</option>
-                    <option value="Adadelta">Adadelta</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Loss Function Card */}
-              <div className="training-card loss-card">
-                <div className="training-card-header">
-                  <i className="fas fa-chart-line"></i>
-                  <span>Loss Function</span>
-                </div>
-                <div className="training-card-body">
-                  <select
-                    value={trainingConfig.lossFunction}
-                    className="loss-select"
-                    onChange={(e) =>
-                      setTrainingConfig({
-                        ...trainingConfig,
-                        lossFunction: e.target.value,
-                      })
-                    }
-                  >
-                    <option value="Categorical Cross-Entropy">
-                      Categorical Cross-Entropy
-                    </option>
-                    <option value="Binary Cross-Entropy">
-                      Binary Cross-Entropy
-                    </option>
-                    <option value="Mean Squared Error">
-                      Mean Squared Error
-                    </option>
-                    <option value="Mean Absolute Error">
-                      Mean Absolute Error
-                    </option>
-                    <option value="Sparse Categorical Cross-Entropy">
-                      Sparse Categorical Cross-Entropy
-                    </option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Validation Split Card */}
-              <div className="training-card validation-card">
-                <div className="training-card-header">
-                  <i className="fas fa-percentage"></i>
-                  <span>Validation Split</span>
-                </div>
-                <div className="training-card-body">
-                  <input
-                    type="number"
-                    min="0"
-                    max="0.5"
-                    step="0.05"
-                    value={trainingConfig.validationSplit || 0.2}
-                    onChange={(e) =>
-                      setTrainingConfig({
-                        ...trainingConfig,
-                        validationSplit: parseFloat(e.target.value) || 0.2,
-                      })
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Training Status Card */}
-            <div className="training-status-card">
-              <h3>
-                <i className="fas fa-chart-bar"></i>
-                Training Status
-              </h3>
-
-              {/* Progress Bar */}
-              <div className="progress-container">
-                <div className="progress-info">
-                  <div className="progress-label">Training Progress</div>
-                  <div className="progress-percentage">
-                    {isTraining
-                      ? `${Math.round(
-                          (trainingProgress.currentEpoch /
-                            trainingProgress.totalEpochs) *
-                            100
-                        )}%`
-                      : "0%"}
-                  </div>
-                </div>
-                <div className="progress-bar-container">
-                  <div
-                    className={`progress-bar ${isTraining ? "pulse" : ""}`}
-                    style={{
-                      width: isTraining
-                        ? `${
-                            (trainingProgress.currentEpoch /
-                              trainingProgress.totalEpochs) *
-                            100
-                          }%`
-                        : "0%",
-                    }}
-                  ></div>
-                </div>
-              </div>
-
-              {/* Metrics Grid */}
-              <div className="metrics-grid">
-                {/* Epoch */}
-                <div className="metric-item">
-                  <div className="metric-label">
-                    <i className="fas fa-history"></i>
-                    Epoch
-                  </div>
-                  <div
-                    className={`metric-value ${
-                      trainingProgress.currentEpoch > 0 ? "" : "na"
-                    }`}
-                  >
-                    {trainingProgress.currentEpoch > 0
-                      ? `${trainingProgress.currentEpoch}/${trainingProgress.totalEpochs}`
-                      : "N/A"}
-                  </div>
-                </div>
-
-                {/* Loss */}
-                <div className="metric-item">
-                  <div className="metric-label">
-                    <i className="fas fa-chart-line"></i>
-                    Loss
-                  </div>
-                  <div
-                    className={`metric-value ${
-                      trainingProgress.loss > 0 ? "warning" : "na"
-                    }`}
-                  >
-                    {trainingProgress.loss > 0
-                      ? trainingProgress.loss.toFixed(4)
-                      : "N/A"}
-                  </div>
-                </div>
-
-                {/* Accuracy */}
-                <div className="metric-item">
-                  <div className="metric-label">
-                    <i className="fas fa-bullseye"></i>
-                    Accuracy
-                  </div>
-                  <div
-                    className={`metric-value ${
-                      trainingProgress.accuracy > 0 ? "good" : "na"
-                    }`}
-                  >
-                    {trainingProgress.accuracy > 0
-                      ? trainingProgress.accuracy.toFixed(4)
-                      : "N/A"}
-                  </div>
-                </div>
-
-                {/* Val Loss */}
-                <div className="metric-item">
-                  <div className="metric-label">
-                    <i className="fas fa-chart-area"></i>
-                    Val Loss
-                  </div>
-                  <div
-                    className={`metric-value ${
-                      trainingProgress.valLoss > 0 ? "warning" : "na"
-                    }`}
-                  >
-                    {trainingProgress.valLoss > 0
-                      ? trainingProgress.valLoss.toFixed(4)
-                      : "N/A"}
-                  </div>
-                </div>
-
-                {/* Val Accuracy */}
-                <div className="metric-item">
-                  <div className="metric-label">
-                    <i className="fas fa-check-circle"></i>
-                    Val Accuracy
-                  </div>
-                  <div
-                    className={`metric-value ${
-                      trainingProgress.valAccuracy > 0 ? "good" : "na"
-                    }`}
-                  >
-                    {trainingProgress.valAccuracy > 0
-                      ? trainingProgress.valAccuracy.toFixed(4)
-                      : "N/A"}
-                  </div>
-                </div>
-
-                {/* Stop button when training */}
-                {isTraining && (
-                  <div className="metric-item" style={{ gridColumn: "span 2" }}>
-                    <button
-                      className="stop-button-sidebar"
-                      onClick={handleStopTraining}
-                    >
-                      <i className="fas fa-stop-circle"></i> Stop Training
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        );
       default:
         return (
           <div className="sidebar-content-section">
@@ -4778,6 +4547,148 @@ const NewBuildPage = (): JSX.Element => {
     };
   }, [selectedDataset, isModelSaved, isTraining]);
 
+  // Render the training metrics that will be displayed on the right
+  const renderTrainingMetrics = () => {
+    return (
+      <div className="training-metrics-card">
+        <h3>
+          <i className="fas fa-chart-bar"></i>
+          Training Status
+        </h3>
+
+        {/* Progress Bar */}
+        <div className="progress-container">
+          <div className="progress-info">
+            <div className="progress-label">Training Progress</div>
+            <div className="progress-percentage">
+              {isTraining
+                ? `${Math.round(
+                    (trainingProgress.currentEpoch /
+                      trainingProgress.totalEpochs) *
+                      100
+                  )}%`
+                : "0%"}
+            </div>
+          </div>
+          <div className="progress-bar-container">
+            <div
+              className={`progress-bar ${isTraining ? "pulse" : ""}`}
+              style={{
+                width: isTraining
+                  ? `${
+                      (trainingProgress.currentEpoch /
+                        trainingProgress.totalEpochs) *
+                      100
+                    }%`
+                  : "0%",
+              }}
+            ></div>
+          </div>
+        </div>
+
+        {/* Metrics Grid */}
+        <div className="metrics-grid">
+          {/* Epoch */}
+          <div className="metric-item">
+            <div className="metric-label">
+              <i className="fas fa-history"></i>
+              Epoch
+            </div>
+            <div
+              className={`metric-value ${
+                trainingProgress.currentEpoch > 0 ? "" : "na"
+              }`}
+            >
+              {trainingProgress.currentEpoch > 0
+                ? `${trainingProgress.currentEpoch}/${trainingProgress.totalEpochs}`
+                : "N/A"}
+            </div>
+          </div>
+
+          {/* Loss */}
+          <div className="metric-item">
+            <div className="metric-label">
+              <i className="fas fa-chart-line"></i>
+              Loss
+            </div>
+            <div
+              className={`metric-value ${
+                trainingProgress.loss > 0 ? "warning" : "na"
+              }`}
+            >
+              {trainingProgress.loss > 0
+                ? trainingProgress.loss.toFixed(4)
+                : "N/A"}
+            </div>
+          </div>
+
+          {/* Accuracy */}
+          <div className="metric-item">
+            <div className="metric-label">
+              <i className="fas fa-bullseye"></i>
+              Accuracy
+            </div>
+            <div
+              className={`metric-value ${
+                trainingProgress.accuracy > 0 ? "good" : "na"
+              }`}
+            >
+              {trainingProgress.accuracy > 0
+                ? trainingProgress.accuracy.toFixed(4)
+                : "N/A"}
+            </div>
+          </div>
+
+          {/* Val Loss */}
+          <div className="metric-item">
+            <div className="metric-label">
+              <i className="fas fa-chart-area"></i>
+              Val Loss
+            </div>
+            <div
+              className={`metric-value ${
+                trainingProgress.valLoss > 0 ? "warning" : "na"
+              }`}
+            >
+              {trainingProgress.valLoss > 0
+                ? trainingProgress.valLoss.toFixed(4)
+                : "N/A"}
+            </div>
+          </div>
+
+          {/* Val Accuracy */}
+          <div className="metric-item">
+            <div className="metric-label">
+              <i className="fas fa-check-circle"></i>
+              Val Accuracy
+            </div>
+            <div
+              className={`metric-value ${
+                trainingProgress.valAccuracy > 0 ? "good" : "na"
+              }`}
+            >
+              {trainingProgress.valAccuracy > 0
+                ? trainingProgress.valAccuracy.toFixed(4)
+                : "N/A"}
+            </div>
+          </div>
+
+          {/* Stop button when training */}
+          {isTraining && (
+            <div className="metric-item" style={{ gridColumn: "span 2" }}>
+              <button
+                className="stop-button-sidebar"
+                onClick={handleStopTraining}
+              >
+                <i className="fas fa-stop-circle"></i> Stop Training
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="new-build-page">
       <div className="new-build-container">
@@ -4825,15 +4736,6 @@ const NewBuildPage = (): JSX.Element => {
             >
               <i className="fas fa-file-code"></i>
               <span>Templates</span>
-            </div>
-            <div
-              className={`sidebar-nav-item ${
-                activeSidebarOption === "training" ? "active" : ""
-              }`}
-              onClick={() => setActiveSidebarOption("training")}
-            >
-              <i className="fas fa-play"></i>
-              <span>Training</span>
             </div>
           </div>
           <div className="sidebar-content">{renderSidebarContent()}</div>
@@ -4908,14 +4810,6 @@ const NewBuildPage = (): JSX.Element => {
               }`}
             >
               <h3>Visualizations</h3>
-              <div className="visualization-back-button-container">
-                <button
-                  className="visualization-back-button"
-                  onClick={handleBackButtonClick}
-                >
-                  <i className="fas fa-arrow-left"></i> Back
-                </button>
-              </div>
               {!isTraining && labels.length > 0 && (
                 <div className="visualization-notification">
                   <i className="fas fa-chart-line"></i>
@@ -4945,31 +4839,52 @@ const NewBuildPage = (): JSX.Element => {
                 </div>
               </div>
               {renderVisualization()}
+              {(isTraining || labels.length > 0) && (
+                <div className="visualization-metrics">
+                  {renderTrainingMetrics()}
+                </div>
+              )}
+              <div className="visualization-back-button-container">
+                <button
+                  className="visualization-back-button"
+                  onClick={handleBackButtonClick}
+                >
+                  <i className="fas fa-arrow-left"></i> Back
+                </button>
+              </div>
             </div>
           ) : (
             <div className="right-sidebar-controls">
               {/* Dataset Selection Dropdown */}
-              <div className="dataset-dropdown-container">
-                <select
-                  value={selectedDataset}
-                  onChange={(e) => {
-                    const newDataset = e.target.value;
-                    setSelectedDataset(newDataset);
-                    // Manually trigger a dataset change event
-                    const event = new CustomEvent("datasetChange", {
-                      detail: { dataset: newDataset },
-                    });
-                    window.dispatchEvent(event);
-                  }}
-                  className="dataset-select-dropdown"
-                >
-                  <option value="">Select Dataset</option>
-                  <option value="MNIST">MNIST</option>
-                  <option value="CIFAR-10">CIFAR-10</option>
-                  <option value="Iris">Iris</option>
-                  <option value="Breast Cancer">Breast Cancer</option>
-                  <option value="California Housing">California Housing</option>
-                </select>
+              <div className="dataset-section">
+                <div className="dataset-header">
+                  <i className="fas fa-database"></i>
+                  <h3>Choose Dataset</h3>
+                </div>
+                <div className="dataset-dropdown-container">
+                  <select
+                    value={selectedDataset}
+                    onChange={(e) => {
+                      const newDataset = e.target.value;
+                      setSelectedDataset(newDataset);
+                      // Manually trigger a dataset change event
+                      const event = new CustomEvent("datasetChange", {
+                        detail: { dataset: newDataset },
+                      });
+                      window.dispatchEvent(event);
+                    }}
+                    className="dataset-select-dropdown"
+                  >
+                    <option value="">Select Dataset</option>
+                    <option value="MNIST">MNIST</option>
+                    <option value="CIFAR-10">CIFAR-10</option>
+                    <option value="Iris">Iris</option>
+                    <option value="Breast Cancer">Breast Cancer</option>
+                    <option value="California Housing">
+                      California Housing
+                    </option>
+                  </select>
+                </div>
               </div>
 
               {/* Layer Parameters Section - Only visible when a node is selected */}
@@ -5911,9 +5826,20 @@ const NewBuildPage = (): JSX.Element => {
                         }
                         className="param-slider"
                       />
-                      <span className="param-value">
-                        {Math.round(trainingConfig.validationSplit * 100)}%
-                      </span>
+                      <input
+                        type="number"
+                        min="0.1"
+                        max="0.5"
+                        step="0.05"
+                        value={trainingConfig.validationSplit}
+                        onChange={(e) =>
+                          setTrainingConfig({
+                            ...trainingConfig,
+                            validationSplit: parseFloat(e.target.value) || 0.2,
+                          })
+                        }
+                        className="param-input small"
+                      />
                     </div>
                   </div>
                 </div>
