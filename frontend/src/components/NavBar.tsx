@@ -188,10 +188,10 @@ const NavBar: React.FC = () => {
           <span className="brand-text">NeuroBlock</span>
         </div>
 
-        <div className="navbar-actions d-flex align-items-center">
+        <div className="navbar-actions">
           <NavLink
             to="/tutorial"
-            className="tutorial-button me-3"
+            className="tutorial-button"
             title="Learn how to use DND Neural Network"
           >
             <i className="fas fa-question-circle"></i>
@@ -199,7 +199,7 @@ const NavBar: React.FC = () => {
           </NavLink>
 
           <button
-            className="save-model-button me-3"
+            className="save-model-button"
             title="Save your current model"
             onClick={handleSaveModelClick}
             disabled={isTraining}
@@ -209,7 +209,7 @@ const NavBar: React.FC = () => {
           </button>
 
           <button
-            className={`train-button-red me-2 ${isTraining ? "training" : ""}`}
+            className={`train-button-red ${isTraining ? "training" : ""}`}
             title={
               !hasSelectedDataset
                 ? "Please select a dataset first"
@@ -233,24 +233,18 @@ const NavBar: React.FC = () => {
             )}
           </button>
 
-          <button
-            className={`stop-button-red ${!isTraining ? "disabled" : ""}`}
-            title={
-              isTraining
-                ? "Stop the current training session"
-                : "Training is not in progress"
-            }
-            onClick={handleStopTrainingClick}
-            disabled={!isTraining}
-          >
-            <i className="fas fa-stop-circle"></i>
-            <span>Stop</span>
-          </button>
+          {isTraining && (
+            <button
+              className="stop-button-red"
+              title="Stop the current training session"
+              onClick={handleStopTrainingClick}
+            >
+              <i className="fas fa-stop-circle"></i>
+              <span>Stop</span>
+            </button>
+          )}
 
-          <div
-            className="export-dropdown-container ms-3"
-            ref={exportDropdownRef}
-          >
+          <div className="export-dropdown-container" ref={exportDropdownRef}>
             <button
               className="export-button-black"
               title="Export your model"

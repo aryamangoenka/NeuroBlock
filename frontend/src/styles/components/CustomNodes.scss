@@ -40,50 +40,50 @@
 
 /* Dense Layer Node */
 .dense-node {
-  background: linear-gradient(135deg, #4CAF50, #388E3C);
-  border-color: #388E3C;
+  background: linear-gradient(135deg, #4CAF50, #2e7d32);
+  border-color: #4CAF50;
 }
 
 /* Convolution Layer Node */
 .convolution-node {
-  background: linear-gradient(135deg, #2196F3, #1976D2);
-  border-color: #1976D2;
+  background: linear-gradient(135deg, #2196F3, #0d47a1);
+  border-color: #2196F3;
 }
 
 /* MaxPooling Layer Node */
 .maxpooling-node {
-  background: linear-gradient(135deg, #9C27B0, #7B1FA2);
-  border-color: #7B1FA2;
+  background: linear-gradient(135deg, #9C27B0, #6a1b9a);
+  border-color: #9C27B0;
 }
 
 /* GlobalAveragePooling Layer Node */
 .globalaveragepool-node {
-  background: linear-gradient(135deg, #8E24AA, #6A1B9A);
-  border-color: #6A1B9A;
+  background: linear-gradient(135deg, #8E24AA, #6a1b9a);
+  border-color: #9C27B0;
 }
 
 /* Flatten Layer Node */
 .flatten-node {
-  background: linear-gradient(135deg, #FF9800, #F57C00);
-  border-color: #F57C00;
+  background: linear-gradient(135deg, #FF9800, #e65100);
+  border-color: #FF9800;
 }
 
 /* Dropout Layer Node */
 .dropout-node {
-  background: linear-gradient(135deg, #F44336, #D32F2F);
-  border-color: #D32F2F;
+  background: linear-gradient(135deg, #F44336, #b71c1c);
+  border-color: #F44336;
 }
 
 /* Batch Normalization Node */
 .batchnormalization-node {
-  background: linear-gradient(135deg, #188cc6, #0e6991);
-  border-color: #0e6991;
+  background: linear-gradient(135deg, #00BCD4, #006064);
+  border-color: #00BCD4;
 }
 
 /* Attention Node */
 .attention-node {
-  background: linear-gradient(135deg, #673AB7, #512DA8);
-  border-color: #512DA8;
+  background: linear-gradient(135deg, #673AB7, #311b92);
+  border-color: #673AB7;
 }
 
 /* Handle styling for input/output connections */
@@ -111,8 +111,8 @@
 
 /* Input Node */
 .input-node {
-  background: linear-gradient(135deg, #00BCD4, #0097A7);
-  border-color: #0097A7;
+  background: linear-gradient(135deg, #00BCD4, #006064);
+  border-color: #00BCD4;
   color: #fff;
   padding: 14px;
   border-radius: 10px;
@@ -130,8 +130,8 @@
 
 /* Output Node */
 .output-node {
-  background: linear-gradient(135deg, #FF5722, #E64A19);
-  border-color: #E64A19;
+  background: linear-gradient(135deg, #FF5722, #bf360c);
+  border-color: #FF5722;
   color: #fff;
   padding: 14px;
   border-radius: 10px;
@@ -158,7 +158,7 @@
 .resnetblock-node {
   width: 210px;
   background: linear-gradient(135deg, #4C5FD5, #3F51B5);
-  border: 2px solid #2C3E9E;
+  border: 2px solid #3F51B5;
   box-shadow: 0 4px 12px rgba(63, 81, 181, 0.2);
   padding: 12px;
   
@@ -238,7 +238,7 @@
   
   &.basic-block {
     background: linear-gradient(135deg, #4C5FD5, #3F51B5);
-    border-color: #2C3E9E;
+    border-color: #3F51B5;
     
     .resnet-block-type {
       background-color: rgba(144, 202, 249, 0.3);
@@ -252,7 +252,7 @@
   
   &.bottleneck-block {
     background: linear-gradient(135deg, #5D70E9, #3F51B5);
-    border-color: #2C3E9E;
+    border-color: #3F51B5;
     
     .resnet-block-type {
       background-color: rgba(255, 213, 79, 0.3);

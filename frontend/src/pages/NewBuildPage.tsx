@@ -5628,7 +5628,10 @@ const NewBuildPage = (): JSX.Element => {
                 </div>
 
                 <div className="hyperparams-content">
-                  <div className="param-group">
+                  <div
+                    className="param-group"
+                    data-tooltip="Number of samples processed before model update. Larger batches provide more stable gradient estimates but use more memory."
+                  >
                     <label>
                       <i className="fas fa-layer-group"></i> Batch Size
                     </label>
@@ -5675,7 +5678,10 @@ const NewBuildPage = (): JSX.Element => {
                     </div>
                   </div>
 
-                  <div className="param-group">
+                  <div
+                    className="param-group"
+                    data-tooltip="Controls the step size during optimization. Low values: slow learning but stable. High values: faster learning but risk of overshooting."
+                  >
                     <label>
                       <i className="fas fa-tachometer-alt"></i> Learning Rate
                     </label>
@@ -5711,7 +5717,10 @@ const NewBuildPage = (): JSX.Element => {
                     </div>
                   </div>
 
-                  <div className="param-group">
+                  <div
+                    className="param-group"
+                    data-tooltip="Number of complete passes through the dataset. More epochs: better learning but risk of overfitting."
+                  >
                     <label>
                       <i className="fas fa-redo"></i> Epochs
                     </label>
@@ -5755,7 +5764,10 @@ const NewBuildPage = (): JSX.Element => {
                     </div>
                   </div>
 
-                  <div className="param-group">
+                  <div
+                    className="param-group"
+                    data-tooltip="Algorithm to adjust weights. Adam: adaptive learning rates (good default). SGD: simple but may need tuning. RMSprop: good for RNNs."
+                  >
                     <label>
                       <i className="fas fa-cog"></i> Optimizer
                     </label>
@@ -5777,7 +5789,10 @@ const NewBuildPage = (): JSX.Element => {
                     </select>
                   </div>
 
-                  <div className="param-group">
+                  <div
+                    className="param-group"
+                    data-tooltip="Function measuring prediction error. Cross-entropy: for classification. MSE: for regression. Different tasks need different loss functions."
+                  >
                     <label>
                       <i className="fas fa-chart-line"></i> Loss Function
                     </label>
@@ -5807,7 +5822,10 @@ const NewBuildPage = (): JSX.Element => {
                     </select>
                   </div>
 
-                  <div className="param-group">
+                  <div
+                    className="param-group"
+                    data-tooltip="Portion of training data used to evaluate model during training. Higher values: better validation but less training data."
+                  >
                     <label>
                       <i className="fas fa-percentage"></i> Validation Split
                     </label>
