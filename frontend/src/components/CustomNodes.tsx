@@ -14,6 +14,7 @@ export {
   InputNode,
   ResNetBlockNode,
   OutputNode,
+  AddLayerNode,
 };
 
 // Dense Node
@@ -240,5 +241,25 @@ const OutputNode = ({ data }: { data: any }) => (
     />
     <h4>{data.label || "Output Layer"}</h4>
     <p>Activation: {data.activation}</p>
+  </div>
+);
+
+// Add Layer Node
+const AddLayerNode = ({ data }: { data: any }) => (
+  <div className="custom-node add-layer-node">
+    <Handle
+      type="target"
+      position={Position.Left}
+      style={{ background: "#555" }}
+    />
+    <h4>{data.label || "Add Layer"}</h4>
+    <div className="add-layer-icon">
+      <i className="fas fa-plus-circle"></i>
+    </div>
+    <Handle
+      type="source"
+      position={Position.Right}
+      style={{ background: "#555" }}
+    />
   </div>
 );

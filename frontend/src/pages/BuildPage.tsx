@@ -629,7 +629,7 @@ const BuildPage = (): JSX.Element => {
       };
       console.log(payload);
       // Make a POST request to the backend
-      const response = await fetch("http://127.0.0.1:5000/save_model", {
+      const response = await fetch("http://127.0.0.1:5000/api/save_model", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

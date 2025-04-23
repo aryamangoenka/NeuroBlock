@@ -86,6 +86,29 @@
   border-color: #673AB7;
 }
 
+/* Add Layer Node */
+.add-layer-node {
+  background: linear-gradient(135deg, #009688, #00796b);
+  border-color: #009688;
+  
+  .add-layer-icon {
+    font-size: 2rem;
+    margin: 8px 0;
+    color: rgba(255, 255, 255, 0.9);
+    
+    i {
+      display: block;
+      animation: pulse 1.5s infinite ease-in-out;
+    }
+  }
+  
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+}
+
 /* Handle styling for input/output connections */
 .react-flow__handle {
   width: 10px;
@@ -111,8 +134,8 @@
 
 /* Input Node */
 .input-node {
-  background: linear-gradient(135deg, #00BCD4, #006064);
-  border-color: #00BCD4;
+  background: linear-gradient(135deg, #FFC107, #FF8F00);
+  border-color: #FFC107;
   color: #fff;
   padding: 14px;
   border-radius: 10px;

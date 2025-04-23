@@ -41,6 +41,7 @@ import {
   OutputNode,
   AttentionNode,
   ResNetBlockNode,
+  AddLayerNode,
 } from "../components/CustomNodes";
 import NavBar from "../components/NavBar";
 import axios from "axios";
@@ -71,6 +72,7 @@ const nodeTypes = {
   batchnormalization: BatchNormalizationNode,
   attention: AttentionNode,
   resnetblock: ResNetBlockNode,
+  addlayer: AddLayerNode,
 };
 
 // Define the sidebar navigation options
@@ -705,7 +707,7 @@ const NewBuildPage = (): JSX.Element => {
       };
 
       // Make a POST request to the backend
-      const response = await fetch("http://127.0.0.1:5000/save_model", {
+      const response = await fetch("http://127.0.0.1:5000/api/save_model", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -895,6 +897,8 @@ const NewBuildPage = (): JSX.Element => {
           return `ResNet Block ${layerNumber}`;
         case "output":
           return `Output Layer ${layerNumber}`;
+        case "addlayer":
+          return `Add Layer Node ${layerNumber}`;
         default:
           return `${type} Layer ${layerNumber}`;
       }
@@ -919,6 +923,7 @@ const NewBuildPage = (): JSX.Element => {
         downsampleType: "None",
       },
       output: { activation: "None" },
+      addlayer: {}, // Add Layer has no parameters
     };
 
     const newNode: Node = {
@@ -2027,6 +2032,21 @@ const NewBuildPage = (): JSX.Element => {
   };
 
   const onConnect = (connection: Connection): void => {
+    // Check if the target node already has 5 incoming connections
+    const targetNodeId = connection.target;
+    const incomingConnectionsCount = edges.filter(
+      (edge) => edge.target === targetNodeId
+    ).length;
+
+    if (incomingConnectionsCount >= 5) {
+      // Display a warning to the user
+      alert(
+        `Node limit reached: Maximum of 5 incoming connections allowed per node.`
+      );
+      return; // Don't add the new connection
+    }
+
+    // If below the limit, add the connection
     setEdges((eds) => addEdge(connection, eds));
   };
 
@@ -2744,6 +2764,8 @@ const NewBuildPage = (): JSX.Element => {
         return "fa-brain";
       case "resnetblock":
         return "fa-code-branch";
+      case "addlayer":
+        return "fa-plus-circle"; // Plus circle icon for Add Layer
       default:
         return "fa-cube";
     }
@@ -2865,6 +2887,17 @@ const NewBuildPage = (): JSX.Element => {
                 <button
                   className="add-button"
                   onClick={() => addLayer("Output")}
+                >
+                  <i className="fas fa-plus"></i>
+                </button>
+              </div>
+              <div className="layer-item add-layer">
+                <span>
+                  <i className="fas fa-plus-circle"></i> Add Layer
+                </span>
+                <button
+                  className="add-button"
+                  onClick={() => addLayer("AddLayer")}
                 >
                   <i className="fas fa-plus"></i>
                 </button>
@@ -3935,15 +3968,6 @@ const NewBuildPage = (): JSX.Element => {
                     </div>
                   )}
 
-                <label>
-                  Use Skip Connection:
-                  <div className="parameter-hint">
-                    <i className="fas fa-info-circle"></i>
-                    <span className="hint-text">
-                      {getParameterHint("useSkipConnection")}
-                    </span>
-                  </div>
-                </label>
                 <select
                   name="useSkipConnection"
                   value={selectedNode.data.useSkipConnection ? "true" : "false"}
@@ -4104,6 +4128,33 @@ const NewBuildPage = (): JSX.Element => {
                 </select>
               </div>
             </>
+          )}
+
+          {/* GlobalAveragePool Layer has no parameters */}
+          {selectedNode.type === "globalaveragepool" && (
+            <div className="param-group">
+              <p className="param-info">
+                This layer has no configurable parameters.
+              </p>
+            </div>
+          )}
+
+          {/* Add Layer has no parameters */}
+          {selectedNode.type === "addlayer" && (
+            <div className="param-group">
+              <p className="param-info">
+                This layer has no configurable parameters.
+              </p>
+            </div>
+          )}
+
+          {/* Flatten Layer has no parameters */}
+          {selectedNode.type === "flatten" && (
+            <div className="param-group">
+              <p className="param-info">
+                This layer has no configurable parameters.
+              </p>
+            </div>
           )}
         </div>
       </div>
@@ -5241,6 +5292,15 @@ const NewBuildPage = (): JSX.Element => {
 
                     {/* GlobalAveragePool Layer has no parameters */}
                     {selectedNode.type === "globalaveragepool" && (
+                      <div className="param-group">
+                        <p className="param-info">
+                          This layer has no configurable parameters.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Add Layer has no parameters */}
+                    {selectedNode.type === "addlayer" && (
                       <div className="param-group">
                         <p className="param-info">
                           This layer has no configurable parameters.

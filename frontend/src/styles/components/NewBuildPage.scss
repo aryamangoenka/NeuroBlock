@@ -493,21 +493,21 @@
 }
 
 .input-layer {
-  background: linear-gradient(165deg, rgba(0, 188, 212, 0.15), rgba(0, 96, 100, 0.25));
-  border-left-color: #00BCD4;
+  background: linear-gradient(165deg, rgba(255, 193, 7, 0.15), rgba(255, 143, 0, 0.25));
+  border-left-color: #FFC107;
 }
 
 .input-layer span i {
-  color: #00BCD4;
+  color: #FFC107;
 }
 
 .input-layer .add-button {
-  color: #00BCD4;
-  background-color: rgba(0, 188, 212, 0.1);
+  color: #FFC107;
+  background-color: rgba(255, 193, 7, 0.1);
 }
 
 .input-layer .add-button:hover {
-  background-color: rgba(0, 188, 212, 0.2);
+  background-color: rgba(255, 193, 7, 0.2);
 }
 
 .output-layer {
@@ -5342,8 +5342,21 @@
 }
 
 .input-layer {
-  background: linear-gradient(145deg, rgba(0, 188, 212, 0.15), rgba(0, 151, 167, 0.25));
-  border-left-color: #00BCD4;
+  background: linear-gradient(145deg, rgba(255, 193, 7, 0.15), rgba(255, 143, 0, 0.25));
+  border-left-color: #FFC107;
+}
+
+.input-layer span i {
+  color: #FFC107;
+}
+
+.input-layer .add-button {
+  color: #FFC107;
+  background-color: rgba(255, 193, 7, 0.1);
+}
+
+.input-layer .add-button:hover {
+  background-color: rgba(255, 193, 7, 0.2);
 }
 
 .layer-item.resnetblock-layer {
@@ -5400,4 +5413,23 @@
 .visualization-back-button:active {
   transform: translateY(0);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Styling for the "add layer" option */
+.add-layer {
+  background: linear-gradient(165deg, rgba(0, 150, 136, 0.15), rgba(0, 121, 107, 0.25));
+  border-left-color: #009688;
+}
+
+.add-layer span i {
+  color: #009688;
+}
+
+.add-layer .add-button {
+  color: #009688;
+  background-color: rgba(0, 150, 136, 0.1);
+}
+
+.add-layer .add-button:hover {
+  background-color: rgba(0, 150, 136, 0.2);
 }

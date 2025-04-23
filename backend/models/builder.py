@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras.models import Sequential, Model
-from tensorflow.keras.layers import Dense, Conv2D, Flatten, MaxPooling2D, Dropout, BatchNormalization, Input, Reshape, GlobalAveragePooling2D
+from tensorflow.keras.layers import Dense, Conv2D, Flatten, MaxPooling2D, Dropout, BatchNormalization, Input, Reshape, GlobalAveragePooling2D, Add
 from tensorflow.keras import backend as K
 from backend.models.custom_layers import CustomAttentionLayer
 from backend.models.resnet import create_resnet_block
@@ -197,6 +197,27 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
                                 dropout=dropout_rate,
                                 name=f"attention_{node['id']}"
                             )(input_layer)
+                    elif layer_type == "addlayer":
+                        # For Add layer, we need to handle multiple inputs
+                        # First, check that there are at least 2 incoming edges
+                        if len(incoming_edges) < 2:
+                            logger.warning(f"Add layer (id: {node['id']}) has fewer than 2 inputs, using identity function")
+                            x = input_layer  # Just pass through the input if no 2nd input
+                        else:
+                            # Get all input layers
+                            input_layers = [layers_by_id[edge["source"]] for edge in incoming_edges]
+                            
+                            try:
+                                # Use Add layer to combine inputs
+                                logger.debug(f"Adding {len(input_layers)} tensors in Add layer (id: {node['id']})")
+                                x = Add()(input_layers)
+                            except ValueError as e:
+                                # Handle shape mismatch errors
+                                logger.error(f"Error in Add layer (id: {node['id']}): {str(e)}")
+                                # Print shapes of inputs for debugging
+                                shapes = [K.int_shape(layer) for layer in input_layers]
+                                logger.error(f"Input shapes: {shapes}")
+                                raise ValueError(f"Cannot add tensors with different shapes: {shapes}")
                     elif layer_type == "output":
                         # For ResNet models, check if we should add a GlobalAveragePooling layer
                         # before the output layer if there's a feature map
@@ -330,6 +351,11 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
                                 dropout=dropout_rate,
                                 name=f"attention_{target_id}"
                             ))
+                    elif layer_type == "addlayer":
+                        # Add layer requires multiple inputs, so it's not directly compatible with Sequential API
+                        logger.warning(f"Add layer (id: {target_id}) detected in Sequential model. Add layers require Functional API. Treating as pass-through.")
+                        # We don't add any layer here, just continue with the next layer in the sequence
+                        # This effectively makes the Add layer a no-op in Sequential models
                     elif layer_type == "output":
                         # Configure the output layer dynamically based on the dataset
                         output_units = determine_output_units(dataset_name)
