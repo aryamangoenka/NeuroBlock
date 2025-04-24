@@ -4185,6 +4185,7 @@ const NewBuildPage = (): JSX.Element => {
                 />
               ) : (
                 <div className="empty-chart">
+                  <i className="fas fa-chart-line"></i>
                   <p>Start training to see accuracy metrics</p>
                 </div>
               )}
@@ -4204,6 +4205,7 @@ const NewBuildPage = (): JSX.Element => {
                 />
               ) : (
                 <div className="empty-chart">
+                  <i className="fas fa-chart-area"></i>
                   <p>Start training to see loss metrics</p>
                 </div>
               )}
@@ -4225,12 +4227,12 @@ const NewBuildPage = (): JSX.Element => {
                 />
               </>
             ) : (
-              <div className="placeholder-visualization">
+              <div className="empty-chart">
+                <i className="fas fa-table"></i>
                 <p>
                   Confusion matrix visualization will be shown here after
                   training
                 </p>
-                <div className="matrix-placeholder"></div>
               </div>
             )}
           </div>
@@ -4602,139 +4604,163 @@ const NewBuildPage = (): JSX.Element => {
   const renderTrainingMetrics = () => {
     return (
       <div className="training-metrics-card">
-        <h3>
+        <div className="metrics-header">
           <i className="fas fa-chart-bar"></i>
-          Training Status
-        </h3>
+          <h3>Training Status</h3>
+          {isTraining && (
+            <div className="training-pulse-indicator">
+              <div className="pulse-dot"></div>
+              <span>Live</span>
+            </div>
+          )}
+        </div>
 
         {/* Progress Bar */}
         <div className="progress-container">
           <div className="progress-info">
-            <div className="progress-label">Training Progress</div>
-            <div className="progress-percentage">
+            <div className="progress-label">
               {isTraining
+                ? `Epoch ${trainingProgress.currentEpoch}/${trainingProgress.totalEpochs}`
+                : `Epoch ${trainingProgress.currentEpoch}/${trainingProgress.totalEpochs}`}
+            </div>
+            <div className="progress-percentage">
+              {isTraining || trainingProgress.currentEpoch > 0
                 ? `${Math.round(
                     (trainingProgress.currentEpoch /
                       trainingProgress.totalEpochs) *
                       100
                   )}%`
-                : "0%"}
+                : "Not started"}
             </div>
           </div>
           <div className="progress-bar-container">
             <div
-              className={`progress-bar ${isTraining ? "pulse" : ""}`}
+              className="progress-bar"
               style={{
-                width: isTraining
-                  ? `${
-                      (trainingProgress.currentEpoch /
-                        trainingProgress.totalEpochs) *
-                      100
-                    }%`
-                  : "0%",
+                width:
+                  isTraining || trainingProgress.currentEpoch > 0
+                    ? `${Math.round(
+                        (trainingProgress.currentEpoch /
+                          trainingProgress.totalEpochs) *
+                          100
+                      )}%`
+                    : "0%",
               }}
-            ></div>
+            >
+              {isTraining && <div className="progress-stripes"></div>}
+            </div>
           </div>
         </div>
 
-        {/* Metrics Grid */}
-        <div className="metrics-grid">
-          {/* Epoch */}
-          <div className="metric-item">
-            <div className="metric-label">
-              <i className="fas fa-history"></i>
-              Epoch
+        {/* Metrics Grid - Compact Layout */}
+        <div className="metrics-compact-grid">
+          <div className="metrics-row">
+            <div className="metric-compact-item">
+              <div className="metric-icon">
+                <i className="fas fa-chart-line"></i>
+              </div>
+              <div className="metric-content">
+                <div className="metric-label">Loss</div>
+                <div
+                  className={`metric-value ${
+                    trainingProgress.loss > 0 ? "warning" : "na"
+                  }`}
+                >
+                  {trainingProgress.loss > 0
+                    ? trainingProgress.loss.toFixed(4)
+                    : "—"}
+                </div>
+              </div>
             </div>
-            <div
-              className={`metric-value ${
-                trainingProgress.currentEpoch > 0 ? "" : "na"
-              }`}
-            >
-              {trainingProgress.currentEpoch > 0
-                ? `${trainingProgress.currentEpoch}/${trainingProgress.totalEpochs}`
-                : "N/A"}
-            </div>
-          </div>
-
-          {/* Loss */}
-          <div className="metric-item">
-            <div className="metric-label">
-              <i className="fas fa-chart-line"></i>
-              Loss
-            </div>
-            <div
-              className={`metric-value ${
-                trainingProgress.loss > 0 ? "warning" : "na"
-              }`}
-            >
-              {trainingProgress.loss > 0
-                ? trainingProgress.loss.toFixed(4)
-                : "N/A"}
-            </div>
-          </div>
-
-          {/* Accuracy */}
-          <div className="metric-item">
-            <div className="metric-label">
-              <i className="fas fa-bullseye"></i>
-              Accuracy
-            </div>
-            <div
-              className={`metric-value ${
-                trainingProgress.accuracy > 0 ? "good" : "na"
-              }`}
-            >
-              {trainingProgress.accuracy > 0
-                ? trainingProgress.accuracy.toFixed(4)
-                : "N/A"}
+            <div className="metric-compact-item">
+              <div className="metric-icon">
+                <i className="fas fa-bullseye"></i>
+              </div>
+              <div className="metric-content">
+                <div className="metric-label">Accuracy</div>
+                <div
+                  className={`metric-value ${
+                    trainingProgress.accuracy > 0 ? "good" : "na"
+                  }`}
+                >
+                  {trainingProgress.accuracy > 0
+                    ? (trainingProgress.accuracy * 100).toFixed(2) + "%"
+                    : "—"}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Val Loss */}
-          <div className="metric-item">
-            <div className="metric-label">
-              <i className="fas fa-chart-area"></i>
-              Val Loss
+          <div className="metrics-row">
+            <div className="metric-compact-item">
+              <div className="metric-icon">
+                <i className="fas fa-chart-area"></i>
+              </div>
+              <div className="metric-content">
+                <div className="metric-label">Val Loss</div>
+                <div
+                  className={`metric-value ${
+                    trainingProgress.valLoss > 0 ? "warning" : "na"
+                  }`}
+                >
+                  {trainingProgress.valLoss > 0
+                    ? trainingProgress.valLoss.toFixed(4)
+                    : "—"}
+                </div>
+              </div>
             </div>
-            <div
-              className={`metric-value ${
-                trainingProgress.valLoss > 0 ? "warning" : "na"
-              }`}
-            >
-              {trainingProgress.valLoss > 0
-                ? trainingProgress.valLoss.toFixed(4)
-                : "N/A"}
+            <div className="metric-compact-item">
+              <div className="metric-icon">
+                <i className="fas fa-check-circle"></i>
+              </div>
+              <div className="metric-content">
+                <div className="metric-label">Val Accuracy</div>
+                <div
+                  className={`metric-value ${
+                    trainingProgress.valAccuracy > 0 ? "good" : "na"
+                  }`}
+                >
+                  {trainingProgress.valAccuracy > 0
+                    ? (trainingProgress.valAccuracy * 100).toFixed(2) + "%"
+                    : "—"}
+                </div>
+              </div>
             </div>
           </div>
+        </div>
 
-          {/* Val Accuracy */}
-          <div className="metric-item">
-            <div className="metric-label">
-              <i className="fas fa-check-circle"></i>
-              Val Accuracy
-            </div>
-            <div
-              className={`metric-value ${
-                trainingProgress.valAccuracy > 0 ? "good" : "na"
-              }`}
+        {/* Weights & Biases Button - Compact Version */}
+        {wandbUrl && (
+          <div className="wandb-controls-compact">
+            <a
+              href={wandbUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="wandb-button-compact"
             >
-              {trainingProgress.valAccuracy > 0
-                ? trainingProgress.valAccuracy.toFixed(4)
-                : "N/A"}
-            </div>
+              <div className="wandb-icon-compact">
+                <i className="fas fa-chart-line"></i>
+              </div>
+              <span className="wandb-title-compact">W&B Dashboard</span>
+              <div className="wandb-arrow-compact">
+                <i className="fas fa-external-link-alt"></i>
+              </div>
+            </a>
           </div>
+        )}
 
-          {/* Stop button when training */}
-          {isTraining && (
-            <div className="metric-item" style={{ gridColumn: "span 2" }}>
-              <button
-                className="stop-button-sidebar"
-                onClick={handleStopTraining}
-              >
-                <i className="fas fa-stop-circle"></i> Stop Training
-              </button>
-            </div>
-          )}
+        {/* Training status indicator */}
+        <div className="training-status-indicator">
+          <div className="status-badge">
+            <i
+              className={`fas ${
+                isTraining ? "fa-sync fa-spin" : "fa-check-circle"
+              }`}
+            ></i>
+            <span>
+              {isTraining ? "Training in progress" : "Training complete"}
+            </span>
+          </div>
         </div>
       </div>
     );
@@ -4816,44 +4842,6 @@ const NewBuildPage = (): JSX.Element => {
          * Visualization Section (during and after training)
          */}
         <div className="right-panel">
-          <div className="training-container">
-            <div className="training-info">
-              {/* Any training info that should remain in the right panel */}
-              {wandbUrl && (
-                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-blue-700">
-                      Weights & Biases Dashboard:
-                    </span>
-                    <a
-                      href={wandbUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 underline"
-                    >
-                      Open Dashboard ↗
-                    </a>
-                  </div>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Monitor your model training in real-time with advanced
-                    visualizations and metrics.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Training controls (train button moved to navbar) */}
-            <div className="training-controls">
-              {/* Stop training button (only shown when training) */}
-              {isTraining && (
-                <button className="stop-button" onClick={handleStopTraining}>
-                  <i className="fas fa-stop-circle"></i> Stop Training
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Visualization section - only visible during or after training */}
           {isTraining || labels.length > 0 ? (
             <div
               className={`visualization-section ${
@@ -4861,14 +4849,6 @@ const NewBuildPage = (): JSX.Element => {
               }`}
             >
               <h3>Visualizations</h3>
-              {!isTraining && labels.length > 0 && (
-                <div className="visualization-notification">
-                  <i className="fas fa-chart-line"></i>
-                  <span>
-                    Training completed. Visualizations are now available.
-                  </span>
-                </div>
-              )}
               <div className="visualization-controls">
                 <label htmlFor="visualization-select">
                   Select Visualization:
@@ -4895,6 +4875,7 @@ const NewBuildPage = (): JSX.Element => {
                   {renderTrainingMetrics()}
                 </div>
               )}
+
               <div className="visualization-back-button-container">
                 <button
                   className="visualization-back-button"

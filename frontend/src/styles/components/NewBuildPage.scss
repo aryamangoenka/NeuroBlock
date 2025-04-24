@@ -238,17 +238,6 @@
   }
 }
 
-@keyframes pulse {
-  0% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-  100% {
-    opacity: 1;
-  }
-}
 
 /* Layer List Container Animation */
 .layer-list {
@@ -836,14 +825,13 @@
 /* Right Panel - Training & Export */
 .right-panel {
   width: 25%;
-  height: 100%;
-  border-left: 1px solid rgba(0, 0, 0, 0.06);
-  padding: 20px;
+  background-color: white;
+  border-left: 1px solid #e0e0e0;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.03);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  background-color: white;
-  position: relative; /* Added for smooth transition positioning */
+  padding: 0;
 }
 
 .right-panel h2 {
@@ -1616,38 +1604,25 @@
   background-color: #f8f9fa;
 }
 
-/* Visualization Section */
+/* Improved Visualization Section */
 .visualization-section {
-  margin-top: 20px;
+  margin-top: 0;
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  animation: fadeInUp 0.5s ease forwards;
-  border-top: 1px solid #e9ecef;
-  padding-top: 0px;
-  opacity: 0;
-  transform: translateY(20px);
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  padding-top: 0;
+  background: linear-gradient(to bottom, rgba(240, 249, 255, 0.4), transparent);
 }
 
 .visualization-section h3 {
   color: #1e293b;
-  margin-bottom: 15px;
+  margin-bottom: 12px;
+  margin-top: 12px;
   font-size: 1.25rem;
   font-weight: 600;
   text-align: center;
   position: relative;
-  padding-bottom: 12px;
+  padding-bottom: 10px;
   letter-spacing: 0.5px;
 }
 
@@ -1657,10 +1632,147 @@
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 60px;
+  width: 50px;
   height: 3px;
-  background: linear-gradient(to right, #0ea5e9, #2563eb);
+  background: linear-gradient(to right, #0ea5e9, #3b82f6);
   border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(59, 130, 246, 0.3);
+}
+
+/* Enhanced Visualization Controls */
+.visualization-controls {
+  display: flex;
+  align-items: center;
+  margin: 5px 12px 15px;
+  background: white;
+  padding: 12px 15px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  transition: all 0.2s ease;
+}
+
+.visualization-controls:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: rgba(203, 213, 225, 0.8);
+}
+
+.visualization-controls label {
+  font-weight: 500;
+  margin-right: 12px;
+  color: #334155;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.custom-select-container {
+  position: relative;
+  flex-grow: 1;
+}
+
+.visualization-select {
+  width: 100%;
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  color: #334155;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  appearance: none;
+  cursor: pointer;
+  padding-right: 30px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.visualization-select:hover {
+  border-color: #cbd5e1;
+}
+
+.visualization-select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  outline: none;
+}
+
+.custom-select-container::after {
+  content: '▼';
+  font-size: 0.7rem;
+  color: #64748b;
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* Visualization Container */
+.visualization-container {
+  background-color: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+  margin: 0 12px 15px;
+  transition: all 0.25s ease;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  overflow: hidden;
+  animation: fadeIn 0.3s ease;
+}
+
+.visualization-container:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+.visualization-container h4 {
+  color: #1e293b;
+  margin-bottom: 15px;
+  font-size: 1.1rem;
+  text-align: center;
+  position: relative;
+  padding-bottom: 8px;
+}
+
+.visualization-container h4::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 2px;
+  background: linear-gradient(to right, #0ea5e9, #3b82f6);
+  border-radius: 2px;
+}
+
+.chart-container {
+  height: 280px;
+  padding: 15px;
+  border: 1px solid #f1f5f9;
+  border-radius: 8px;
+  background-color: #fcfdfe;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02);
+  position: relative;
+}
+
+.empty-chart {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #94a3b8;
+  gap: 10px;
+}
+
+.empty-chart p {
+  font-style: italic;
+  text-align: center;
+}
+
+.empty-chart i {
+  font-size: 2rem;
+  color: #cbd5e1;
+  opacity: 0.5;
 }
 
 .visualization-notification {
@@ -1692,7 +1804,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 12px;
+  margin-top: 5px;
 }
 
 .visualization-controls label {
@@ -2931,20 +3044,6 @@
   animation: pulse 2s infinite;
 }
 
-@keyframes pulse {
-  0% {
-    transform: scale(0.8);
-    opacity: 1;
-  }
-  70% {
-    transform: scale(1.5);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-}
 
 .layer-params-empty-state i {
   font-size: 2.5rem;
@@ -4132,20 +4231,6 @@
   box-shadow: var(--box-shadow-x, 4px) var(--box-shadow-y, 4px) 0px 0px var(--border, #000);
 }
 /* Matching pulse animation */
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-    opacity: 0.9;
-  }
-  50% {
-    transform: scale(1.05);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 0.9;
-  }
-}
 
 .attention-layer {
   background: linear-gradient(145deg, rgba(103, 58, 183, 0.15), rgba(81, 45, 168, 0.25));
@@ -5309,11 +5394,6 @@
 }
 
 /* Add cool pulse animation for sliders when interacted with */
-@keyframes pulse {
-  0% { opacity: 0.7; }
-  50% { opacity: 1; }
-  100% { opacity: 0.7; }
-}
 
 .param-slider:active + .param-input.small {
   animation: pulse 1s infinite;
@@ -5382,7 +5462,7 @@
   display: flex;
   justify-content: center;
   margin-top: 20px;
-  margin-bottom: 40px; /* Add extra space at the bottom */
+  margin-bottom: 80px; /* Add extra space at the bottom */
   padding: 10px;
   width: 100%;
 }
@@ -5433,3 +5513,713 @@
 .add-layer .add-button:hover {
   background-color: rgba(0, 150, 136, 0.2);
 }
+
+/* Training Metrics Card - Modern Design */
+.training-metrics-card {
+  background-color: var(--background-light);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  margin-bottom: 15px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  }
+  
+  .metrics-header {
+    background: linear-gradient(to right, #0ea5e9, #3b82f6);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    
+    i {
+      color: white;
+      margin-right: 8px;
+      font-size: 16px;
+    }
+    
+    h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin: 0;
+      color: white;
+      flex-grow: 1;
+    }
+    
+    .training-pulse-indicator {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 3px 8px;
+      border-radius: 12px;
+      
+      .pulse-dot {
+        width: 6px;
+        height: 6px;
+        background-color: #fff;
+        border-radius: 50%;
+        margin-right: 5px;
+        animation: pulse 1.5s infinite;
+      }
+      
+      span {
+        font-size: 11px;
+        color: white;
+        font-weight: 500;
+      }
+    }
+  }
+  
+  .progress-container {
+    padding: 12px 14px;
+    background-color: rgba(0, 0, 0, 0.01);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  }
+  
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  
+  .progress-label {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+  
+  .progress-percentage {
+    color: #0ea5e9;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  
+  .progress-bar-container {
+    height: 8px;
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(to right, #0ea5e9, #3b82f6);
+    border-radius: 4px;
+  }
+  
+  .metrics-compact-grid {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    gap: 8px;
+  }
+  
+  .metrics-row {
+    display: flex;
+    gap: 8px;
+    
+    .metric-compact-item {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      background-color: rgba(0, 0, 0, 0.02);
+      border-radius: 8px;
+      padding: 8px 10px;
+      border-left: 3px solid rgba(0, 0, 0, 0.05);
+      
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.03);
+      }
+      
+      .metric-icon {
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+        background-color: rgba(14, 165, 233, 0.1);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-right: 8px;
+        
+        i {
+          color: #0ea5e9;
+          font-size: 12px;
+        }
+      }
+      
+      .metric-content {
+        flex: 1;
+        
+        .metric-label {
+          font-size: 10px;
+          color: var(--text-secondary);
+          margin-bottom: 2px;
+        }
+        
+        .metric-value {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text-primary);
+          
+          &.good {
+            color: #10b981;
+          }
+          
+          &.warning {
+            color: #f59e0b;
+          }
+          
+          &.na {
+            color: #94a3b8;
+            font-style: italic;
+          }
+        }
+      }
+    }
+  }
+  
+  .training-status-indicator {
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.01);
+    border-top: 1px solid rgba(0, 0, 0, 0.04);
+    
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      background-color: rgba(14, 165, 233, 0.1);
+      color: #0ea5e9;
+      
+      i {
+        font-size: 11px;
+      }
+    }
+  }
+}
+
+
+@keyframes progress-bar-stripes {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 15px 0;
+  }
+}
+
+/* Training Metrics Card */
+.training-metrics-card {
+  background: var(--background-light);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  margin-top: 20px;
+  transition: all 0.3s ease;
+  position: relative;
+  border: 1px solid var(--border-light);
+}
+
+.training-metrics-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.metrics-header {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(to right, var(--primary-gradient-start), var(--primary-gradient-end));
+  border-bottom: 1px solid var(--border-light);
+}
+
+.metrics-header i {
+  color: white;
+  font-size: 1.1rem;
+}
+
+.metrics-header h3 {
+  color: white;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  flex-grow: 1;
+}
+
+.training-pulse-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #ff4d4f;
+  animation: pulse 1.5s infinite;
+}
+
+.training-pulse-indicator span {
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.progress-container {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.progress-label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.progress-percentage {
+  color: var(--primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.progress-bar-container {
+  height: 10px;
+  background-color: var(--background-lighter);
+  border-radius: 5px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(to right, var(--primary), var(--primary-dark));
+  border-radius: 5px;
+  transition: width 0.3s ease-in-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-bar.animated {
+  animation: progress-pulse 2s infinite;
+}
+
+.progress-stripes {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.15) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.15) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 20px 20px;
+  animation: progress-stripe 1s linear infinite;
+}
+
+@keyframes progress-stripe {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 20px 0;
+  }
+}
+
+@keyframes progress-pulse {
+  0% {
+    background: linear-gradient(to right, var(--primary), var(--primary-dark));
+  }
+  50% {
+    background: linear-gradient(to right, var(--primary-dark), var(--primary-darker));
+  }
+  100% {
+    background: linear-gradient(to right, var(--primary), var(--primary-dark));
+  }
+}
+
+.metrics-compact-grid {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.metrics-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.metrics-row:last-child {
+  margin-bottom: 0;
+}
+
+.metric-compact-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--background-lighter);
+  padding: 10px;
+  border-radius: 8px;
+  flex: 1;
+  transition: all 0.2s ease;
+  border-left: 3px solid var(--border-medium);
+}
+
+.metric-compact-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
+}
+
+.metric-icon {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: var(--background-light);
+}
+
+.metric-icon i {
+  color: var(--primary);
+  font-size: 1rem;
+}
+
+.metric-content {
+  flex: 1;
+}
+
+.metric-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+}
+
+.metric-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.metric-value.good {
+  color: var(--success);
+}
+
+.metric-value.warning {
+  color: var(--warning);
+}
+
+.metric-value.na {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.training-controls {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.stop-training-button {
+  width: 100%;
+  padding: 10px;
+  background: linear-gradient(to right, var(--danger), var(--danger-dark));
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.stop-training-button:hover {
+  background: linear-gradient(to right, var(--danger-dark), var(--danger-darker));
+  transform: translateY(-2px);
+}
+
+.stop-training-button:active {
+  transform: translateY(0);
+}
+
+.training-status-indicator {
+  padding: 14px 16px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background-color: rgba(var(--primary-rgb), 0.1);
+  color: var(--primary);
+}
+
+.status-badge.inactive {
+  background-color: var(--background-lighter);
+  color: var(--text-secondary);
+}
+
+
+/* Weights & Biases Button Styles */
+.wandb-controls {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.wandb-button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #2e5ce5, #4c46e6);
+  border-radius: 8px;
+  color: white;
+  text-decoration: none;
+  box-shadow: 0 4px 10px rgba(46, 92, 229, 0.3);
+  transition: all 0.3s ease;
+}
+
+.wandb-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(46, 92, 229, 0.4);
+  background: linear-gradient(135deg, #2b54cc, #403cd3);
+}
+
+.wandb-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(46, 92, 229, 0.3);
+}
+
+.wandb-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  margin-right: 12px;
+}
+
+.wandb-icon i {
+  font-size: 1.2rem;
+  color: white;
+}
+
+.wandb-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.wandb-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+}
+
+.wandb-description {
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.wandb-arrow {
+  margin-left: 8px;
+  opacity: 0.7;
+  transition: transform 0.2s ease;
+}
+
+.wandb-button:hover .wandb-arrow {
+  transform: translateX(3px);
+  opacity: 1;
+}
+
+@keyframes progress-bar-stripes {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 15px 0;
+  }
+}
+
+/* Status badge styles referenced by multiple components */
+.status-badge.active {
+  background-color: rgba(var(--primary-rgb), 0.1);
+  color: var(--primary);
+}
+
+.status-badge.inactive {
+  background-color: var(--background-lighter);
+  color: var(--text-secondary);
+}
+
+.visualization-metrics {
+  margin-top: 0;
+  padding: 0 5px;
+}
+
+/* Compact Weights & Biases Button Styles */
+.wandb-controls-compact {
+  padding: 8px 10px;
+  margin-bottom: 0;
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+  background-color: rgba(0, 0, 0, 0.01);
+}
+
+.wandb-button-compact {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #2e5ce5, #4c46e6);
+  border-radius: 6px;
+  color: white;
+  text-decoration: none;
+  box-shadow: 0 2px 6px rgba(46, 92, 229, 0.25);
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+}
+
+.wandb-button-compact:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(46, 92, 229, 0.35);
+  background: linear-gradient(135deg, #2b54cc, #403cd3);
+}
+
+.wandb-icon-compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background-color: rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+  margin-right: 8px;
+}
+
+.wandb-icon-compact i {
+  font-size: 0.75rem;
+  color: white;
+}
+
+.wandb-title-compact {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: white;
+}
+
+.wandb-arrow-compact {
+  margin-left: 8px;
+  font-size: 0.75rem;
+  opacity: 0.8;
+  color: white;
+  transition: transform 0.2s ease;
+}
+
+.wandb-button-compact:hover .wandb-arrow-compact {
+  transform: translateX(2px);
+  opacity: 1;
+}
+
+.visualization-metrics {
+  margin-top: 0;
+  padding: 0 5px;
+}
+
+.training-metrics-card {
+  background-color: var(--background-light);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  
+  /* Remove hover transform to prevent UI jitter */
+  &:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  }
+}
+
+.matrix-info {
+  text-align: center;
+  color: #64748b;
+  font-size: 0.9rem;
+  margin-bottom: 15px;
+  background-color: #f8fafc;
+  padding: 6px 12px;
+  border-radius: 6px;
+  display: inline-block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Remove duplicate fadeIn animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fade in for visualization elements */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.visualization-container {
+  animation: fadeIn 0.3s ease;
+}
+

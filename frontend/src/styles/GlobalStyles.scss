@@ -33,6 +33,26 @@
   --heading-font-weight: 700;
 
   --shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
+
+  /* Training metrics card variables */
+  --background-light: #ffffff;
+  --background-lighter: #f8fafc;
+  --border-light: #e2e8f0;
+  --border-medium: #cbd5e1;
+  --text-primary: #334155;
+  --text-secondary: #64748b;
+  --text-tertiary: #94a3b8;
+  --primary: #3b82f6;
+  --primary-dark: #2563eb;
+  --primary-darker: #1d4ed8;
+  --primary-rgb: 59, 130, 246;
+  --primary-gradient-start: #3b82f6;
+  --primary-gradient-end: #2563eb;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --danger-dark: #dc2626;
+  --danger-darker: #b91c1c;
 }
 
 .dark {
@@ -46,6 +66,17 @@
   --ring-offset: #000;
 
   --shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
+
+  /* Training metrics card variables - dark mode */
+  --background-light: #1e293b;
+  --background-lighter: #334155;
+  --border-light: #475569;
+  --border-medium: #64748b;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #94a3b8;
+  --primary-gradient-start: #2563eb;
+  --primary-gradient-end: #1d4ed8;
 }
 
 * {
