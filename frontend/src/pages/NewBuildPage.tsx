@@ -915,12 +915,9 @@ const NewBuildPage = (): JSX.Element => {
       attention: { heads: 8, keyDim: 64, dropout: 0.0 },
       resnetblock: {
         blockType: "Basic",
-        inChannels: 64,
-        outChannels: 64,
+        filters: 64,
         stride: [1, 1],
         activation: "ReLU",
-        useSkipConnection: true,
-        downsampleType: "None",
       },
       output: { activation: "None" },
       addlayer: {}, // Add Layer has no parameters
@@ -1015,7 +1012,7 @@ const NewBuildPage = (): JSX.Element => {
           type: "output",
         },
       ],
-      
+
       // New Transformer Encoder template with standard architecture and skip connections
       "Transformer Encoder": [
         // Input layer
@@ -1222,7 +1219,7 @@ const NewBuildPage = (): JSX.Element => {
         {
           id: "input-1",
           data: { label: "Input Layer" },
-          position: { x: 250, y: 25 },
+          position: { x: 100, y: 300 },
           type: "input",
         },
         {
@@ -1235,7 +1232,7 @@ const NewBuildPage = (): JSX.Element => {
             padding: "same",
             activation: "ReLU",
           },
-          position: { x: 250, y: 100 },
+          position: { x: 250, y: 300 },
           type: "convolution",
         },
         {
@@ -1245,7 +1242,7 @@ const NewBuildPage = (): JSX.Element => {
             momentum: 0.9,
             epsilon: 1e-5,
           },
-          position: { x: 250, y: 175 },
+          position: { x: 400, y: 300 },
           type: "batchnormalization",
         },
         {
@@ -1256,7 +1253,7 @@ const NewBuildPage = (): JSX.Element => {
             stride: [2, 2],
             padding: "same",
           },
-          position: { x: 250, y: 250 },
+          position: { x: 550, y: 300 },
           type: "maxpooling",
         },
         // Layer 1 - 2 Basic Blocks
@@ -1265,14 +1262,11 @@ const NewBuildPage = (): JSX.Element => {
           data: {
             label: "ResBlock 1-1",
             blockType: "Basic",
-            inChannels: 64,
-            outChannels: 64,
+            filters: 64,
             stride: [1, 1],
             activation: "ReLU",
-            useSkipConnection: true,
-            downsampleType: "None",
           },
-          position: { x: 250, y: 325 },
+          position: { x: 700, y: 250 },
           type: "resnetblock",
         },
         {
@@ -1280,14 +1274,11 @@ const NewBuildPage = (): JSX.Element => {
           data: {
             label: "ResBlock 1-2",
             blockType: "Basic",
-            inChannels: 64,
-            outChannels: 64,
+            filters: 64,
             stride: [1, 1],
             activation: "ReLU",
-            useSkipConnection: true,
-            downsampleType: "None",
           },
-          position: { x: 250, y: 400 },
+          position: { x: 700, y: 350 },
           type: "resnetblock",
         },
         // Layer 2 - 2 Basic Blocks
@@ -1296,14 +1287,11 @@ const NewBuildPage = (): JSX.Element => {
           data: {
             label: "ResBlock 2-1",
             blockType: "Basic",
-            inChannels: 64,
-            outChannels: 128,
+            filters: 128,
             stride: [2, 2],
             activation: "ReLU",
-            useSkipConnection: true,
-            downsampleType: "Conv1x1",
           },
-          position: { x: 250, y: 475 },
+          position: { x: 900, y: 250 },
           type: "resnetblock",
         },
         {
@@ -1311,14 +1299,11 @@ const NewBuildPage = (): JSX.Element => {
           data: {
             label: "ResBlock 2-2",
             blockType: "Basic",
-            inChannels: 128,
-            outChannels: 128,
+            filters: 128,
             stride: [1, 1],
             activation: "ReLU",
-            useSkipConnection: true,
-            downsampleType: "None",
           },
-          position: { x: 250, y: 550 },
+          position: { x: 900, y: 350 },
           type: "resnetblock",
         },
         // Layer 3 - 2 Basic Blocks
@@ -1327,14 +1312,11 @@ const NewBuildPage = (): JSX.Element => {
           data: {
             label: "ResBlock 3-1",
             blockType: "Basic",
-            inChannels: 128,
-            outChannels: 256,
+            filters: 256,
             stride: [2, 2],
             activation: "ReLU",
-            useSkipConnection: true,
-            downsampleType: "Conv1x1",
           },
-          position: { x: 250, y: 625 },
+          position: { x: 1100, y: 250 },
           type: "resnetblock",
         },
         {
@@ -1342,14 +1324,11 @@ const NewBuildPage = (): JSX.Element => {
           data: {
             label: "ResBlock 3-2",
             blockType: "Basic",
-            inChannels: 256,
-            outChannels: 256,
+            filters: 256,
             stride: [1, 1],
             activation: "ReLU",
-            useSkipConnection: true,
-            downsampleType: "None",
           },
-          position: { x: 250, y: 700 },
+          position: { x: 1100, y: 350 },
           type: "resnetblock",
         },
         // Layer 4 - 2 Basic Blocks
@@ -1365,7 +1344,7 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "Conv1x1",
           },
-          position: { x: 250, y: 775 },
+          position: { x: 1300, y: 250 },
           type: "resnetblock",
         },
         {
@@ -1380,25 +1359,22 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "None",
           },
-          position: { x: 250, y: 850 },
+          position: { x: 1300, y: 350 },
           type: "resnetblock",
         },
-        // Global Average Pooling
+        // Add GlobalAveragePooling layer
         {
-          id: "avgpool-1",
+          id: "globalavgpool-1",
           data: {
             label: "Global AvgPool",
-            poolSize: [7, 7],
-            stride: [1, 1],
-            padding: "valid",
           },
-          position: { x: 250, y: 850 },
-          type: "maxpooling",
+          position: { x: 1500, y: 300 },
+          type: "globalaveragepool",
         },
         {
           id: "flatten-1",
           data: { label: "Flatten Layer" },
-          position: { x: 250, y: 925 },
+          position: { x: 1650, y: 300 },
           type: "flatten",
         },
         {
@@ -1408,13 +1384,13 @@ const NewBuildPage = (): JSX.Element => {
             neurons: 1000,
             activation: "ReLU",
           },
-          position: { x: 250, y: 1075 },
+          position: { x: 1800, y: 300 },
           type: "dense",
         },
         {
           id: "output-1",
           data: { label: "Output Layer", activation: "Softmax" },
-          position: { x: 250, y: 850 },
+          position: { x: 1950, y: 300 },
           type: "output",
         },
       ],
@@ -1424,7 +1400,7 @@ const NewBuildPage = (): JSX.Element => {
         {
           id: "input-1",
           data: { label: "Input Layer" },
-          position: { x: 250, y: 25 },
+          position: { x: 100, y: 300 },
           type: "input",
         },
         {
@@ -1437,7 +1413,7 @@ const NewBuildPage = (): JSX.Element => {
             padding: "same",
             activation: "ReLU",
           },
-          position: { x: 250, y: 100 },
+          position: { x: 250, y: 300 },
           type: "convolution",
         },
         {
@@ -1447,7 +1423,7 @@ const NewBuildPage = (): JSX.Element => {
             momentum: 0.9,
             epsilon: 1e-5,
           },
-          position: { x: 250, y: 175 },
+          position: { x: 400, y: 300 },
           type: "batchnormalization",
         },
         {
@@ -1458,7 +1434,7 @@ const NewBuildPage = (): JSX.Element => {
             stride: [2, 2],
             padding: "same",
           },
-          position: { x: 250, y: 250 },
+          position: { x: 550, y: 300 },
           type: "maxpooling",
         },
         // Layer 1 - 3 Basic Blocks for ResNet-34
@@ -1467,14 +1443,11 @@ const NewBuildPage = (): JSX.Element => {
           data: {
             label: "ResBlock 1-1",
             blockType: "Basic",
-            inChannels: 64,
-            outChannels: 64,
+            filters: 64,
             stride: [1, 1],
             activation: "ReLU",
-            useSkipConnection: true,
-            downsampleType: "None",
           },
-          position: { x: 250, y: 325 },
+          position: { x: 700, y: 200 },
           type: "resnetblock",
         },
         {
@@ -1482,14 +1455,11 @@ const NewBuildPage = (): JSX.Element => {
           data: {
             label: "ResBlock 1-2",
             blockType: "Basic",
-            inChannels: 64,
-            outChannels: 64,
+            filters: 64,
             stride: [1, 1],
             activation: "ReLU",
-            useSkipConnection: true,
-            downsampleType: "None",
           },
-          position: { x: 250, y: 400 },
+          position: { x: 700, y: 300 },
           type: "resnetblock",
         },
         {
@@ -1497,14 +1467,11 @@ const NewBuildPage = (): JSX.Element => {
           data: {
             label: "ResBlock 1-3",
             blockType: "Basic",
-            inChannels: 64,
-            outChannels: 64,
+            filters: 64,
             stride: [1, 1],
             activation: "ReLU",
-            useSkipConnection: true,
-            downsampleType: "None",
           },
-          position: { x: 250, y: 475 },
+          position: { x: 700, y: 400 },
           type: "resnetblock",
         },
         // Layer 2 - 4 Basic Blocks
@@ -1513,14 +1480,11 @@ const NewBuildPage = (): JSX.Element => {
           data: {
             label: "ResBlock 2-1",
             blockType: "Basic",
-            inChannels: 64,
-            outChannels: 128,
+            filters: 128,
             stride: [2, 2],
             activation: "ReLU",
-            useSkipConnection: true,
-            downsampleType: "Conv1x1",
           },
-          position: { x: 250, y: 550 },
+          position: { x: 900, y: 150 },
           type: "resnetblock",
         },
         {
@@ -1528,14 +1492,11 @@ const NewBuildPage = (): JSX.Element => {
           data: {
             label: "ResBlock 2-2",
             blockType: "Basic",
-            inChannels: 128,
-            outChannels: 128,
+            filters: 128,
             stride: [1, 1],
             activation: "ReLU",
-            useSkipConnection: true,
-            downsampleType: "None",
           },
-          position: { x: 250, y: 625 },
+          position: { x: 900, y: 250 },
           type: "resnetblock",
         },
         {
@@ -1543,14 +1504,11 @@ const NewBuildPage = (): JSX.Element => {
           data: {
             label: "ResBlock 2-3",
             blockType: "Basic",
-            inChannels: 128,
-            outChannels: 128,
+            filters: 128,
             stride: [1, 1],
             activation: "ReLU",
-            useSkipConnection: true,
-            downsampleType: "None",
           },
-          position: { x: 250, y: 700 },
+          position: { x: 900, y: 350 },
           type: "resnetblock",
         },
         {
@@ -1558,14 +1516,11 @@ const NewBuildPage = (): JSX.Element => {
           data: {
             label: "ResBlock 2-4",
             blockType: "Basic",
-            inChannels: 128,
-            outChannels: 128,
+            filters: 128,
             stride: [1, 1],
             activation: "ReLU",
-            useSkipConnection: true,
-            downsampleType: "None",
           },
-          position: { x: 250, y: 775 },
+          position: { x: 900, y: 450 },
           type: "resnetblock",
         },
         // Layer 3 - 6 Basic Blocks
@@ -1581,7 +1536,7 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "Conv1x1",
           },
-          position: { x: 250, y: 850 },
+          position: { x: 1100, y: 100 },
           type: "resnetblock",
         },
         {
@@ -1596,7 +1551,7 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "None",
           },
-          position: { x: 250, y: 925 },
+          position: { x: 1100, y: 200 },
           type: "resnetblock",
         },
         {
@@ -1611,7 +1566,7 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "None",
           },
-          position: { x: 250, y: 1000 },
+          position: { x: 1100, y: 300 },
           type: "resnetblock",
         },
         {
@@ -1626,7 +1581,7 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "None",
           },
-          position: { x: 250, y: 1075 },
+          position: { x: 1100, y: 400 },
           type: "resnetblock",
         },
         {
@@ -1641,7 +1596,7 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "None",
           },
-          position: { x: 250, y: 1150 },
+          position: { x: 1100, y: 500 },
           type: "resnetblock",
         },
         {
@@ -1656,7 +1611,7 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "None",
           },
-          position: { x: 250, y: 1225 },
+          position: { x: 1100, y: 600 },
           type: "resnetblock",
         },
         // Layer 4 - 3 Basic Blocks
@@ -1672,7 +1627,7 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "Conv1x1",
           },
-          position: { x: 250, y: 1300 },
+          position: { x: 1300, y: 250 },
           type: "resnetblock",
         },
         {
@@ -1687,7 +1642,7 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "None",
           },
-          position: { x: 250, y: 1375 },
+          position: { x: 1300, y: 350 },
           type: "resnetblock",
         },
         {
@@ -1702,25 +1657,22 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "None",
           },
-          position: { x: 250, y: 1450 },
+          position: { x: 1300, y: 450 },
           type: "resnetblock",
         },
         // Global Average Pooling
         {
-          id: "avgpool-1",
+          id: "globalavgpool-1",
           data: {
             label: "Global AvgPool",
-            poolSize: [7, 7],
-            stride: [1, 1],
-            padding: "valid",
           },
-          position: { x: 250, y: 1525 },
-          type: "maxpooling",
+          position: { x: 1500, y: 300 },
+          type: "globalaveragepool",
         },
         {
           id: "flatten-1",
           data: { label: "Flatten Layer" },
-          position: { x: 250, y: 1600 },
+          position: { x: 1650, y: 300 },
           type: "flatten",
         },
         {
@@ -1730,13 +1682,13 @@ const NewBuildPage = (): JSX.Element => {
             neurons: 1000,
             activation: "ReLU",
           },
-          position: { x: 250, y: 1675 },
+          position: { x: 1800, y: 300 },
           type: "dense",
         },
         {
           id: "output-1",
           data: { label: "Output Layer", activation: "Softmax" },
-          position: { x: 250, y: 1750 },
+          position: { x: 1950, y: 300 },
           type: "output",
         },
       ],
@@ -1746,7 +1698,7 @@ const NewBuildPage = (): JSX.Element => {
         {
           id: "input-1",
           data: { label: "Input Layer" },
-          position: { x: 250, y: 25 },
+          position: { x: 100, y: 300 },
           type: "input",
         },
         {
@@ -1759,7 +1711,7 @@ const NewBuildPage = (): JSX.Element => {
             padding: "same",
             activation: "ReLU",
           },
-          position: { x: 250, y: 100 },
+          position: { x: 250, y: 300 },
           type: "convolution",
         },
         {
@@ -1769,7 +1721,7 @@ const NewBuildPage = (): JSX.Element => {
             momentum: 0.9,
             epsilon: 1e-5,
           },
-          position: { x: 250, y: 175 },
+          position: { x: 400, y: 300 },
           type: "batchnormalization",
         },
         {
@@ -1780,7 +1732,7 @@ const NewBuildPage = (): JSX.Element => {
             stride: [2, 2],
             padding: "same",
           },
-          position: { x: 250, y: 250 },
+          position: { x: 550, y: 300 },
           type: "maxpooling",
         },
         // Layer 1 - 3 Bottleneck Blocks for ResNet-50
@@ -1789,14 +1741,11 @@ const NewBuildPage = (): JSX.Element => {
           data: {
             label: "ResBlock 1-1",
             blockType: "Bottleneck",
-            inChannels: 64,
-            outChannels: 256,
+            filters: 256,
             stride: [1, 1],
             activation: "ReLU",
-            useSkipConnection: true,
-            downsampleType: "Conv1x1",
           },
-          position: { x: 250, y: 325 },
+          position: { x: 700, y: 200 },
           type: "resnetblock",
         },
         {
@@ -1804,14 +1753,11 @@ const NewBuildPage = (): JSX.Element => {
           data: {
             label: "ResBlock 1-2",
             blockType: "Bottleneck",
-            inChannels: 256,
-            outChannels: 256,
+            filters: 256,
             stride: [1, 1],
             activation: "ReLU",
-            useSkipConnection: true,
-            downsampleType: "None",
           },
-          position: { x: 250, y: 400 },
+          position: { x: 700, y: 300 },
           type: "resnetblock",
         },
         {
@@ -1826,7 +1772,7 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "None",
           },
-          position: { x: 250, y: 475 },
+          position: { x: 700, y: 400 },
           type: "resnetblock",
         },
         // Layer 2 - 4 Bottleneck Blocks
@@ -1842,7 +1788,7 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "Conv1x1",
           },
-          position: { x: 250, y: 550 },
+          position: { x: 900, y: 150 },
           type: "resnetblock",
         },
         {
@@ -1857,7 +1803,7 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "None",
           },
-          position: { x: 250, y: 625 },
+          position: { x: 900, y: 250 },
           type: "resnetblock",
         },
         {
@@ -1872,7 +1818,7 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "None",
           },
-          position: { x: 250, y: 700 },
+          position: { x: 900, y: 350 },
           type: "resnetblock",
         },
         {
@@ -1887,7 +1833,7 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "None",
           },
-          position: { x: 250, y: 775 },
+          position: { x: 900, y: 450 },
           type: "resnetblock",
         },
         // Layer 3 - 6 Bottleneck Blocks
@@ -1903,7 +1849,7 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "Conv1x1",
           },
-          position: { x: 250, y: 850 },
+          position: { x: 1100, y: 100 },
           type: "resnetblock",
         },
         {
@@ -1918,7 +1864,7 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "None",
           },
-          position: { x: 250, y: 925 },
+          position: { x: 1100, y: 180 },
           type: "resnetblock",
         },
         {
@@ -1933,7 +1879,7 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "None",
           },
-          position: { x: 250, y: 1000 },
+          position: { x: 1100, y: 260 },
           type: "resnetblock",
         },
         {
@@ -1948,7 +1894,7 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "None",
           },
-          position: { x: 250, y: 1075 },
+          position: { x: 1100, y: 340 },
           type: "resnetblock",
         },
         {
@@ -1963,7 +1909,7 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "None",
           },
-          position: { x: 250, y: 1150 },
+          position: { x: 1100, y: 420 },
           type: "resnetblock",
         },
         {
@@ -1978,7 +1924,7 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "None",
           },
-          position: { x: 250, y: 1225 },
+          position: { x: 1100, y: 500 },
           type: "resnetblock",
         },
         // Layer 4 - 3 Bottleneck Blocks
@@ -1994,7 +1940,7 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "Conv1x1",
           },
-          position: { x: 250, y: 1300 },
+          position: { x: 1300, y: 250 },
           type: "resnetblock",
         },
         {
@@ -2009,7 +1955,7 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "None",
           },
-          position: { x: 250, y: 1375 },
+          position: { x: 1300, y: 350 },
           type: "resnetblock",
         },
         {
@@ -2024,25 +1970,22 @@ const NewBuildPage = (): JSX.Element => {
             useSkipConnection: true,
             downsampleType: "None",
           },
-          position: { x: 250, y: 1450 },
+          position: { x: 1300, y: 450 },
           type: "resnetblock",
         },
         // Global Average Pooling
         {
-          id: "avgpool-1",
+          id: "globalavgpool-1",
           data: {
             label: "Global AvgPool",
-            poolSize: [7, 7],
-            stride: [1, 1],
-            padding: "valid",
           },
-          position: { x: 250, y: 1525 },
-          type: "maxpooling",
+          position: { x: 1500, y: 300 },
+          type: "globalaveragepool",
         },
         {
           id: "flatten-1",
           data: { label: "Flatten Layer" },
-          position: { x: 250, y: 1600 },
+          position: { x: 1650, y: 300 },
           type: "flatten",
         },
         {
@@ -2052,13 +1995,13 @@ const NewBuildPage = (): JSX.Element => {
             neurons: 1000,
             activation: "ReLU",
           },
-          position: { x: 250, y: 1675 },
+          position: { x: 1800, y: 300 },
           type: "dense",
         },
         {
           id: "output-1",
           data: { label: "Output Layer", activation: "Softmax" },
-          position: { x: 250, y: 1750 },
+          position: { x: 1950, y: 300 },
           type: "output",
         },
       ],
@@ -2093,6 +2036,134 @@ const NewBuildPage = (): JSX.Element => {
         ];
 
         setEdges(transformerEdges);
+      }
+      // Add edges for ResNet-18
+      else if (templateKey === "ResNet-18") {
+        const resnetEdges = [
+          // Initial layers
+          { id: "e1", source: "input-1", target: "conv-1" },
+          { id: "e2", source: "conv-1", target: "batchnorm-1" },
+          { id: "e3", source: "batchnorm-1", target: "maxpool-1" },
+
+          // Stage 1
+          { id: "e4", source: "maxpool-1", target: "resblock-1-1" },
+          { id: "e5", source: "resblock-1-1", target: "resblock-1-2" },
+
+          // Stage 2
+          { id: "e6", source: "resblock-1-2", target: "resblock-2-1" },
+          { id: "e7", source: "resblock-2-1", target: "resblock-2-2" },
+
+          // Stage 3
+          { id: "e8", source: "resblock-2-2", target: "resblock-3-1" },
+          { id: "e9", source: "resblock-3-1", target: "resblock-3-2" },
+
+          // Stage 4
+          { id: "e10", source: "resblock-3-2", target: "resblock-4-1" },
+          { id: "e11", source: "resblock-4-1", target: "resblock-4-2" },
+
+          // Final layers - using the correct nodes from the template
+          { id: "e12", source: "resblock-4-2", target: "globalavgpool-1" },
+          { id: "e13", source: "globalavgpool-1", target: "flatten-1" },
+          { id: "e14", source: "flatten-1", target: "dense-1" },
+          { id: "e15", source: "dense-1", target: "output-1" },
+        ];
+
+        setEdges(resnetEdges);
+      }
+      // Add edges for ResNet-34
+      else if (templateKey === "ResNet-34") {
+        const resnet34Edges = [
+          // Initial layers
+          { id: "e1", source: "input-1", target: "conv-1" },
+          { id: "e2", source: "conv-1", target: "batchnorm-1" },
+          { id: "e3", source: "batchnorm-1", target: "maxpool-1" },
+
+          // Stage 1 - 3 blocks
+          { id: "e4", source: "maxpool-1", target: "resblock-1-1" },
+          { id: "e5", source: "resblock-1-1", target: "resblock-1-2" },
+          { id: "e6", source: "resblock-1-2", target: "resblock-1-3" },
+
+          // Stage 2 - 4 blocks
+          { id: "e7", source: "resblock-1-3", target: "resblock-2-1" },
+          { id: "e8", source: "resblock-2-1", target: "resblock-2-2" },
+          { id: "e9", source: "resblock-2-2", target: "resblock-2-3" },
+          { id: "e10", source: "resblock-2-3", target: "resblock-2-4" },
+
+          // Stage 3 - 6 blocks
+          { id: "e11", source: "resblock-2-4", target: "resblock-3-1" },
+          { id: "e12", source: "resblock-3-1", target: "resblock-3-2" },
+          { id: "e13", source: "resblock-3-2", target: "resblock-3-3" },
+          { id: "e14", source: "resblock-3-3", target: "resblock-3-4" },
+          { id: "e15", source: "resblock-3-4", target: "resblock-3-5" },
+          { id: "e16", source: "resblock-3-5", target: "resblock-3-6" },
+
+          // Stage 4 - 3 blocks
+          { id: "e17", source: "resblock-3-6", target: "resblock-4-1" },
+          { id: "e18", source: "resblock-4-1", target: "resblock-4-2" },
+          { id: "e19", source: "resblock-4-2", target: "resblock-4-3" },
+
+          // Final layers
+          { id: "e20", source: "resblock-4-3", target: "globalavgpool-1" },
+          { id: "e21", source: "globalavgpool-1", target: "flatten-1" },
+          { id: "e22", source: "flatten-1", target: "dense-1" },
+          { id: "e23", source: "dense-1", target: "output-1" },
+        ];
+
+        setEdges(resnet34Edges);
+      }
+      // Add edges for ResNet-50
+      else if (templateKey === "ResNet-50") {
+        const resnet50Edges = [
+          // Initial layers
+          { id: "e1", source: "input-1", target: "conv-1" },
+          { id: "e2", source: "conv-1", target: "batchnorm-1" },
+          { id: "e3", source: "batchnorm-1", target: "maxpool-1" },
+
+          // Stage 1 - 3 Bottleneck blocks
+          { id: "e4", source: "maxpool-1", target: "resblock-1-1" },
+          { id: "e5", source: "resblock-1-1", target: "resblock-1-2" },
+          { id: "e6", source: "resblock-1-2", target: "resblock-1-3" },
+
+          // Stage 2 - 4 Bottleneck blocks
+          { id: "e7", source: "resblock-1-3", target: "resblock-2-1" },
+          { id: "e8", source: "resblock-2-1", target: "resblock-2-2" },
+          { id: "e9", source: "resblock-2-2", target: "resblock-2-3" },
+          { id: "e10", source: "resblock-2-3", target: "resblock-2-4" },
+
+          // Stage 3 - 6 Bottleneck blocks
+          { id: "e11", source: "resblock-2-4", target: "resblock-3-1" },
+          { id: "e12", source: "resblock-3-1", target: "resblock-3-2" },
+          { id: "e13", source: "resblock-3-2", target: "resblock-3-3" },
+          { id: "e14", source: "resblock-3-3", target: "resblock-3-4" },
+          { id: "e15", source: "resblock-3-4", target: "resblock-3-5" },
+          { id: "e16", source: "resblock-3-5", target: "resblock-3-6" },
+
+          // Stage 4 - 3 Bottleneck blocks
+          { id: "e17", source: "resblock-3-6", target: "resblock-4-1" },
+          { id: "e18", source: "resblock-4-1", target: "resblock-4-2" },
+          { id: "e19", source: "resblock-4-2", target: "resblock-4-3" },
+
+          // Final layers
+          { id: "e20", source: "resblock-4-3", target: "globalavgpool-1" },
+          { id: "e21", source: "globalavgpool-1", target: "flatten-1" },
+          { id: "e22", source: "flatten-1", target: "dense-1" },
+          { id: "e23", source: "dense-1", target: "output-1" },
+        ];
+
+        setEdges(resnet50Edges);
+      }
+      // For other templates, create sequential connections automatically
+      else if (templateKey !== "Blank") {
+        // Auto-connect nodes in sequence for simpler templates
+        const edges = [];
+        for (let i = 0; i < templateNodes.length - 1; i++) {
+          edges.push({
+            id: `e${i + 1}`,
+            source: templateNodes[i].id,
+            target: templateNodes[i + 1].id,
+          });
+        }
+        setEdges(edges);
       }
     }
   };
@@ -2373,33 +2444,20 @@ const NewBuildPage = (): JSX.Element => {
             );
           }
 
-          // Validate input channels
-          if (
-            !Number.isInteger(node.data.inChannels) ||
-            node.data.inChannels <= 0
-          ) {
+          // Validate filters
+          if (!Number.isInteger(node.data.filters) || node.data.filters <= 0) {
             errors.push(
-              `ResNet block ${node.id}: Input channels must be a positive integer`
+              `ResNet block ${node.id}: Filters must be a positive integer`
             );
           }
 
-          // Validate output channels
-          if (
-            !Number.isInteger(node.data.outChannels) ||
-            node.data.outChannels <= 0
-          ) {
-            errors.push(
-              `ResNet block ${node.id}: Output channels must be a positive integer`
-            );
-          }
-
-          // For Bottleneck blocks, validate that output channels is divisible by 4
+          // For Bottleneck blocks, validate that filters is divisible by 4
           if (
             node.data.blockType === "Bottleneck" &&
-            node.data.outChannels % 4 !== 0
+            node.data.filters % 4 !== 0
           ) {
             errors.push(
-              `ResNet block ${node.id}: For Bottleneck blocks, output channels should be divisible by 4 (current: ${node.data.outChannels})`
+              `ResNet block ${node.id}: For Bottleneck blocks, filters should be divisible by 4 (current: ${node.data.filters})`
             );
           }
 
@@ -2417,41 +2475,8 @@ const NewBuildPage = (): JSX.Element => {
           }
 
           // Validate activation
-          if (
-            !["None", "ReLU", "Sigmoid", "Tanh", "Leaky ReLU"].includes(
-              node.data.activation
-            )
-          ) {
+          if (!["ReLU", "LeakyReLU"].includes(node.data.activation)) {
             errors.push(`ResNet block ${node.id}: Invalid activation function`);
-          }
-
-          // Validate useSkipConnection (should be boolean)
-          if (typeof node.data.useSkipConnection !== "boolean") {
-            errors.push(
-              `ResNet block ${node.id}: Use skip connection must be a boolean value`
-            );
-          }
-
-          // Validate downsampleType
-          if (
-            !["None", "Conv1x1", "AvgPool"].includes(node.data.downsampleType)
-          ) {
-            errors.push(
-              `ResNet block ${node.id}: Downsample type must be 'None', 'Conv1x1', or 'AvgPool'`
-            );
-          }
-
-          // Suggest using correct downsampling when needed
-          if (
-            (node.data.inChannels !== node.data.outChannels ||
-              (Array.isArray(node.data.stride) &&
-                (node.data.stride[0] > 1 || node.data.stride[1] > 1))) &&
-            node.data.useSkipConnection &&
-            node.data.downsampleType === "None"
-          ) {
-            errors.push(
-              `ResNet block ${node.id}: When input/output channels differ or stride > 1, downsample type should not be 'None'`
-            );
           }
           break;
         case "output":
@@ -2640,25 +2665,6 @@ const NewBuildPage = (): JSX.Element => {
       }
     }
 
-    // Check for proper channel dimensions between connected ResNet blocks
-    for (const block of resNetBlocks) {
-      const outgoingEdges = edges.filter((edge) => edge.source === block.id);
-
-      // Find connections to other ResNet blocks
-      for (const edge of outgoingEdges) {
-        const targetNode = allNodes.find((node) => node.id === edge.target);
-
-        if (targetNode && targetNode.type === "resnetblock") {
-          // Check if output channels of source match input channels of target
-          if (block.data.outChannels !== targetNode.data.inChannels) {
-            errors.push(
-              `Channel mismatch: ${block.id} outputs ${block.data.outChannels} channels, but ${targetNode.id} expects ${targetNode.data.inChannels} input channels`
-            );
-          }
-        }
-      }
-    }
-
     // Check for ResNet design patterns
     // Pattern 1: Check for excessive stacking without dimension reduction
     let consecutiveBlocksWithoutDimReduction = 0;
@@ -2677,11 +2683,7 @@ const NewBuildPage = (): JSX.Element => {
 
       if (isConnected) {
         // Check if no dimension reduction occurs
-        if (
-          prevBlock.data.outChannels === currBlock.data.outChannels &&
-          currBlock.data.stride[0] === 1 &&
-          currBlock.data.stride[1] === 1
-        ) {
+        if (currBlock.data.stride[0] === 1 && currBlock.data.stride[1] === 1) {
           consecutiveBlocksWithoutDimReduction++;
 
           // Warn if too many consecutive blocks without dimension changes
@@ -3028,7 +3030,6 @@ const NewBuildPage = (): JSX.Element => {
                   <i className="fas fa-plus"></i>
                 </button>
               </div>
-              
 
               <div className="template-item transformer-template">
                 <span>
@@ -3111,16 +3112,13 @@ const NewBuildPage = (): JSX.Element => {
           "Activation function introduces non-linearity, allowing the network to learn complex patterns.",
         rate: "Dropout rate (0-1). Higher values drop more connections, increasing regularization.",
         filters:
-          "Number of convolutional filters. More filters can detect more features.",
+          "Number of filters in this layer. More filters can detect more features.",
         kernelSize:
           "Size of the convolutional kernel. Larger kernels capture broader patterns.",
         stride:
-          "Step size for filter movement. Larger strides reduce output dimensions.",
+          "Step size for filter movement. Larger strides reduce output dimensions and add automatic skip projections.",
         poolSize:
           "Size of the pooling window. Larger pools reduce dimensions more aggressively.",
-        useSkipConnection:
-          "Skip connections help with vanishing gradient problem and improve learning.",
-        downsampleType: "Method to reduce dimensions in residual connections.",
       };
 
       return (
@@ -3893,11 +3891,11 @@ const NewBuildPage = (): JSX.Element => {
                 </select>
 
                 <label>
-                  Input Channels:
+                  Filters:
                   <div className="parameter-hint">
                     <i className="fas fa-info-circle"></i>
                     <span className="hint-text">
-                      Number of input channels to the block
+                      Number of filters in the block.
                     </span>
                   </div>
                 </label>
@@ -3905,9 +3903,9 @@ const NewBuildPage = (): JSX.Element => {
                   <input
                     type="number"
                     min="1"
-                    value={selectedNode.data.inChannels || 64}
+                    value={selectedNode.data.filters || 64}
                     onChange={(e) =>
-                      updateParameter("inChannels", +e.target.value)
+                      updateParameter("filters", parseInt(e.target.value) || 64)
                     }
                     className="parameter-input"
                   />
@@ -3916,71 +3914,23 @@ const NewBuildPage = (): JSX.Element => {
                       className="param-control-btn"
                       onClick={() =>
                         updateParameter(
-                          "inChannels",
-                          Math.max(1, (selectedNode.data.inChannels || 64) - 16)
+                          "filters",
+                          (selectedNode.data.filters || 64) + 1
                         )
                       }
                     >
-                      <i className="fas fa-minus"></i>
+                      <i className="fas fa-caret-up"></i>
                     </button>
                     <button
                       className="param-control-btn"
                       onClick={() =>
                         updateParameter(
-                          "inChannels",
-                          (selectedNode.data.inChannels || 64) + 16
+                          "filters",
+                          Math.max(1, (selectedNode.data.filters || 64) - 1)
                         )
                       }
                     >
-                      <i className="fas fa-plus"></i>
-                    </button>
-                  </div>
-                </div>
-
-                <label>
-                  Output Channels:
-                  <div className="parameter-hint">
-                    <i className="fas fa-info-circle"></i>
-                    <span className="hint-text">
-                      Number of output channels from the block
-                    </span>
-                  </div>
-                </label>
-                <div className="parameter-input-container">
-                  <input
-                    type="number"
-                    min="1"
-                    value={selectedNode.data.outChannels || 64}
-                    onChange={(e) =>
-                      updateParameter("outChannels", +e.target.value)
-                    }
-                    className="parameter-input"
-                  />
-                  <div className="parameter-controls">
-                    <button
-                      className="param-control-btn"
-                      onClick={() =>
-                        updateParameter(
-                          "outChannels",
-                          Math.max(
-                            1,
-                            (selectedNode.data.outChannels || 64) - 16
-                          )
-                        )
-                      }
-                    >
-                      <i className="fas fa-minus"></i>
-                    </button>
-                    <button
-                      className="param-control-btn"
-                      onClick={() =>
-                        updateParameter(
-                          "outChannels",
-                          (selectedNode.data.outChannels || 64) + 16
-                        )
-                      }
-                    >
-                      <i className="fas fa-plus"></i>
+                      <i className="fas fa-caret-down"></i>
                     </button>
                   </div>
                 </div>
@@ -3999,32 +3949,24 @@ const NewBuildPage = (): JSX.Element => {
                     </span>
                   </div>
                 </label>
-                <div className="input-group stride-group">
-                  <input
-                    type="number"
-                    min="1"
-                    value={selectedNode.data.stride?.[0] || 1}
+                <div className="slider-with-value">
+                  <select
+                    value={
+                      Array.isArray(selectedNode.data.stride)
+                        ? selectedNode.data.stride[0]
+                        : 1
+                    }
                     onChange={(e) =>
                       updateParameter("stride", [
-                        parseInt(e.target.value) || 1,
-                        selectedNode.data.stride?.[1] || 1,
+                        parseInt(e.target.value),
+                        parseInt(e.target.value),
                       ])
                     }
-                    className="parameter-input"
-                  />
-                  <span>×</span>
-                  <input
-                    type="number"
-                    min="1"
-                    value={selectedNode.data.stride?.[1] || 1}
-                    onChange={(e) =>
-                      updateParameter("stride", [
-                        selectedNode.data.stride?.[0] || 1,
-                        parseInt(e.target.value) || 1,
-                      ])
-                    }
-                    className="parameter-input"
-                  />
+                    className="param-select"
+                  >
+                    <option value="1">1x1</option>
+                    <option value="2">2x2</option>
+                  </select>
                 </div>
               </div>
 
@@ -4046,11 +3988,8 @@ const NewBuildPage = (): JSX.Element => {
                   }
                   className="activation-select"
                 >
-                  <option value="None">None</option>
                   <option value="ReLU">ReLU</option>
-                  <option value="Sigmoid">Sigmoid</option>
-                  <option value="Tanh">Tanh</option>
-                  <option value="Leaky ReLU">Leaky ReLU</option>
+                  <option value="LeakyReLU">Leaky ReLU</option>
                 </select>
                 {selectedNode.data.activation &&
                   selectedNode.data.activation !== "None" && (
@@ -4064,43 +4003,6 @@ const NewBuildPage = (): JSX.Element => {
                       </div>
                     </div>
                   )}
-
-                <select
-                  name="useSkipConnection"
-                  value={selectedNode.data.useSkipConnection ? "true" : "false"}
-                  onChange={(e) =>
-                    updateParameter(
-                      "useSkipConnection",
-                      e.target.value === "true"
-                    )
-                  }
-                  className="parameter-input"
-                >
-                  <option value="true">Yes</option>
-                  <option value="false">No</option>
-                </select>
-
-                <label>
-                  Downsample Type:
-                  <div className="parameter-hint">
-                    <i className="fas fa-info-circle"></i>
-                    <span className="hint-text">
-                      {getParameterHint("downsampleType")}
-                    </span>
-                  </div>
-                </label>
-                <select
-                  name="downsampleType"
-                  value={selectedNode.data.downsampleType || "None"}
-                  onChange={(e) =>
-                    updateParameter("downsampleType", e.target.value)
-                  }
-                  className="parameter-input"
-                >
-                  <option value="None">None</option>
-                  <option value="Conv1x1">Conv 1x1</option>
-                  <option value="AvgPool">Average Pooling</option>
-                </select>
               </div>
 
               <div className="parameter-section">
@@ -4124,23 +4026,13 @@ const NewBuildPage = (): JSX.Element => {
                         </>
                       )}
                     </div>
-                    {selectedNode.data.useSkipConnection && (
-                      <div className="resnet-skip">
-                        <div className="skip-line"></div>
-                        {(selectedNode.data.inChannels !==
-                          selectedNode.data.outChannels ||
-                          (selectedNode.data.stride?.[0] || 1) > 1 ||
-                          (selectedNode.data.stride?.[1] || 1) > 1) && (
-                          <div className="downsample">
-                            {selectedNode.data.downsampleType === "Conv1x1"
-                              ? "1×1 Conv"
-                              : selectedNode.data.downsampleType === "AvgPool"
-                              ? "Avg Pool"
-                              : ""}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    <div className="resnet-skip">
+                      <div className="skip-line"></div>
+                      {((selectedNode.data.stride?.[0] || 1) > 1 ||
+                        (selectedNode.data.stride?.[1] || 1) > 1) && (
+                        <div className="downsample">1×1 Conv</div>
+                      )}
+                    </div>
                     <div className="resnet-output block"></div>
                   </div>
                 </div>
@@ -5569,15 +5461,15 @@ const NewBuildPage = (): JSX.Element => {
                         </div>
 
                         <div className="param-group">
-                          <label>In Channels</label>
+                          <label>Filters</label>
                           <div className="number-input-with-controls">
                             <input
                               type="number"
                               min="1"
-                              value={selectedNode.data.inChannels || 64}
+                              value={selectedNode.data.filters || 64}
                               onChange={(e) =>
                                 updateParameter(
-                                  "inChannels",
+                                  "filters",
                                   parseInt(e.target.value) || 64
                                 )
                               }
@@ -5585,74 +5477,29 @@ const NewBuildPage = (): JSX.Element => {
                             />
                             <div className="param-controls">
                               <button
-                                className="control-btn"
+                                className="param-control-btn"
                                 onClick={() =>
                                   updateParameter(
-                                    "inChannels",
+                                    "filters",
+                                    (selectedNode.data.filters || 64) + 1
+                                  )
+                                }
+                              >
+                                <i className="fas fa-caret-up"></i>
+                              </button>
+                              <button
+                                className="param-control-btn"
+                                onClick={() =>
+                                  updateParameter(
+                                    "filters",
                                     Math.max(
                                       1,
-                                      (selectedNode.data.inChannels || 64) - 16
+                                      (selectedNode.data.filters || 64) - 1
                                     )
                                   )
                                 }
                               >
-                                <i className="fas fa-minus"></i>
-                              </button>
-                              <button
-                                className="control-btn"
-                                onClick={() =>
-                                  updateParameter(
-                                    "inChannels",
-                                    (selectedNode.data.inChannels || 64) + 16
-                                  )
-                                }
-                              >
-                                <i className="fas fa-plus"></i>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="param-group">
-                          <label>Out Channels</label>
-                          <div className="number-input-with-controls">
-                            <input
-                              type="number"
-                              min="1"
-                              value={selectedNode.data.outChannels || 64}
-                              onChange={(e) =>
-                                updateParameter(
-                                  "outChannels",
-                                  parseInt(e.target.value) || 64
-                                )
-                              }
-                              className="param-input"
-                            />
-                            <div className="param-controls">
-                              <button
-                                className="control-btn"
-                                onClick={() =>
-                                  updateParameter(
-                                    "outChannels",
-                                    Math.max(
-                                      1,
-                                      (selectedNode.data.outChannels || 64) - 16
-                                    )
-                                  )
-                                }
-                              >
-                                <i className="fas fa-minus"></i>
-                              </button>
-                              <button
-                                className="control-btn"
-                                onClick={() =>
-                                  updateParameter(
-                                    "outChannels",
-                                    (selectedNode.data.outChannels || 64) + 16
-                                  )
-                                }
-                              >
-                                <i className="fas fa-plus"></i>
+                                <i className="fas fa-caret-down"></i>
                               </button>
                             </div>
                           </div>
@@ -5660,32 +5507,24 @@ const NewBuildPage = (): JSX.Element => {
 
                         <div className="param-group">
                           <label>Stride</label>
-                          <div className="dimension-input">
-                            <input
-                              type="number"
-                              min="1"
-                              value={selectedNode.data.stride?.[0] || "1"}
+                          <div className="slider-with-value">
+                            <select
+                              value={
+                                Array.isArray(selectedNode.data.stride)
+                                  ? selectedNode.data.stride[0]
+                                  : 1
+                              }
                               onChange={(e) =>
                                 updateParameter("stride", [
-                                  parseInt(e.target.value) || 1,
-                                  selectedNode.data.stride?.[1] || 1,
+                                  parseInt(e.target.value),
+                                  parseInt(e.target.value),
                                 ])
                               }
-                              className="param-input"
-                            />
-                            <span>×</span>
-                            <input
-                              type="number"
-                              min="1"
-                              value={selectedNode.data.stride?.[1] || "1"}
-                              onChange={(e) =>
-                                updateParameter("stride", [
-                                  selectedNode.data.stride?.[0] || 1,
-                                  parseInt(e.target.value) || 1,
-                                ])
-                              }
-                              className="param-input"
-                            />
+                              className="param-select"
+                            >
+                              <option value="1">1x1</option>
+                              <option value="2">2x2</option>
+                            </select>
                           </div>
                         </div>
 
@@ -5698,32 +5537,8 @@ const NewBuildPage = (): JSX.Element => {
                             }
                             className="param-select"
                           >
-                            <option value="None">None</option>
                             <option value="ReLU">ReLU</option>
-                            <option value="Sigmoid">Sigmoid</option>
-                            <option value="Tanh">Tanh</option>
-                            <option value="Leaky ReLU">Leaky ReLU</option>
-                          </select>
-                        </div>
-
-                        <div className="param-group">
-                          <label>Skip Connection</label>
-                          <select
-                            value={
-                              selectedNode.data.useSkipConnection
-                                ? "true"
-                                : "false"
-                            }
-                            onChange={(e) =>
-                              updateParameter(
-                                "useSkipConnection",
-                                e.target.value === "true"
-                              )
-                            }
-                            className="param-select"
-                          >
-                            <option value="true">Yes</option>
-                            <option value="false">No</option>
+                            <option value="LeakyReLU">Leaky ReLU</option>
                           </select>
                         </div>
                       </>

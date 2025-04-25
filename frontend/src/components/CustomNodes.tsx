@@ -185,7 +185,7 @@ const ResNetBlockNode = ({ data }: { data: any }) => (
   <div
     className={`custom-node resnetblock-node ${
       data.blockType?.toLowerCase() || "basic"
-    }-block ${data.useSkipConnection === false ? "no-skip-connection" : ""}`}
+    }-block`}
   >
     <Handle
       type="target"
@@ -200,8 +200,7 @@ const ResNetBlockNode = ({ data }: { data: any }) => (
           {data.blockType || "Basic"} Block
         </div>
         <p>
-          <strong>Channels:</strong> {data.inChannels || "?"} →{" "}
-          {data.outChannels || "?"}
+          <strong>Filters:</strong> {data.filters || 64}
         </p>
         <p>
           <strong>Stride:</strong>{" "}
@@ -212,14 +211,28 @@ const ResNetBlockNode = ({ data }: { data: any }) => (
         <p>
           <strong>Activation:</strong> {data.activation || "ReLU"}
         </p>
-        {data.downsampleType && data.downsampleType !== "None" && (
-          <p>
-            <strong>Downsample:</strong> {data.downsampleType}
-          </p>
+      </div>
+      <div className="resnet-structure">
+        {data.blockType === "Bottleneck" ? (
+          <div className="bottleneck-structure">
+            <div className="layer">Conv 1×1</div>
+            <div className="layer">Conv 3×3</div>
+            <div className="layer">Conv 1×1</div>
+          </div>
+        ) : (
+          <div className="basic-structure">
+            <div className="layer">Conv 3×3</div>
+            <div className="layer">Conv 3×3</div>
+          </div>
         )}
       </div>
       <div className="resnet-skip-connection">
         <div className="skip-line"></div>
+        {data.stride &&
+          Array.isArray(data.stride) &&
+          (data.stride[0] > 1 || data.stride[1] > 1) && (
+            <div className="projection-shortcut">1×1</div>
+          )}
       </div>
     </div>
     <Handle

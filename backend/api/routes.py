@@ -101,22 +101,17 @@ def save_model_api():
                 # Log node information
                 if node["type"] == "resnetblock":
                     block_type = node["data"].get("blockType", "Basic")
-                    in_channels = node["data"].get("inChannels", 64)
-                    out_channels = node["data"].get("outChannels", 64)
+                    filters = node["data"].get("filters", 64)
                     stride = node["data"].get("stride", [1, 1])
-                    use_skip = node["data"].get("useSkipConnection", True)
-                    downsample = node["data"].get("downsampleType", "None")
+                    activation = node["data"].get("activation", "ReLU")
                     
-                    logger.debug(f"ResNet Block: type={block_type}, in_channels={in_channels}, out_channels={out_channels}",
+                    logger.debug(f"ResNet Block: type={block_type}, filters={filters}, stride={stride}",
                                extra={"context": {
                                    "node_id": node_id,
                                    "depth": depth,
                                    "block_type": block_type,
-                                   "in_channels": in_channels,
-                                   "out_channels": out_channels,
-                                   "stride": stride,
-                                   "use_skip_connection": use_skip,
-                                   "downsample_type": downsample
+                                   "filters": filters,
+                                   "stride": stride
                                }})
                 else:
                     logger.debug(f"{node['type'].capitalize()} Layer",

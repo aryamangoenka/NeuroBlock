@@ -112,12 +112,12 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
                         x = create_resnet_block(
                             input_layer, 
                             block_type=layer_data.get("blockType", "Basic"),
-                            in_channels=layer_data.get("inChannels", 64),
-                            out_channels=layer_data.get("outChannels", 64),
+                            in_channels=64,  # Default input channels
+                            out_channels=layer_data.get("filters", 64),
                             stride=layer_data.get("stride", [1, 1]),
                             activation=layer_data.get("activation", "ReLU").lower(),
-                            use_skip_connection=layer_data.get("useSkipConnection", True),
-                            downsample_type=layer_data.get("downsampleType", "None")
+                            use_skip_connection=True,
+                            downsample_type="Conv1x1"
                         )
                     elif layer_type == "dense":
                         x = Dense(
