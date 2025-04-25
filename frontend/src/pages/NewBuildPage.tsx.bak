@@ -41,9 +41,11 @@ import {
   OutputNode,
   AttentionNode,
   ResNetBlockNode,
+  AddLayerNode,
 } from "../components/CustomNodes";
 import NavBar from "../components/NavBar";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 // Register Chart.js components
 ChartJS.register(
@@ -70,17 +72,11 @@ const nodeTypes = {
   batchnormalization: BatchNormalizationNode,
   attention: AttentionNode,
   resnetblock: ResNetBlockNode,
+  addlayer: AddLayerNode,
 };
 
 // Define the sidebar navigation options
-type SidebarOption =
-  | "layers"
-  | "templates"
-  | "settings"
-  | "hyperparameters"
-  | "training"
-  | "model_config"
-  | "layer_params";
+type SidebarOption = "layers" | "templates";
 
 // Add these near the top of the file with other type definitions
 type ValidationErrors = string[];
@@ -102,6 +98,9 @@ const triggerSaveModel = () => {
 };
 
 const NewBuildPage = (): JSX.Element => {
+  // Add navigate hook at the top with other hooks
+  const navigate = useNavigate();
+
   const {
     nodes,
     setNodes,
@@ -217,8 +216,12 @@ const NewBuildPage = (): JSX.Element => {
   // State to track if the model has been saved
   const [isModelSaved, setIsModelSaved] = useState<boolean>(false);
 
-  // Add the export status message state inside the component
+  // Export functionality state - the export section has been removed from the right sidebar,
+  // but these state variables are still needed for export functionality from the navbar
   const [exportStatusMessage, setExportStatusMessage] = useState<string>("");
+
+  // First, let's add a state variable for the W&B URL
+  const [wandbUrl, setWandbUrl] = useState<string | null>(null);
 
   // Reset isModelSaved when nodes or edges change
   useEffect(() => {
@@ -265,6 +268,11 @@ const NewBuildPage = (): JSX.Element => {
     // Listen for training start
     socket.on("training_start", (data) => {
       console.log("Training started:", data.message);
+      // Check if we have a W&B URL
+      if (data.wandb_run_url) {
+        console.log("W&B run URL:", data.wandb_run_url);
+        setWandbUrl(data.wandb_run_url);
+      }
       // Reset chart data when training starts
       setLabels([]);
       setLossData([]);
@@ -383,19 +391,206 @@ const NewBuildPage = (): JSX.Element => {
     };
   }, []);
 
+  // Debug log for selectedDataset changes
+  useEffect(() => {
+    console.log("Selected dataset changed to:", selectedDataset || "none");
+  }, [selectedDataset]);
+
+  // Listen for changes to isTraining and selectedDataset and emit events
+  useEffect(() => {
+    const event = new CustomEvent("trainingStateChange", {
+      detail: { isTraining },
+    });
+    window.dispatchEvent(event);
+  }, [isTraining]);
+
+  useEffect(() => {
+    console.log("Dataset changed in NewBuildPage:", selectedDataset);
+
+    const event = new CustomEvent("datasetChange", {
+      detail: { dataset: selectedDataset },
+    });
+
+    console.log("Dispatching datasetChange event with data:", event.detail);
+    window.dispatchEvent(event);
+  }, [selectedDataset]);
+
+  // Add event listener for dataset selection check
+  useEffect(() => {
+    const handleCheckDataset = (event: CustomEvent) => {
+      console.log("Received checkDatasetSelected event");
+      const callback = event.detail.callback;
+
+      // Make a comprehensive check
+      const hasDataset = !!selectedDataset && selectedDataset.trim() !== "";
+      console.log("Current dataset state:", {
+        selectedDataset,
+        hasDataset,
+        numberOfNodes: nodes.length,
+        numberOfEdges: edges.length,
+        modelIsReady: hasDataset && nodes.length >= 2 && edges.length > 0,
+      });
+
+      if (typeof callback === "function") {
+        // Pass back both the boolean result and the dataset name
+        callback(hasDataset, selectedDataset || "none");
+      }
+    };
+
+    window.addEventListener(
+      "checkDatasetSelected",
+      handleCheckDataset as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        "checkDatasetSelected",
+        handleCheckDataset as EventListener
+      );
+    };
+  }, [selectedDataset, nodes, edges]);
+
   // Add an event listener for the save model event
   useEffect(() => {
-    const saveModelHandler = () => {
+    const saveModelHandler = (event: CustomEvent) => {
+      // Log detailed diagnostic information
+      const eventDetails = event.detail || {
+        source: "unknown",
+        timestamp: new Date().toISOString(),
+      };
+      console.log(
+        `Save model event received in NewBuildPage at ${new Date().toISOString()}.`,
+        {
+          eventSource: eventDetails.source,
+          eventTimestamp: eventDetails.timestamp,
+          timeDifference: eventDetails.timestamp
+            ? new Date().getTime() - new Date(eventDetails.timestamp).getTime()
+            : "unknown",
+          currentDataset: selectedDataset,
+          hasDataset: !!selectedDataset && selectedDataset.trim() !== "",
+          modelState: {
+            nodes: nodes.length,
+            edges: edges.length,
+            hasInputLayer: nodes.some((node) => node.type === "input"),
+            hasOutputLayer: nodes.some((node) => node.type === "output"),
+          },
+        }
+      );
+
+      if (!selectedDataset || selectedDataset === "") {
+        console.error("Error: No dataset selected when trying to save");
+        alert("No dataset selected! Please select a dataset before saving.");
+        return;
+      }
+
+      // Pre-validate to check if there are any issues
+      const validationIssues = preValidateModel();
+      if (validationIssues) {
+        console.warn("Pre-validation failed:", validationIssues);
+        alert(`Cannot save model: ${validationIssues}`);
+        return;
+      }
+
+      console.log("Dataset is selected, proceeding with save");
       handleSaveModel();
     };
 
-    window.addEventListener("saveModel", saveModelHandler);
+    window.addEventListener("saveModel", saveModelHandler as EventListener);
 
     // Cleanup function
     return () => {
-      window.removeEventListener("saveModel", saveModelHandler);
+      window.removeEventListener(
+        "saveModel",
+        saveModelHandler as EventListener
+      );
     };
-  }, []);
+  }, [selectedDataset, nodes, edges]); // Include all relevant dependencies
+
+  // Pre-validation to check basic requirements before attempting to save or train
+  const preValidateModel = (): string | null => {
+    console.log("Pre-validating model");
+
+    // Check if dataset is selected
+    if (!selectedDataset) {
+      return "Please select a dataset first";
+    }
+
+    // Check if we have nodes
+    if (nodes.length < 2) {
+      return "Your model needs at least an input and output layer";
+    }
+
+    // Check if input and output layers exist
+    const inputLayer = nodes.find((node) => node.type === "input");
+    const outputLayer = nodes.find((node) => node.type === "output");
+
+    if (!inputLayer) {
+      return "Your model needs an input layer";
+    }
+
+    if (!outputLayer) {
+      return "Your model needs an output layer";
+    }
+
+    // Check connections
+    if (edges.length === 0) {
+      return "Your model needs connections between layers";
+    }
+
+    // Check if input is connected
+    const isInputConnected = edges.some(
+      (edge) => edge.source === inputLayer.id
+    );
+    if (!isInputConnected) {
+      return "Input layer must be connected to other layers";
+    }
+
+    // Check if output is connected
+    const isOutputConnected = edges.some(
+      (edge) => edge.target === outputLayer.id
+    );
+    if (!isOutputConnected) {
+      return "Output layer must be connected to other layers";
+    }
+
+    // Check for disconnected nodes
+    const connectedNodeIds = new Set<string>();
+    edges.forEach((edge) => {
+      connectedNodeIds.add(edge.source);
+      connectedNodeIds.add(edge.target);
+    });
+
+    const disconnectedNodes = nodes.filter(
+      (node) => !connectedNodeIds.has(node.id)
+    );
+    if (disconnectedNodes.length > 0) {
+      return `Some layers are disconnected: ${disconnectedNodes
+        .map((n) => n.id)
+        .join(", ")}`;
+    }
+
+    // For regression datasets, ensure output activation is appropriate
+    if (selectedDataset === "California Housing" && outputLayer) {
+      if (outputLayer.data?.activation === "Softmax") {
+        return "Regression tasks should not use Softmax activation in the output layer";
+      }
+    }
+
+    // For classification datasets, ensure output activation is appropriate
+    if (
+      (selectedDataset === "MNIST" ||
+        selectedDataset === "CIFAR-10" ||
+        selectedDataset === "Iris" ||
+        selectedDataset === "Breast Cancer") &&
+      outputLayer &&
+      outputLayer.data?.activation !== "Softmax"
+    ) {
+      return "Classification tasks should use Softmax activation in the output layer";
+    }
+
+    console.log("Basic pre-validation passed");
+    return null;
+  };
 
   // Function to normalize dataset name for the backend
   const normalizeDatasetName = (datasetName: string): string => {
@@ -443,17 +638,44 @@ const NewBuildPage = (): JSX.Element => {
 
   // Function to handle saving the model
   const handleSaveModel = async (): Promise<void> => {
-    // Check if dataset is selected
-    if (!selectedDataset) {
+    console.log(
+      "handleSaveModel called. Current selectedDataset:",
+      selectedDataset
+    );
+
+    // Double check if dataset is selected
+    if (!selectedDataset || selectedDataset.trim() === "") {
+      console.error("Error: No dataset selected in handleSaveModel");
       alert("No dataset selected! Please select a dataset before saving.");
       return;
     }
 
-    // Validate the model architecture
+    // Get validation issues but don't block saving on warnings
     const errors = validateLayerParameters();
-    if (errors.length > 0) {
+    console.log("Validation results:", errors);
+
+    // Filter critical errors (those marked with [Critical])
+    const criticalErrors = errors.filter((error) =>
+      error.includes("[Critical]")
+    );
+
+    // Filter warnings and suggestions
+    const warnings = errors.filter((error) => !error.includes("[Critical]"));
+
+    if (criticalErrors.length > 0) {
+      console.warn("Critical validation errors found:", criticalErrors);
       setValidationErrors(errors);
       displayValidationErrors(errors);
+
+      // Show only critical errors in the alert, without the [Critical] prefix
+      const formattedErrors = criticalErrors.map((err) =>
+        err.replace("[Critical] ", "")
+      );
+      alert(
+        `Cannot save model due to critical issues:\n${formattedErrors.join(
+          "\n"
+        )}`
+      );
       return;
     }
 
@@ -485,7 +707,7 @@ const NewBuildPage = (): JSX.Element => {
       };
 
       // Make a POST request to the backend
-      const response = await fetch("http://127.0.0.1:5000/save_model", {
+      const response = await fetch("http://127.0.0.1:5000/api/save_model", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -550,11 +772,11 @@ const NewBuildPage = (): JSX.Element => {
 
   // Start training the model
   const handleStartTraining = async () => {
-    // Validate the model architecture
-    const errors = validateLayerParameters();
-    if (errors.length > 0) {
-      setValidationErrors(errors);
-      displayValidationErrors(errors);
+    // Skip full validation and just check critical requirements using preValidateModel
+    const validationIssue = preValidateModel();
+    if (validationIssue) {
+      console.warn("Cannot start training:", validationIssue);
+      alert(`Cannot start training: ${validationIssue}`);
       return;
     }
 
@@ -630,8 +852,17 @@ const NewBuildPage = (): JSX.Element => {
       socketRef.current.emit("stop_training");
       console.log("Stop training signal sent");
       setIsTraining(false);
+      setWandbUrl(null); // Clear W&B URL when stopping training
       alert("Training stopped by user");
     }
+  };
+
+  // Function to handle back button click in visualization section
+  const handleBackButtonClick = (): void => {
+    // Reset the training state and labels to return to the dataset options view
+    setIsTraining(false);
+    setLabels([]);
+    setWandbUrl(null); // Clear Weights & Biases URL to remove the dashboard section
   };
 
   // Function to add a new layer
@@ -666,6 +897,8 @@ const NewBuildPage = (): JSX.Element => {
           return `ResNet Block ${layerNumber}`;
         case "output":
           return `Output Layer ${layerNumber}`;
+        case "addlayer":
+          return `Add Layer Node ${layerNumber}`;
         default:
           return `${type} Layer ${layerNumber}`;
       }
@@ -690,6 +923,7 @@ const NewBuildPage = (): JSX.Element => {
         downsampleType: "None",
       },
       output: { activation: "None" },
+      addlayer: {}, // Add Layer has no parameters
     };
 
     const newNode: Node = {
@@ -823,6 +1057,120 @@ const NewBuildPage = (): JSX.Element => {
           id: "Output-1",
           data: { label: "Output Layer", activation: "Softmax" },
           position: { x: 900, y: 100 },
+          type: "output",
+        },
+      ],
+
+      // New Transformer Encoder template with standard architecture and skip connections
+      "Transformer Encoder": [
+        // Input layer
+        {
+          id: "Input-1",
+          data: { label: "Input Layer" },
+          position: { x: 150, y: 250 },
+          type: "input",
+        },
+
+        // First normalization layer (LN1)
+        {
+          id: "LayerNorm-1",
+          data: {
+            label: "Layer Normalization 1",
+            momentum: 0.99,
+            epsilon: 0.001,
+          },
+          position: { x: 350, y: 150 },
+          type: "batchnormalization",
+        },
+
+        // Multi-head attention
+        {
+          id: "Attention-1",
+          data: {
+            label: "Multi-Head Attention",
+            heads: 8,
+            keyDim: 64,
+            dropout: 0.1,
+          },
+          position: { x: 550, y: 150 },
+          type: "attention",
+        },
+
+        // First Add layer (for skip connection after attention)
+        {
+          id: "Add-1",
+          data: {
+            label: "Add Layer 1",
+          },
+          position: { x: 750, y: 150 },
+          type: "addlayer",
+        },
+
+        // Second normalization layer (LN2)
+        {
+          id: "LayerNorm-2",
+          data: {
+            label: "Layer Normalization 2",
+            momentum: 0.99,
+            epsilon: 0.001,
+          },
+          position: { x: 950, y: 150 },
+          type: "batchnormalization",
+        },
+
+        // First dense layer of FFN
+        {
+          id: "Dense-1",
+          data: {
+            label: "FFN - Dense 1",
+            neurons: 512,
+            activation: "ReLU",
+          },
+          position: { x: 950, y: 250 },
+          type: "dense",
+        },
+
+        // Optional dropout for FFN
+        {
+          id: "Dropout-1",
+          data: {
+            label: "FFN - Dropout",
+            rate: 0.1,
+          },
+          position: { x: 950, y: 350 },
+          type: "dropout",
+        },
+
+        // Second dense layer of FFN
+        {
+          id: "Dense-2",
+          data: {
+            label: "FFN - Dense 2",
+            neurons: 256,
+            activation: "ReLU",
+          },
+          position: { x: 750, y: 350 },
+          type: "dense",
+        },
+
+        // Second Add layer (for skip connection after FFN)
+        {
+          id: "Add-2",
+          data: {
+            label: "Add Layer 2",
+          },
+          position: { x: 550, y: 350 },
+          type: "addlayer",
+        },
+
+        // Output layer
+        {
+          id: "Output-1",
+          data: {
+            label: "Output Layer",
+            activation: "Softmax",
+          },
+          position: { x: 350, y: 350 },
           type: "output",
         },
       ],
@@ -1115,13 +1463,682 @@ const NewBuildPage = (): JSX.Element => {
           type: "output",
         },
       ],
+
+      // Add ResNet-34 template
+      "ResNet-34": [
+        {
+          id: "input-1",
+          data: { label: "Input Layer" },
+          position: { x: 250, y: 25 },
+          type: "input",
+        },
+        {
+          id: "conv-1",
+          data: {
+            label: "Initial Conv Layer",
+            filters: 64,
+            kernelSize: [7, 7],
+            stride: [2, 2],
+            padding: "same",
+            activation: "ReLU",
+          },
+          position: { x: 250, y: 100 },
+          type: "convolution",
+        },
+        {
+          id: "batchnorm-1",
+          data: {
+            label: "BatchNorm Layer",
+            momentum: 0.9,
+            epsilon: 1e-5,
+          },
+          position: { x: 250, y: 175 },
+          type: "batchnormalization",
+        },
+        {
+          id: "maxpool-1",
+          data: {
+            label: "Initial MaxPool",
+            poolSize: [3, 3],
+            stride: [2, 2],
+            padding: "same",
+          },
+          position: { x: 250, y: 250 },
+          type: "maxpooling",
+        },
+        // Layer 1 - 3 Basic Blocks for ResNet-34
+        {
+          id: "resblock-1-1",
+          data: {
+            label: "ResBlock 1-1",
+            blockType: "Basic",
+            inChannels: 64,
+            outChannels: 64,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 325 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-1-2",
+          data: {
+            label: "ResBlock 1-2",
+            blockType: "Basic",
+            inChannels: 64,
+            outChannels: 64,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 400 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-1-3",
+          data: {
+            label: "ResBlock 1-3",
+            blockType: "Basic",
+            inChannels: 64,
+            outChannels: 64,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 475 },
+          type: "resnetblock",
+        },
+        // Layer 2 - 4 Basic Blocks
+        {
+          id: "resblock-2-1",
+          data: {
+            label: "ResBlock 2-1",
+            blockType: "Basic",
+            inChannels: 64,
+            outChannels: 128,
+            stride: [2, 2],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "Conv1x1",
+          },
+          position: { x: 250, y: 550 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-2-2",
+          data: {
+            label: "ResBlock 2-2",
+            blockType: "Basic",
+            inChannels: 128,
+            outChannels: 128,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 625 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-2-3",
+          data: {
+            label: "ResBlock 2-3",
+            blockType: "Basic",
+            inChannels: 128,
+            outChannels: 128,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 700 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-2-4",
+          data: {
+            label: "ResBlock 2-4",
+            blockType: "Basic",
+            inChannels: 128,
+            outChannels: 128,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 775 },
+          type: "resnetblock",
+        },
+        // Layer 3 - 6 Basic Blocks
+        {
+          id: "resblock-3-1",
+          data: {
+            label: "ResBlock 3-1",
+            blockType: "Basic",
+            inChannels: 128,
+            outChannels: 256,
+            stride: [2, 2],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "Conv1x1",
+          },
+          position: { x: 250, y: 850 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-3-2",
+          data: {
+            label: "ResBlock 3-2",
+            blockType: "Basic",
+            inChannels: 256,
+            outChannels: 256,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 925 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-3-3",
+          data: {
+            label: "ResBlock 3-3",
+            blockType: "Basic",
+            inChannels: 256,
+            outChannels: 256,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1000 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-3-4",
+          data: {
+            label: "ResBlock 3-4",
+            blockType: "Basic",
+            inChannels: 256,
+            outChannels: 256,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1075 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-3-5",
+          data: {
+            label: "ResBlock 3-5",
+            blockType: "Basic",
+            inChannels: 256,
+            outChannels: 256,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1150 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-3-6",
+          data: {
+            label: "ResBlock 3-6",
+            blockType: "Basic",
+            inChannels: 256,
+            outChannels: 256,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1225 },
+          type: "resnetblock",
+        },
+        // Layer 4 - 3 Basic Blocks
+        {
+          id: "resblock-4-1",
+          data: {
+            label: "ResBlock 4-1",
+            blockType: "Basic",
+            inChannels: 256,
+            outChannels: 512,
+            stride: [2, 2],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "Conv1x1",
+          },
+          position: { x: 250, y: 1300 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-4-2",
+          data: {
+            label: "ResBlock 4-2",
+            blockType: "Basic",
+            inChannels: 512,
+            outChannels: 512,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1375 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-4-3",
+          data: {
+            label: "ResBlock 4-3",
+            blockType: "Basic",
+            inChannels: 512,
+            outChannels: 512,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1450 },
+          type: "resnetblock",
+        },
+        // Global Average Pooling
+        {
+          id: "avgpool-1",
+          data: {
+            label: "Global AvgPool",
+            poolSize: [7, 7],
+            stride: [1, 1],
+            padding: "valid",
+          },
+          position: { x: 250, y: 1525 },
+          type: "maxpooling",
+        },
+        {
+          id: "flatten-1",
+          data: { label: "Flatten Layer" },
+          position: { x: 250, y: 1600 },
+          type: "flatten",
+        },
+        {
+          id: "dense-1",
+          data: {
+            label: "FC Layer",
+            neurons: 1000,
+            activation: "ReLU",
+          },
+          position: { x: 250, y: 1675 },
+          type: "dense",
+        },
+        {
+          id: "output-1",
+          data: { label: "Output Layer", activation: "Softmax" },
+          position: { x: 250, y: 1750 },
+          type: "output",
+        },
+      ],
+
+      // Add ResNet-50 template
+      "ResNet-50": [
+        {
+          id: "input-1",
+          data: { label: "Input Layer" },
+          position: { x: 250, y: 25 },
+          type: "input",
+        },
+        {
+          id: "conv-1",
+          data: {
+            label: "Initial Conv Layer",
+            filters: 64,
+            kernelSize: [7, 7],
+            stride: [2, 2],
+            padding: "same",
+            activation: "ReLU",
+          },
+          position: { x: 250, y: 100 },
+          type: "convolution",
+        },
+        {
+          id: "batchnorm-1",
+          data: {
+            label: "BatchNorm Layer",
+            momentum: 0.9,
+            epsilon: 1e-5,
+          },
+          position: { x: 250, y: 175 },
+          type: "batchnormalization",
+        },
+        {
+          id: "maxpool-1",
+          data: {
+            label: "Initial MaxPool",
+            poolSize: [3, 3],
+            stride: [2, 2],
+            padding: "same",
+          },
+          position: { x: 250, y: 250 },
+          type: "maxpooling",
+        },
+        // Layer 1 - 3 Bottleneck Blocks for ResNet-50
+        {
+          id: "resblock-1-1",
+          data: {
+            label: "ResBlock 1-1",
+            blockType: "Bottleneck",
+            inChannels: 64,
+            outChannels: 256,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "Conv1x1",
+          },
+          position: { x: 250, y: 325 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-1-2",
+          data: {
+            label: "ResBlock 1-2",
+            blockType: "Bottleneck",
+            inChannels: 256,
+            outChannels: 256,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 400 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-1-3",
+          data: {
+            label: "ResBlock 1-3",
+            blockType: "Bottleneck",
+            inChannels: 256,
+            outChannels: 256,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 475 },
+          type: "resnetblock",
+        },
+        // Layer 2 - 4 Bottleneck Blocks
+        {
+          id: "resblock-2-1",
+          data: {
+            label: "ResBlock 2-1",
+            blockType: "Bottleneck",
+            inChannels: 256,
+            outChannels: 512,
+            stride: [2, 2],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "Conv1x1",
+          },
+          position: { x: 250, y: 550 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-2-2",
+          data: {
+            label: "ResBlock 2-2",
+            blockType: "Bottleneck",
+            inChannels: 512,
+            outChannels: 512,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 625 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-2-3",
+          data: {
+            label: "ResBlock 2-3",
+            blockType: "Bottleneck",
+            inChannels: 512,
+            outChannels: 512,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 700 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-2-4",
+          data: {
+            label: "ResBlock 2-4",
+            blockType: "Bottleneck",
+            inChannels: 512,
+            outChannels: 512,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 775 },
+          type: "resnetblock",
+        },
+        // Layer 3 - 6 Bottleneck Blocks
+        {
+          id: "resblock-3-1",
+          data: {
+            label: "ResBlock 3-1",
+            blockType: "Bottleneck",
+            inChannels: 512,
+            outChannels: 1024,
+            stride: [2, 2],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "Conv1x1",
+          },
+          position: { x: 250, y: 850 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-3-2",
+          data: {
+            label: "ResBlock 3-2",
+            blockType: "Bottleneck",
+            inChannels: 1024,
+            outChannels: 1024,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 925 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-3-3",
+          data: {
+            label: "ResBlock 3-3",
+            blockType: "Bottleneck",
+            inChannels: 1024,
+            outChannels: 1024,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1000 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-3-4",
+          data: {
+            label: "ResBlock 3-4",
+            blockType: "Bottleneck",
+            inChannels: 1024,
+            outChannels: 1024,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1075 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-3-5",
+          data: {
+            label: "ResBlock 3-5",
+            blockType: "Bottleneck",
+            inChannels: 1024,
+            outChannels: 1024,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1150 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-3-6",
+          data: {
+            label: "ResBlock 3-6",
+            blockType: "Bottleneck",
+            inChannels: 1024,
+            outChannels: 1024,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1225 },
+          type: "resnetblock",
+        },
+        // Layer 4 - 3 Bottleneck Blocks
+        {
+          id: "resblock-4-1",
+          data: {
+            label: "ResBlock 4-1",
+            blockType: "Bottleneck",
+            inChannels: 1024,
+            outChannels: 2048,
+            stride: [2, 2],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "Conv1x1",
+          },
+          position: { x: 250, y: 1300 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-4-2",
+          data: {
+            label: "ResBlock 4-2",
+            blockType: "Bottleneck",
+            inChannels: 2048,
+            outChannels: 2048,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1375 },
+          type: "resnetblock",
+        },
+        {
+          id: "resblock-4-3",
+          data: {
+            label: "ResBlock 4-3",
+            blockType: "Bottleneck",
+            inChannels: 2048,
+            outChannels: 2048,
+            stride: [1, 1],
+            activation: "ReLU",
+            useSkipConnection: true,
+            downsampleType: "None",
+          },
+          position: { x: 250, y: 1450 },
+          type: "resnetblock",
+        },
+        // Global Average Pooling
+        {
+          id: "avgpool-1",
+          data: {
+            label: "Global AvgPool",
+            poolSize: [7, 7],
+            stride: [1, 1],
+            padding: "valid",
+          },
+          position: { x: 250, y: 1525 },
+          type: "maxpooling",
+        },
+        {
+          id: "flatten-1",
+          data: { label: "Flatten Layer" },
+          position: { x: 250, y: 1600 },
+          type: "flatten",
+        },
+        {
+          id: "dense-1",
+          data: {
+            label: "FC Layer",
+            neurons: 1000,
+            activation: "ReLU",
+          },
+          position: { x: 250, y: 1675 },
+          type: "dense",
+        },
+        {
+          id: "output-1",
+          data: { label: "Output Layer", activation: "Softmax" },
+          position: { x: 250, y: 1750 },
+          type: "output",
+        },
+      ],
     };
 
     // Get the template and set it as our nodes
     const templateNodes = templates[templateKey];
     if (templateNodes) {
       setNodes(templateNodes);
+
+      // Clear existing edges
       setEdges([]);
+
+      // Add specific edges for Transformer Encoder template
+      if (templateKey === "Transformer Encoder") {
+        // Create the edges for the transformer architecture
+        const transformerEdges = [
+          // Main path connections
+          { id: "e1", source: "Input-1", target: "LayerNorm-1" },
+          { id: "e2", source: "LayerNorm-1", target: "Attention-1" },
+          { id: "e3", source: "Attention-1", target: "Add-1" },
+          { id: "e4", source: "Add-1", target: "LayerNorm-2" },
+          { id: "e5", source: "LayerNorm-2", target: "Dense-1" },
+          { id: "e6", source: "Dense-1", target: "Dropout-1" },
+          { id: "e7", source: "Dropout-1", target: "Dense-2" },
+          { id: "e8", source: "Dense-2", target: "Add-2" },
+          { id: "e9", source: "Add-2", target: "Output-1" },
+
+          // Skip connections
+          { id: "skip1", source: "Input-1", target: "Add-1" }, // Skip connection around attention block
+          { id: "skip2", source: "Add-1", target: "Add-2" }, // Skip connection around FFN block
+        ];
+
+        setEdges(transformerEdges);
+      }
     }
   };
 
@@ -1154,12 +2171,27 @@ const NewBuildPage = (): JSX.Element => {
   };
 
   const onConnect = (connection: Connection): void => {
+    // Check if the target node already has 5 incoming connections
+    const targetNodeId = connection.target;
+    const incomingConnectionsCount = edges.filter(
+      (edge) => edge.target === targetNodeId
+    ).length;
+
+    if (incomingConnectionsCount >= 5) {
+      // Display a warning to the user
+      alert(
+        `Node limit reached: Maximum of 5 incoming connections allowed per node.`
+      );
+      return; // Don't add the new connection
+    }
+
+    // If below the limit, add the connection
     setEdges((eds) => addEdge(connection, eds));
   };
 
   const onNodeClick = (_: React.MouseEvent, node: Node): void => {
     setSelectedNode(node);
-    setActiveSidebarOption("layer_params");
+    setActiveSidebarOption("layers");
   };
 
   // Validate layer parameters before saving or training
@@ -1168,13 +2200,17 @@ const NewBuildPage = (): JSX.Element => {
 
     // Check if dataset is selected
     if (!selectedDataset) {
-      errors.push("Please select a dataset before saving or training");
+      errors.push(
+        "[Critical] Please select a dataset before saving or training"
+      );
       return errors;
     }
 
     // Check if there are at least two nodes (input and output)
     if (nodes.length < 2) {
-      errors.push("Model must have at least input and output layers");
+      errors.push(
+        "[Critical] Model must have at least input and output layers"
+      );
       return errors;
     }
 
@@ -1184,7 +2220,7 @@ const NewBuildPage = (): JSX.Element => {
 
     // Check if input layer exists
     if (!inputLayer) {
-      errors.push("Model must have an input layer");
+      errors.push("[Critical] Model must have an input layer");
     } else {
       // Check if input layer is connected
       const isInputConnected = edges.some(
@@ -1192,14 +2228,14 @@ const NewBuildPage = (): JSX.Element => {
       );
       if (!isInputConnected) {
         errors.push(
-          `Input layer ${inputLayer.id} must have at least one outgoing connection`
+          `[Critical] Input layer ${inputLayer.id} must have at least one outgoing connection`
         );
       }
     }
 
     // Check if output layer exists
     if (!outputLayer) {
-      errors.push("Model must have an output layer");
+      errors.push("[Critical] Model must have an output layer");
     } else {
       // Check if output layer is connected
       const isOutputConnected = edges.some(
@@ -1207,7 +2243,7 @@ const NewBuildPage = (): JSX.Element => {
       );
       if (!isOutputConnected) {
         errors.push(
-          `Output layer ${outputLayer.id} must have at least one incoming connection`
+          `[Critical] Output layer ${outputLayer.id} must have at least one incoming connection`
         );
       }
     }
@@ -1227,7 +2263,7 @@ const NewBuildPage = (): JSX.Element => {
     );
     if (disconnectedNodes.length > 0) {
       errors.push(
-        `The following layers are disconnected: ${disconnectedNodes
+        `[Critical] The following layers are disconnected: ${disconnectedNodes
           .map((node) => node.id)
           .join(", ")}`
       );
@@ -1867,6 +2903,8 @@ const NewBuildPage = (): JSX.Element => {
         return "fa-brain";
       case "resnetblock":
         return "fa-code-branch";
+      case "addlayer":
+        return "fa-plus-circle"; // Plus circle icon for Add Layer
       default:
         return "fa-cube";
     }
@@ -1879,16 +2917,6 @@ const NewBuildPage = (): JSX.Element => {
         return (
           <div className="sidebar-content-section">
             <h3>Available Layers</h3>
-            <div className="layer-intro">
-              <div className="layer-intro-icon">
-                <i className="fas fa-puzzle-piece"></i>
-              </div>
-              <p>
-                Drag and drop these layers to design your neural network. Each
-                layer has specific properties that can be customized after
-                adding.
-              </p>
-            </div>
             <div className="layer-list">
               {/* Basic Layers */}
               <div className="layer-item dense-layer">
@@ -1926,7 +2954,7 @@ const NewBuildPage = (): JSX.Element => {
               </div>
               <div className="layer-item globalaveragepool-layer">
                 <span>
-                  <i className="fas fa-compress"></i> GlobalAveragePooling
+                  <i className="fas fa-compress"></i> Global Avg Pool
                 </span>
                 <button
                   className="add-button"
@@ -1980,17 +3008,6 @@ const NewBuildPage = (): JSX.Element => {
                 </button>
               </div>
 
-              {/* ResNet Architecture Section */}
-              <div className="layer-section-title resnet-section">
-                <i className="fas fa-code-branch"></i> ResNet Architecture
-              </div>
-
-              <div className="resnet-section-description">
-                For optimal ResNet models, use <strong>ResNet Blocks</strong>{" "}
-                followed by <strong>GlobalAveragePooling</strong> before the
-                output layer.
-              </div>
-
               <div className="layer-item resnetblock-layer">
                 <span>
                   <i className="fas fa-code-branch"></i> ResNet Block
@@ -2013,44 +3030,18 @@ const NewBuildPage = (): JSX.Element => {
                   <i className="fas fa-plus"></i>
                 </button>
               </div>
-            </div>
-          </div>
-        );
-      case "layer_params":
-        return (
-          <div className="sidebar-content-section">
-            <h3>
-              <i className="fas fa-sliders-h"></i> Layer Parameters
-            </h3>
-            <div className="sidebar-intro layer-params-intro">
-              <div className="sidebar-intro-icon">
-                <i className="fas fa-sliders-h"></i>
+              <div className="layer-item add-layer">
+                <span>
+                  <i className="fas fa-plus-circle"></i> Add Layer
+                </span>
+                <button
+                  className="add-button"
+                  onClick={() => addLayer("AddLayer")}
+                >
+                  <i className="fas fa-plus"></i>
+                </button>
               </div>
-              <p>
-                Select a layer on the canvas to view and edit its parameters.
-                Each layer type has different configurable options that affect
-                how your model processes data.
-              </p>
             </div>
-
-            {!selectedNode ? (
-              <div className="layer-params-empty-state">
-                <div className="empty-state-animation">
-                  <div className="pulse-ring"></div>
-                  <i className="fas fa-mouse-pointer"></i>
-                </div>
-                <p>Click on a layer in the canvas to edit its parameters</p>
-                <div className="empty-state-hint">
-                  <i className="fas fa-info-circle"></i>
-                  <span>
-                    Layer parameters control how your neural network processes
-                    data
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="node-parameters">{renderNodeParameters()}</div>
-            )}
           </div>
         );
       case "templates":
@@ -2059,29 +3050,16 @@ const NewBuildPage = (): JSX.Element => {
             <h3>
               <i className="fas fa-shapes"></i> Model Templates
             </h3>
-            <div className="template-intro">
-              <div className="template-intro-icon">
-                <i className="fas fa-shapes"></i>
-              </div>
-              <p>
-                Start with pre-designed model architectures for common machine
-                learning tasks. Select a template that fits your needs and
-                customize it further.
-              </p>
-            </div>
             <div className="template-list">
-              <div className="template-section-title">
-                <i className="fas fa-cubes"></i> Basic Templates
-              </div>
               <div className="template-item simple-feedforward">
                 <span>
                   <i className="fas fa-network-wired"></i> Simple Feedforward
                 </span>
                 <button
-                  className="load-button"
+                  className="add-button"
                   onClick={() => loadTemplate("Simple Feedforward")}
                 >
-                  <i className="fas fa-download"></i> Load
+                  <i className="fas fa-plus"></i>
                 </button>
               </div>
               <div className="template-item">
@@ -2089,52 +3067,57 @@ const NewBuildPage = (): JSX.Element => {
                   <i className="fas fa-border-all"></i> Convolutional Network
                 </span>
                 <button
-                  className="load-button"
+                  className="add-button"
                   onClick={() => loadTemplate("Convolutional Network")}
                 >
-                  <i className="fas fa-download"></i> Load
+                  <i className="fas fa-plus"></i>
                 </button>
-              </div>
-
-              <div className="template-section-title">
-                <i className="fas fa-brain"></i> Advanced Templates
               </div>
               <div className="template-item transformer-template">
                 <span>
                   <i className="fas fa-random"></i> Transformer Model
                 </span>
                 <button
-                  className="load-button"
+                  className="add-button"
                   onClick={() => loadTemplate("Transformer Model")}
                 >
-                  <i className="fas fa-download"></i> Load
+                  <i className="fas fa-plus"></i>
                 </button>
               </div>
+
+              <div className="template-item transformer-template">
+                <span>
+                  <i className="fas fa-project-diagram"></i> Transformer Encoder
+                </span>
+                <button
+                  className="add-button"
+                  onClick={() => loadTemplate("Transformer Encoder")}
+                >
+                  <i className="fas fa-plus"></i>
+                </button>
+              </div>
+
               <div className="template-item regression-template">
                 <span>
                   <i className="fas fa-chart-line"></i> Fully Connected
                   Regression
                 </span>
                 <button
-                  className="load-button"
+                  className="add-button"
                   onClick={() => loadTemplate("Fully Connected Regression")}
                 >
-                  <i className="fas fa-download"></i> Load
+                  <i className="fas fa-plus"></i>
                 </button>
-              </div>
-
-              <div className="template-section-title">
-                <i className="fas fa-code-branch"></i> ResNet Templates
               </div>
               <div className="template-item resnet-template">
                 <span>
                   <i className="fas fa-code-branch"></i> ResNet-18
                 </span>
                 <button
-                  className="load-button"
+                  className="add-button"
                   onClick={() => loadTemplate("ResNet-18")}
                 >
-                  <i className="fas fa-download"></i> Load
+                  <i className="fas fa-plus"></i>
                 </button>
               </div>
               <div className="template-item resnet-template">
@@ -2142,10 +3125,10 @@ const NewBuildPage = (): JSX.Element => {
                   <i className="fas fa-code-branch"></i> ResNet-34
                 </span>
                 <button
-                  className="load-button"
+                  className="add-button"
                   onClick={() => loadTemplate("ResNet-34")}
                 >
-                  <i className="fas fa-download"></i> Load
+                  <i className="fas fa-plus"></i>
                 </button>
               </div>
               <div className="template-item resnet-template">
@@ -2153,532 +3136,21 @@ const NewBuildPage = (): JSX.Element => {
                   <i className="fas fa-code-branch"></i> ResNet-50
                 </span>
                 <button
-                  className="load-button"
+                  className="add-button"
                   onClick={() => loadTemplate("ResNet-50")}
                 >
-                  <i className="fas fa-download"></i> Load
+                  <i className="fas fa-plus"></i>
                 </button>
               </div>
             </div>
           </div>
         );
-      case "hyperparameters":
-        return (
-          <div className="sidebar-content-section">
-            <h3>
-              <i className="fas fa-cogs"></i> Hyperparameters
-            </h3>
-            <div className="hyperparams-intro">
-              <div className="hyperparams-intro-icon">
-                <i className="fas fa-cogs"></i>
-              </div>
-              <p>
-                Configure the key hyperparameters that control how your model
-                learns. These settings significantly impact your model's
-                performance and training speed.
-              </p>
-            </div>
-            <div className="settings-list hyperparams-list">
-              <div className="setting-item">
-                <label>
-                  <i className="fas fa-layer-group"></i> Batch Size
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={trainingConfig.batchSize}
-                  className="batch-size-input"
-                  onChange={(e) =>
-                    setTrainingConfig({
-                      ...trainingConfig,
-                      batchSize: parseInt(e.target.value) || 32,
-                    })
-                  }
-                />
-              </div>
-              <div className="setting-item">
-                <label>
-                  <i className="fas fa-tachometer-alt"></i> Learning Rate
-                </label>
-                <input
-                  type="number"
-                  min="0.0001"
-                  max="1"
-                  step="0.0001"
-                  value={trainingConfig.learningRate}
-                  onChange={(e) =>
-                    setTrainingConfig({
-                      ...trainingConfig,
-                      learningRate: parseFloat(e.target.value) || 0.001,
-                    })
-                  }
-                />
-              </div>
-              <div className="setting-item">
-                <label>
-                  <i className="fas fa-redo"></i> Epochs
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={trainingConfig.epochs}
-                  onChange={(e) =>
-                    setTrainingConfig({
-                      ...trainingConfig,
-                      epochs: parseInt(e.target.value) || 10,
-                    })
-                  }
-                />
-              </div>
-            </div>
-          </div>
-        );
-      case "training":
-        return (
-          <div className="sidebar-content-section">
-            <h3>Training Options</h3>
-
-            <div className="training-options-container">
-              {/* Optimizer Card */}
-              <div className="training-card optimizer-card">
-                <div className="training-card-header">
-                  <i className="fas fa-magic"></i>
-                  <span>Optimizer</span>
-                </div>
-                <div className="training-card-body">
-                  <select
-                    value={trainingConfig.optimizer}
-                    className="optimizer-select"
-                    onChange={(e) =>
-                      setTrainingConfig({
-                        ...trainingConfig,
-                        optimizer: e.target.value,
-                      })
-                    }
-                  >
-                    <option value="Adam">Adam</option>
-                    <option value="SGD">SGD</option>
-                    <option value="RMSprop">RMSprop</option>
-                    <option value="Adagrad">Adagrad</option>
-                    <option value="Adadelta">Adadelta</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Loss Function Card */}
-              <div className="training-card loss-card">
-                <div className="training-card-header">
-                  <i className="fas fa-chart-line"></i>
-                  <span>Loss Function</span>
-                </div>
-                <div className="training-card-body">
-                  <select
-                    value={trainingConfig.lossFunction}
-                    className="loss-select"
-                    onChange={(e) =>
-                      setTrainingConfig({
-                        ...trainingConfig,
-                        lossFunction: e.target.value,
-                      })
-                    }
-                  >
-                    <option value="Categorical Cross-Entropy">
-                      Categorical Cross-Entropy
-                    </option>
-                    <option value="Binary Cross-Entropy">
-                      Binary Cross-Entropy
-                    </option>
-                    <option value="Mean Squared Error">
-                      Mean Squared Error
-                    </option>
-                    <option value="Mean Absolute Error">
-                      Mean Absolute Error
-                    </option>
-                    <option value="Sparse Categorical Cross-Entropy">
-                      Sparse Categorical Cross-Entropy
-                    </option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Validation Split Card */}
-              <div className="training-card validation-card">
-                <div className="training-card-header">
-                  <i className="fas fa-percentage"></i>
-                  <span>Validation Split</span>
-                </div>
-                <div className="training-card-body">
-                  <input
-                    type="number"
-                    min="0"
-                    max="0.5"
-                    step="0.05"
-                    value={trainingConfig.validationSplit || 0.2}
-                    onChange={(e) =>
-                      setTrainingConfig({
-                        ...trainingConfig,
-                        validationSplit: parseFloat(e.target.value) || 0.2,
-                      })
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Training Status Card */}
-            <div className="training-status-card">
-              <h3>
-                <i className="fas fa-chart-bar"></i>
-                Training Status
-              </h3>
-
-              {/* Progress Bar */}
-              <div className="progress-container">
-                <div className="progress-info">
-                  <div className="progress-label">Training Progress</div>
-                  <div className="progress-percentage">
-                    {isTraining
-                      ? `${Math.round(
-                          (trainingProgress.currentEpoch /
-                            trainingProgress.totalEpochs) *
-                            100
-                        )}%`
-                      : "0%"}
-                  </div>
-                </div>
-                <div className="progress-bar-container">
-                  <div
-                    className={`progress-bar ${isTraining ? "pulse" : ""}`}
-                    style={{
-                      width: isTraining
-                        ? `${
-                            (trainingProgress.currentEpoch /
-                              trainingProgress.totalEpochs) *
-                            100
-                          }%`
-                        : "0%",
-                    }}
-                  ></div>
-                </div>
-              </div>
-
-              {/* Metrics Grid */}
-              <div className="metrics-grid">
-                {/* Epoch */}
-                <div className="metric-item">
-                  <div className="metric-label">
-                    <i className="fas fa-history"></i>
-                    Epoch
-                  </div>
-                  <div
-                    className={`metric-value ${
-                      trainingProgress.currentEpoch > 0 ? "" : "na"
-                    }`}
-                  >
-                    {trainingProgress.currentEpoch > 0
-                      ? `${trainingProgress.currentEpoch}/${trainingProgress.totalEpochs}`
-                      : "N/A"}
-                  </div>
-                </div>
-
-                {/* Loss */}
-                <div className="metric-item">
-                  <div className="metric-label">
-                    <i className="fas fa-chart-line"></i>
-                    Loss
-                  </div>
-                  <div
-                    className={`metric-value ${
-                      trainingProgress.loss > 0 ? "warning" : "na"
-                    }`}
-                  >
-                    {trainingProgress.loss > 0
-                      ? trainingProgress.loss.toFixed(4)
-                      : "N/A"}
-                  </div>
-                </div>
-
-                {/* Accuracy */}
-                <div className="metric-item">
-                  <div className="metric-label">
-                    <i className="fas fa-bullseye"></i>
-                    Accuracy
-                  </div>
-                  <div
-                    className={`metric-value ${
-                      trainingProgress.accuracy > 0 ? "good" : "na"
-                    }`}
-                  >
-                    {trainingProgress.accuracy > 0
-                      ? trainingProgress.accuracy.toFixed(4)
-                      : "N/A"}
-                  </div>
-                </div>
-
-                {/* Val Loss */}
-                <div className="metric-item">
-                  <div className="metric-label">
-                    <i className="fas fa-chart-area"></i>
-                    Val Loss
-                  </div>
-                  <div
-                    className={`metric-value ${
-                      trainingProgress.valLoss > 0 ? "warning" : "na"
-                    }`}
-                  >
-                    {trainingProgress.valLoss > 0
-                      ? trainingProgress.valLoss.toFixed(4)
-                      : "N/A"}
-                  </div>
-                </div>
-
-                {/* Val Accuracy */}
-                <div className="metric-item">
-                  <div className="metric-label">
-                    <i className="fas fa-check-circle"></i>
-                    Val Accuracy
-                  </div>
-                  <div
-                    className={`metric-value ${
-                      trainingProgress.valAccuracy > 0 ? "good" : "na"
-                    }`}
-                  >
-                    {trainingProgress.valAccuracy > 0
-                      ? trainingProgress.valAccuracy.toFixed(4)
-                      : "N/A"}
-                  </div>
-                </div>
-
-                {/* Stop button when training */}
-                {isTraining && (
-                  <div className="metric-item" style={{ gridColumn: "span 2" }}>
-                    <button
-                      className="stop-button-sidebar"
-                      onClick={handleStopTraining}
-                    >
-                      <i className="fas fa-stop-circle"></i> Stop Training
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      case "model_config":
-        return (
-          <div className="sidebar-content-section">
-            <h3>Model Configuration</h3>
-            <div className="model-config-intro">
-              <div className="model-config-intro-icon">
-                <i className="fas fa-project-diagram"></i>
-              </div>
-              <p>
-                View your model's configuration settings and key parameters for
-                building and training your neural network.
-              </p>
-            </div>
-
-            <div className="model-config-container compact-config">
-              {/* Data Section */}
-              <div className="model-config-section data-section">
-                <h4>
-                  <i className="fas fa-database"></i> Data
-                </h4>
-                <div className="dataset-display">
-                  {selectedDataset ? (
-                    <div className="dataset-info-container">
-                      <div className="dataset-header">
-                        <div className="dataset-icon">
-                          <i
-                            className={`fas ${
-                              selectedDataset === "MNIST" ||
-                              selectedDataset === "CIFAR-10"
-                                ? "fa-image"
-                                : selectedDataset === "California Housing"
-                                ? "fa-home"
-                                : "fa-table"
-                            }`}
-                          ></i>
-                        </div>
-                        <div className="dataset-name">
-                          <span>{selectedDataset}</span>
-                          <small className="dataset-type">
-                            {selectedDataset === "MNIST" ||
-                            selectedDataset === "CIFAR-10"
-                              ? "Image Classification"
-                              : selectedDataset === "Iris" ||
-                                selectedDataset === "Breast Cancer"
-                              ? "Classification"
-                              : selectedDataset === "California Housing"
-                              ? "Regression"
-                              : "Dataset"}
-                          </small>
-                        </div>
-                      </div>
-
-                      <div className="dataset-details">
-                        {selectedDataset !== "California Housing" && (
-                          <div className="dataset-classes">
-                            <span className="detail-label">
-                              <i className="fas fa-tags"></i> Classes
-                            </span>
-                            <div className="class-labels">
-                              {getClassLabels(selectedDataset).map(
-                                (label, index) => (
-                                  <span key={index} className="class-tag">
-                                    {label}
-                                  </span>
-                                )
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="dataset-features">
-                          <span className="detail-label">
-                            <i className="fas fa-chart-bar"></i> Features
-                          </span>
-                          <span className="feature-info">
-                            {selectedDataset === "MNIST"
-                              ? "28×28 grayscale images"
-                              : selectedDataset === "CIFAR-10"
-                              ? "32×32 color images"
-                              : selectedDataset === "Iris"
-                              ? "4 numeric features"
-                              : selectedDataset === "Breast Cancer"
-                              ? "30 numeric features"
-                              : selectedDataset === "California Housing"
-                              ? "8 numeric features"
-                              : "Multiple features"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="no-dataset-selected">
-                      <i className="fas fa-exclamation-circle"></i>
-                      <span>No dataset selected</span>
-                      <small>
-                        Select a dataset in Settings to train your model
-                      </small>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Architecture Section */}
-              <div className="model-config-section">
-                <h4>
-                  <i className="fas fa-network-wired"></i> Architecture
-                </h4>
-                <div className="model-config-grid">
-                  <div className="model-config-item">
-                    <span className="model-config-label">
-                      <i className="fas fa-cubes"></i> Layers
-                    </span>
-                    <span className="model-config-value">{nodes.length}</span>
-                  </div>
-                  <div className="model-config-item">
-                    <span className="model-config-label">
-                      <i className="fas fa-project-diagram"></i> Connections
-                    </span>
-                    <span className="model-config-value">{edges.length}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      case "settings":
-        return (
-          <div className="sidebar-content-section">
-            <h3>Dataset Settings</h3>
-            <div className="settings-intro">
-              <div className="settings-intro-icon">
-                <i className="fas fa-database"></i>
-              </div>
-              <p>
-                Select a dataset to train your neural network. The dataset will
-                determine the input and output dimensions for your model.
-              </p>
-            </div>
-
-            <div className="training-options-container">
-              {/* Dataset Selection Card */}
-              <div className="training-card dataset-card">
-                <div className="training-card-header">
-                  <i className="fas fa-table"></i>
-                  <span>Dataset</span>
-                </div>
-                <div className="training-card-body">
-                  <select
-                    value={selectedDataset}
-                    onChange={(e) => setSelectedDataset(e.target.value)}
-                    className="dataset-select"
-                  >
-                    <option value="">Select Dataset</option>
-                    <option value="MNIST">MNIST</option>
-                    <option value="CIFAR-10">CIFAR-10</option>
-                    <option value="Iris">Iris</option>
-                    <option value="Breast Cancer">Breast Cancer</option>
-                    <option value="California Housing">
-                      California Housing
-                    </option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Dataset Info Card */}
-              {selectedDataset && (
-                <div className="training-card dataset-info-card">
-                  <div className="training-card-header">
-                    <i className="fas fa-info-circle"></i>
-                    <span>Dataset Information</span>
-                  </div>
-                  <div className="training-card-body">
-                    <div className="dataset-info-content">
-                      {selectedDataset === "MNIST" && (
-                        <p>
-                          A database of handwritten digits with 60,000 training
-                          examples and 10,000 test examples. Each image is 28x28
-                          pixels (grayscale).
-                        </p>
-                      )}
-                      {selectedDataset === "CIFAR-10" && (
-                        <p>
-                          A collection of 60,000 32x32 color images in 10
-                          different classes, with 6,000 images per class.
-                        </p>
-                      )}
-                      {selectedDataset === "Iris" && (
-                        <p>
-                          A classic dataset containing 3 classes of 50 instances
-                          each, where each class refers to a type of iris plant.
-                        </p>
-                      )}
-                      {selectedDataset === "Breast Cancer" && (
-                        <p>
-                          Features are computed from a digitized image of a fine
-                          needle aspirate of a breast mass. The task is to
-                          classify whether the mass is malignant or benign.
-                        </p>
-                      )}
-                      {selectedDataset === "California Housing" && (
-                        <p>
-                          This dataset contains information about house prices
-                          in California, with features including median income,
-                          house age, and average rooms.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        );
       default:
-        return null;
+        return (
+          <div className="sidebar-content-section">
+            <h3>Select a sidebar option</h3>
+          </div>
+        );
     }
   };
 
@@ -3059,6 +3531,7 @@ const NewBuildPage = (): JSX.Element => {
                 <option value="ReLU">ReLU</option>
                 <option value="Sigmoid">Sigmoid</option>
                 <option value="Tanh">Tanh</option>
+                <option value="Softmax">Softmax</option>
                 <option value="Leaky ReLU">Leaky ReLU</option>
               </select>
               {selectedNode.data.activation &&
@@ -3647,15 +4120,6 @@ const NewBuildPage = (): JSX.Element => {
                     </div>
                   )}
 
-                <label>
-                  Use Skip Connection:
-                  <div className="parameter-hint">
-                    <i className="fas fa-info-circle"></i>
-                    <span className="hint-text">
-                      {getParameterHint("useSkipConnection")}
-                    </span>
-                  </div>
-                </label>
                 <select
                   name="useSkipConnection"
                   value={selectedNode.data.useSkipConnection ? "true" : "false"}
@@ -3738,6 +4202,112 @@ const NewBuildPage = (): JSX.Element => {
               </div>
             </>
           )}
+
+          {/* MaxPooling Layer Parameters */}
+          {selectedNode.type === "maxpooling" && (
+            <>
+              <div className="param-group">
+                <label>Pool Size</label>
+                <div className="dimension-input">
+                  <input
+                    type="number"
+                    min="1"
+                    value={selectedNode.data.poolSize?.[0] || "2"}
+                    onChange={(e) =>
+                      updateParameter("poolSize", [
+                        parseInt(e.target.value) || 2,
+                        selectedNode.data.poolSize?.[1] || 2,
+                      ])
+                    }
+                    className="param-input"
+                  />
+                  <span>×</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={selectedNode.data.poolSize?.[1] || "2"}
+                    onChange={(e) =>
+                      updateParameter("poolSize", [
+                        selectedNode.data.poolSize?.[0] || 2,
+                        parseInt(e.target.value) || 2,
+                      ])
+                    }
+                    className="param-input"
+                  />
+                </div>
+              </div>
+
+              <div className="param-group">
+                <label>Stride</label>
+                <div className="dimension-input">
+                  <input
+                    type="number"
+                    min="1"
+                    value={selectedNode.data.stride?.[0] || "2"}
+                    onChange={(e) =>
+                      updateParameter("stride", [
+                        parseInt(e.target.value) || 2,
+                        selectedNode.data.stride?.[1] || 2,
+                      ])
+                    }
+                    className="param-input"
+                  />
+                  <span>×</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={selectedNode.data.stride?.[1] || "2"}
+                    onChange={(e) =>
+                      updateParameter("stride", [
+                        selectedNode.data.stride?.[0] || 2,
+                        parseInt(e.target.value) || 2,
+                      ])
+                    }
+                    className="param-input"
+                  />
+                </div>
+              </div>
+
+              <div className="param-group">
+                <label>Padding</label>
+                <select
+                  value={selectedNode.data.padding || "valid"}
+                  onChange={(e) => updateParameter("padding", e.target.value)}
+                  className="param-select"
+                >
+                  <option value="valid">Valid</option>
+                  <option value="same">Same</option>
+                </select>
+              </div>
+            </>
+          )}
+
+          {/* GlobalAveragePool Layer has no parameters */}
+          {selectedNode.type === "globalaveragepool" && (
+            <div className="param-group">
+              <p className="param-info">
+                This layer has no configurable parameters.
+              </p>
+            </div>
+          )}
+
+          {/* Add Layer has no parameters */}
+          {selectedNode.type === "addlayer" && (
+            <div className="param-group">
+              <p className="param-info">
+                This layer has no configurable parameters.
+              </p>
+            </div>
+          )}
+
+          {/* Flatten Layer has no parameters */}
+          {selectedNode.type === "flatten" && (
+            <div className="param-group">
+              <p className="param-info">
+                This layer has no configurable parameters.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -3767,6 +4337,7 @@ const NewBuildPage = (): JSX.Element => {
                 />
               ) : (
                 <div className="empty-chart">
+                  <i className="fas fa-chart-line"></i>
                   <p>Start training to see accuracy metrics</p>
                 </div>
               )}
@@ -3786,6 +4357,7 @@ const NewBuildPage = (): JSX.Element => {
                 />
               ) : (
                 <div className="empty-chart">
+                  <i className="fas fa-chart-area"></i>
                   <p>Start training to see loss metrics</p>
                 </div>
               )}
@@ -3807,12 +4379,12 @@ const NewBuildPage = (): JSX.Element => {
                 />
               </>
             ) : (
-              <div className="placeholder-visualization">
+              <div className="empty-chart">
+                <i className="fas fa-table"></i>
                 <p>
                   Confusion matrix visualization will be shown here after
                   training
                 </p>
-                <div className="matrix-placeholder"></div>
               </div>
             )}
           </div>
@@ -4104,6 +4676,248 @@ const NewBuildPage = (): JSX.Element => {
     }
   };
 
+  // Add an event listener for the train model event
+  useEffect(() => {
+    const trainModelHandler = () => {
+      // Quick check for dataset selection
+      if (!selectedDataset) {
+        alert("No dataset selected! Please select a dataset before training.");
+        return;
+      }
+
+      // Check if already training
+      if (isTraining) {
+        console.log("Already training, ignoring train request");
+        return;
+      }
+
+      // Do basic pre-validation
+      const validationIssue = preValidateModel();
+      if (validationIssue) {
+        console.warn("Cannot start training:", validationIssue);
+        alert(`Cannot start training: ${validationIssue}`);
+        return;
+      }
+
+      // Proceed with training
+      console.log("All validation passed, starting training...");
+      handleStartTraining();
+    };
+
+    window.addEventListener("trainModel", trainModelHandler);
+
+    // Cleanup function
+    return () => {
+      window.removeEventListener("trainModel", trainModelHandler);
+    };
+  }, [selectedDataset, isTraining, nodes, edges]); // Include relevant dependencies
+
+  // Listen for stop training event from NavBar
+  useEffect(() => {
+    const stopTrainingHandler = () => {
+      if (isTraining) {
+        handleStopTraining();
+      }
+    };
+
+    window.addEventListener("stopTraining", stopTrainingHandler);
+
+    // Cleanup function
+    return () => {
+      window.removeEventListener("stopTraining", stopTrainingHandler);
+    };
+  }, [isTraining]);
+
+  // Listen for export model event from NavBar
+  useEffect(() => {
+    const exportModelHandler = (event: CustomEvent) => {
+      const format = event.detail?.format;
+      if (!format) {
+        console.error("Export format not specified");
+        return;
+      }
+
+      console.log(`Export model event received with format: ${format}`);
+      handleExport(format);
+    };
+
+    window.addEventListener("exportModel", exportModelHandler as EventListener);
+
+    // Cleanup function
+    return () => {
+      window.removeEventListener(
+        "exportModel",
+        exportModelHandler as EventListener
+      );
+    };
+  }, [selectedDataset, isModelSaved, isTraining]);
+
+  // Render the training metrics that will be displayed on the right
+  const renderTrainingMetrics = () => {
+    return (
+      <div className="training-metrics-card">
+        <div className="metrics-header">
+          <i className="fas fa-chart-bar"></i>
+          <h3>Training Status</h3>
+          {isTraining && (
+            <div className="training-pulse-indicator">
+              <div className="pulse-dot"></div>
+              <span>Live</span>
+            </div>
+          )}
+        </div>
+
+        {/* Progress Bar */}
+        <div className="progress-container">
+          <div className="progress-info">
+            <div className="progress-label">
+              {isTraining
+                ? `Epoch ${trainingProgress.currentEpoch}/${trainingProgress.totalEpochs}`
+                : `Epoch ${trainingProgress.currentEpoch}/${trainingProgress.totalEpochs}`}
+            </div>
+            <div className="progress-percentage">
+              {isTraining || trainingProgress.currentEpoch > 0
+                ? `${Math.round(
+                    (trainingProgress.currentEpoch /
+                      trainingProgress.totalEpochs) *
+                      100
+                  )}%`
+                : "Not started"}
+            </div>
+          </div>
+          <div className="progress-bar-container">
+            <div
+              className="progress-bar"
+              style={{
+                width:
+                  isTraining || trainingProgress.currentEpoch > 0
+                    ? `${Math.round(
+                        (trainingProgress.currentEpoch /
+                          trainingProgress.totalEpochs) *
+                          100
+                      )}%`
+                    : "0%",
+              }}
+            >
+              {isTraining && <div className="progress-stripes"></div>}
+            </div>
+          </div>
+        </div>
+
+        {/* Metrics Grid - Compact Layout */}
+        <div className="metrics-compact-grid">
+          <div className="metrics-row">
+            <div className="metric-compact-item">
+              <div className="metric-icon">
+                <i className="fas fa-chart-line"></i>
+              </div>
+              <div className="metric-content">
+                <div className="metric-label">Loss</div>
+                <div
+                  className={`metric-value ${
+                    trainingProgress.loss > 0 ? "warning" : "na"
+                  }`}
+                >
+                  {trainingProgress.loss > 0
+                    ? trainingProgress.loss.toFixed(4)
+                    : "—"}
+                </div>
+              </div>
+            </div>
+            <div className="metric-compact-item">
+              <div className="metric-icon">
+                <i className="fas fa-bullseye"></i>
+              </div>
+              <div className="metric-content">
+                <div className="metric-label">Accuracy</div>
+                <div
+                  className={`metric-value ${
+                    trainingProgress.accuracy > 0 ? "good" : "na"
+                  }`}
+                >
+                  {trainingProgress.accuracy > 0
+                    ? (trainingProgress.accuracy * 100).toFixed(2) + "%"
+                    : "—"}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="metrics-row">
+            <div className="metric-compact-item">
+              <div className="metric-icon">
+                <i className="fas fa-chart-area"></i>
+              </div>
+              <div className="metric-content">
+                <div className="metric-label">Val Loss</div>
+                <div
+                  className={`metric-value ${
+                    trainingProgress.valLoss > 0 ? "warning" : "na"
+                  }`}
+                >
+                  {trainingProgress.valLoss > 0
+                    ? trainingProgress.valLoss.toFixed(4)
+                    : "—"}
+                </div>
+              </div>
+            </div>
+            <div className="metric-compact-item">
+              <div className="metric-icon">
+                <i className="fas fa-check-circle"></i>
+              </div>
+              <div className="metric-content">
+                <div className="metric-label">Val Accuracy</div>
+                <div
+                  className={`metric-value ${
+                    trainingProgress.valAccuracy > 0 ? "good" : "na"
+                  }`}
+                >
+                  {trainingProgress.valAccuracy > 0
+                    ? (trainingProgress.valAccuracy * 100).toFixed(2) + "%"
+                    : "—"}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Weights & Biases Button - Compact Version */}
+        {wandbUrl && (
+          <div className="wandb-controls-compact">
+            <a
+              href={wandbUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="wandb-button-compact"
+            >
+              <div className="wandb-icon-compact">
+                <i className="fas fa-chart-line"></i>
+              </div>
+              <span className="wandb-title-compact">W&B Dashboard</span>
+              <div className="wandb-arrow-compact">
+                <i className="fas fa-external-link-alt"></i>
+              </div>
+            </a>
+          </div>
+        )}
+
+        {/* Training status indicator */}
+        <div className="training-status-indicator">
+          <div className="status-badge">
+            <i
+              className={`fas ${
+                isTraining ? "fa-sync fa-spin" : "fa-check-circle"
+              }`}
+            ></i>
+            <span>
+              {isTraining ? "Training in progress" : "Training complete"}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="new-build-page">
       <div className="new-build-container">
@@ -4152,51 +4966,6 @@ const NewBuildPage = (): JSX.Element => {
               <i className="fas fa-file-code"></i>
               <span>Templates</span>
             </div>
-            <div
-              className={`sidebar-nav-item ${
-                activeSidebarOption === "layer_params" ? "active" : ""
-              }`}
-              onClick={() => setActiveSidebarOption("layer_params")}
-            >
-              <i className="fas fa-sliders-h"></i>
-              <span>Layer Params</span>
-            </div>
-            <div
-              className={`sidebar-nav-item ${
-                activeSidebarOption === "hyperparameters" ? "active" : ""
-              }`}
-              onClick={() => setActiveSidebarOption("hyperparameters")}
-            >
-              <i className="fas fa-cogs"></i>
-              <span>Hyperparams</span>
-            </div>
-            <div
-              className={`sidebar-nav-item ${
-                activeSidebarOption === "training" ? "active" : ""
-              }`}
-              onClick={() => setActiveSidebarOption("training")}
-            >
-              <i className="fas fa-play"></i>
-              <span>Training</span>
-            </div>
-            <div
-              className={`sidebar-nav-item ${
-                activeSidebarOption === "model_config" ? "active" : ""
-              }`}
-              onClick={() => setActiveSidebarOption("model_config")}
-            >
-              <i className="fas fa-project-diagram"></i>
-              <span>Model Config</span>
-            </div>
-            <div
-              className={`sidebar-nav-item ${
-                activeSidebarOption === "settings" ? "active" : ""
-              }`}
-              onClick={() => setActiveSidebarOption("settings")}
-            >
-              <i className="fas fa-cog"></i>
-              <span>Settings</span>
-            </div>
           </div>
           <div className="sidebar-content">{renderSidebarContent()}</div>
         </div>
@@ -4220,130 +4989,1074 @@ const NewBuildPage = (): JSX.Element => {
           </div>
         </div>
 
+        {/* Right Panel - Conditionally shows either:
+         * Dataset Selection + Comprehensive Layer Parameters (before training)
+         * Visualization Section (during and after training)
+         */}
         <div className="right-panel">
-          <div className="training-container">
-            <div className="training-info">
-              {/* Any training info that should remain in the right panel */}
-            </div>
+          {isTraining || labels.length > 0 ? (
+            <div
+              className={`visualization-section ${
+                isTraining ? "training-active" : ""
+              }`}
+            >
+              <h3>Visualizations</h3>
+              <div className="visualization-controls">
+                <label htmlFor="visualization-select">
+                  Select Visualization:
+                </label>
+                <div className="custom-select-container">
+                  <select
+                    id="visualization-select"
+                    value={selectedVisualization}
+                    onChange={(e) => setSelectedVisualization(e.target.value)}
+                    disabled={!selectedDataset}
+                    className="visualization-select"
+                  >
+                    {getVisualizationOptions().map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {renderVisualization()}
+              {(isTraining || labels.length > 0) && (
+                <div className="visualization-metrics">
+                  {renderTrainingMetrics()}
+                </div>
+              )}
 
-            {/* Add save and train buttons next to each other */}
-            <div className="action-buttons-container">
-              <button
-                className="save-button"
-                onClick={handleSaveModel}
-                disabled={isTraining}
-              >
-                <i className="fas fa-save"></i> Save Model
-              </button>
-              <button
-                className="train-button"
-                disabled={!selectedDataset || isTraining}
-                onClick={handleStartTraining}
-              >
-                {isTraining ? (
-                  <>
-                    <span className="spinner"></span> Training...
-                  </>
-                ) : (
-                  "Train Model"
-                )}
-              </button>
-            </div>
-
-            {/* Stop training button (only shown when training) */}
-            {isTraining && (
-              <button className="stop-button" onClick={handleStopTraining}>
-                <i className="fas fa-stop-circle"></i> Stop Training
-              </button>
-            )}
-          </div>
-
-          <div className="visualization-section">
-            <h3>Visualizations</h3>
-            <div className="visualization-controls">
-              <label htmlFor="visualization-select">
-                Select Visualization:
-              </label>
-              <div className="custom-select-container">
-                <select
-                  id="visualization-select"
-                  value={selectedVisualization}
-                  onChange={(e) => setSelectedVisualization(e.target.value)}
-                  disabled={!selectedDataset}
-                  className="visualization-select"
+              <div className="visualization-back-button-container">
+                <button
+                  className="visualization-back-button"
+                  onClick={handleBackButtonClick}
                 >
-                  {getVisualizationOptions().map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
+                  <i className="fas fa-arrow-left"></i> Back
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="right-sidebar-controls">
+              {/* Dataset Selection Dropdown */}
+              <div className="dataset-section">
+                <div className="dataset-header">
+                  <i className="fas fa-database"></i>
+                  <h3>Choose Dataset</h3>
+                </div>
+                <div className="dataset-dropdown-container">
+                  <select
+                    value={selectedDataset}
+                    onChange={(e) => {
+                      const newDataset = e.target.value;
+                      setSelectedDataset(newDataset);
+                      // Manually trigger a dataset change event
+                      const event = new CustomEvent("datasetChange", {
+                        detail: { dataset: newDataset },
+                      });
+                      window.dispatchEvent(event);
+                    }}
+                    className="dataset-select-dropdown"
+                  >
+                    <option value="">Select Dataset</option>
+                    <option value="MNIST">MNIST</option>
+                    <option value="CIFAR-10">CIFAR-10</option>
+                    <option value="Iris">Iris</option>
+                    <option value="Breast Cancer">Breast Cancer</option>
+                    <option value="California Housing">
+                      California Housing
                     </option>
-                  ))}
-                </select>
+                  </select>
+                </div>
+              </div>
+
+              {/* Layer Parameters Section - Only visible when a node is selected */}
+              {selectedNode && (
+                <div className="layer-params-container">
+                  <div className="layer-params-header">
+                    <i
+                      className={`fas ${getLayerIcon(selectedNode.type || "")}`}
+                    ></i>
+                    <h3>
+                      {selectedNode.type
+                        ? selectedNode.type.charAt(0).toUpperCase() +
+                          selectedNode.type.slice(1)
+                        : ""}
+                    </h3>
+                  </div>
+
+                  <div className="layer-params-content">
+                    {/* Layer Name */}
+                    <div className="param-group">
+                      <input
+                        type="text"
+                        value={selectedNode.data.label || ""}
+                        onChange={(e) =>
+                          updateParameter("label", e.target.value)
+                        }
+                        placeholder="Layer Name"
+                        className="param-input full-width"
+                      />
+                    </div>
+
+                    {/* Dense Layer Parameters */}
+                    {selectedNode.type === "dense" && (
+                      <>
+                        <div className="param-group">
+                          <label>Neurons</label>
+                          <div className="number-input-with-controls">
+                            <input
+                              type="number"
+                              min="1"
+                              value={selectedNode.data.neurons || ""}
+                              onChange={(e) =>
+                                updateParameter("neurons", +e.target.value)
+                              }
+                              className="param-input"
+                            />
+                            <div className="param-controls">
+                              <button
+                                className="control-btn"
+                                onClick={() =>
+                                  updateParameter(
+                                    "neurons",
+                                    Math.max(
+                                      1,
+                                      (selectedNode.data.neurons || 1) - 1
+                                    )
+                                  )
+                                }
+                              >
+                                <i className="fas fa-minus"></i>
+                              </button>
+                              <button
+                                className="control-btn"
+                                onClick={() =>
+                                  updateParameter(
+                                    "neurons",
+                                    (selectedNode.data.neurons || 0) + 1
+                                  )
+                                }
+                              >
+                                <i className="fas fa-plus"></i>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="param-group">
+                          <label>Activation</label>
+                          <select
+                            value={selectedNode.data.activation || "None"}
+                            onChange={(e) =>
+                              updateParameter("activation", e.target.value)
+                            }
+                            className="param-select"
+                          >
+                            <option value="None">None</option>
+                            <option value="ReLU">ReLU</option>
+                            <option value="Sigmoid">Sigmoid</option>
+                            <option value="Tanh">Tanh</option>
+                            <option value="Softmax">Softmax</option>
+                            <option value="Leaky ReLU">Leaky ReLU</option>
+                          </select>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Dropout Layer Parameters */}
+                    {selectedNode.type === "dropout" && (
+                      <div className="param-group">
+                        <label>Rate</label>
+                        <div className="slider-with-value">
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={selectedNode.data.rate || 0.2}
+                            onChange={(e) =>
+                              updateParameter(
+                                "rate",
+                                parseFloat(e.target.value) || 0
+                              )
+                            }
+                            className="param-slider"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={selectedNode.data.rate || 0.2}
+                            onChange={(e) =>
+                              updateParameter(
+                                "rate",
+                                parseFloat(e.target.value) || 0
+                              )
+                            }
+                            className="param-input small"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Convolution Layer Parameters */}
+                    {selectedNode.type === "convolution" && (
+                      <>
+                        <div className="param-group">
+                          <label>Filters</label>
+                          <div className="number-input-with-controls">
+                            <input
+                              type="number"
+                              min="1"
+                              value={selectedNode.data.filters || ""}
+                              onChange={(e) =>
+                                updateParameter("filters", +e.target.value)
+                              }
+                              className="param-input"
+                            />
+                            <div className="param-controls">
+                              <button
+                                className="control-btn"
+                                onClick={() =>
+                                  updateParameter(
+                                    "filters",
+                                    Math.max(
+                                      1,
+                                      (selectedNode.data.filters || 1) - 1
+                                    )
+                                  )
+                                }
+                              >
+                                <i className="fas fa-minus"></i>
+                              </button>
+                              <button
+                                className="control-btn"
+                                onClick={() =>
+                                  updateParameter(
+                                    "filters",
+                                    (selectedNode.data.filters || 0) + 1
+                                  )
+                                }
+                              >
+                                <i className="fas fa-plus"></i>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="param-group">
+                          <label>Kernel Size</label>
+                          <div className="dimension-input">
+                            <input
+                              type="number"
+                              min="1"
+                              value={selectedNode.data.kernelSize?.[0] || "3"}
+                              onChange={(e) =>
+                                updateParameter("kernelSize", [
+                                  parseInt(e.target.value) || 3,
+                                  selectedNode.data.kernelSize?.[1] || 3,
+                                ])
+                              }
+                              className="param-input"
+                            />
+                            <span>×</span>
+                            <input
+                              type="number"
+                              min="1"
+                              value={selectedNode.data.kernelSize?.[1] || "3"}
+                              onChange={(e) =>
+                                updateParameter("kernelSize", [
+                                  selectedNode.data.kernelSize?.[0] || 3,
+                                  parseInt(e.target.value) || 3,
+                                ])
+                              }
+                              className="param-input"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="param-group">
+                          <label>Stride</label>
+                          <div className="dimension-input">
+                            <input
+                              type="number"
+                              min="1"
+                              value={selectedNode.data.stride?.[0] || "1"}
+                              onChange={(e) =>
+                                updateParameter("stride", [
+                                  parseInt(e.target.value) || 1,
+                                  selectedNode.data.stride?.[1] || 1,
+                                ])
+                              }
+                              className="param-input"
+                            />
+                            <span>×</span>
+                            <input
+                              type="number"
+                              min="1"
+                              value={selectedNode.data.stride?.[1] || "1"}
+                              onChange={(e) =>
+                                updateParameter("stride", [
+                                  selectedNode.data.stride?.[0] || 1,
+                                  parseInt(e.target.value) || 1,
+                                ])
+                              }
+                              className="param-input"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="param-group">
+                          <label>Padding</label>
+                          <select
+                            value={selectedNode.data.padding || "valid"}
+                            onChange={(e) =>
+                              updateParameter("padding", e.target.value)
+                            }
+                            className="param-select"
+                          >
+                            <option value="valid">Valid</option>
+                            <option value="same">Same</option>
+                          </select>
+                        </div>
+
+                        <div className="param-group">
+                          <label>Activation</label>
+                          <select
+                            value={selectedNode.data.activation || "None"}
+                            onChange={(e) =>
+                              updateParameter("activation", e.target.value)
+                            }
+                            className="param-select"
+                          >
+                            <option value="None">None</option>
+                            <option value="ReLU">ReLU</option>
+                            <option value="Sigmoid">Sigmoid</option>
+                            <option value="Tanh">Tanh</option>
+                            <option value="Leaky ReLU">Leaky ReLU</option>
+                          </select>
+                        </div>
+                      </>
+                    )}
+
+                    {/* MaxPooling Layer Parameters */}
+                    {selectedNode.type === "maxpooling" && (
+                      <>
+                        <div className="param-group">
+                          <label>Pool Size</label>
+                          <div className="dimension-input">
+                            <input
+                              type="number"
+                              min="1"
+                              value={selectedNode.data.poolSize?.[0] || "2"}
+                              onChange={(e) =>
+                                updateParameter("poolSize", [
+                                  parseInt(e.target.value) || 2,
+                                  selectedNode.data.poolSize?.[1] || 2,
+                                ])
+                              }
+                              className="param-input"
+                            />
+                            <span>×</span>
+                            <input
+                              type="number"
+                              min="1"
+                              value={selectedNode.data.poolSize?.[1] || "2"}
+                              onChange={(e) =>
+                                updateParameter("poolSize", [
+                                  selectedNode.data.poolSize?.[0] || 2,
+                                  parseInt(e.target.value) || 2,
+                                ])
+                              }
+                              className="param-input"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="param-group">
+                          <label>Stride</label>
+                          <div className="dimension-input">
+                            <input
+                              type="number"
+                              min="1"
+                              value={selectedNode.data.stride?.[0] || "2"}
+                              onChange={(e) =>
+                                updateParameter("stride", [
+                                  parseInt(e.target.value) || 2,
+                                  selectedNode.data.stride?.[1] || 2,
+                                ])
+                              }
+                              className="param-input"
+                            />
+                            <span>×</span>
+                            <input
+                              type="number"
+                              min="1"
+                              value={selectedNode.data.stride?.[1] || "2"}
+                              onChange={(e) =>
+                                updateParameter("stride", [
+                                  selectedNode.data.stride?.[0] || 2,
+                                  parseInt(e.target.value) || 2,
+                                ])
+                              }
+                              className="param-input"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="param-group">
+                          <label>Padding</label>
+                          <select
+                            value={selectedNode.data.padding || "valid"}
+                            onChange={(e) =>
+                              updateParameter("padding", e.target.value)
+                            }
+                            className="param-select"
+                          >
+                            <option value="valid">Valid</option>
+                            <option value="same">Same</option>
+                          </select>
+                        </div>
+                      </>
+                    )}
+
+                    {/* GlobalAveragePool Layer has no parameters */}
+                    {selectedNode.type === "globalaveragepool" && (
+                      <div className="param-group">
+                        <p className="param-info">
+                          This layer has no configurable parameters.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Add Layer has no parameters */}
+                    {selectedNode.type === "addlayer" && (
+                      <div className="param-group">
+                        <p className="param-info">
+                          This layer has no configurable parameters.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Flatten Layer has no parameters */}
+                    {selectedNode.type === "flatten" && (
+                      <div className="param-group">
+                        <p className="param-info">
+                          This layer has no configurable parameters.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* BatchNormalization Layer Parameters */}
+                    {selectedNode.type === "batchnormalization" && (
+                      <>
+                        <div className="param-group">
+                          <label>Momentum</label>
+                          <div className="slider-with-value">
+                            <input
+                              type="range"
+                              min="0"
+                              max="1"
+                              step="0.01"
+                              value={selectedNode.data.momentum || 0.99}
+                              onChange={(e) =>
+                                updateParameter(
+                                  "momentum",
+                                  parseFloat(e.target.value) || 0.99
+                                )
+                              }
+                              className="param-slider"
+                            />
+                            <input
+                              type="number"
+                              min="0"
+                              max="1"
+                              step="0.01"
+                              value={selectedNode.data.momentum || 0.99}
+                              onChange={(e) =>
+                                updateParameter(
+                                  "momentum",
+                                  parseFloat(e.target.value) || 0.99
+                                )
+                              }
+                              className="param-input small"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="param-group">
+                          <label>Epsilon</label>
+                          <input
+                            type="number"
+                            min="0.00001"
+                            step="0.00001"
+                            value={selectedNode.data.epsilon || 0.001}
+                            onChange={(e) =>
+                              updateParameter(
+                                "epsilon",
+                                parseFloat(e.target.value) || 0.001
+                              )
+                            }
+                            className="param-input"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {/* Attention Layer Parameters */}
+                    {selectedNode.type === "attention" && (
+                      <>
+                        <div className="param-group">
+                          <label>Num Heads</label>
+                          <div className="number-input-with-controls">
+                            <input
+                              type="number"
+                              min="1"
+                              value={selectedNode.data.heads || 8}
+                              onChange={(e) =>
+                                updateParameter(
+                                  "heads",
+                                  parseInt(e.target.value) || 8
+                                )
+                              }
+                              className="param-input"
+                            />
+                            <div className="param-controls">
+                              <button
+                                className="control-btn"
+                                onClick={() =>
+                                  updateParameter(
+                                    "heads",
+                                    Math.max(
+                                      1,
+                                      (selectedNode.data.heads || 8) - 1
+                                    )
+                                  )
+                                }
+                              >
+                                <i className="fas fa-minus"></i>
+                              </button>
+                              <button
+                                className="control-btn"
+                                onClick={() =>
+                                  updateParameter(
+                                    "heads",
+                                    (selectedNode.data.heads || 8) + 1
+                                  )
+                                }
+                              >
+                                <i className="fas fa-plus"></i>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="param-group">
+                          <label>Key Dimension</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={selectedNode.data.keyDim || 64}
+                            onChange={(e) =>
+                              updateParameter(
+                                "keyDim",
+                                parseInt(e.target.value) || 64
+                              )
+                            }
+                            className="param-input"
+                          />
+                        </div>
+
+                        <div className="param-group">
+                          <label>Dropout Rate</label>
+                          <div className="slider-with-value">
+                            <input
+                              type="range"
+                              min="0"
+                              max="1"
+                              step="0.01"
+                              value={selectedNode.data.attentionDropout || 0}
+                              onChange={(e) =>
+                                updateParameter(
+                                  "attentionDropout",
+                                  parseFloat(e.target.value) || 0
+                                )
+                              }
+                              className="param-slider"
+                            />
+                            <input
+                              type="number"
+                              min="0"
+                              max="1"
+                              step="0.01"
+                              value={selectedNode.data.attentionDropout || 0}
+                              onChange={(e) =>
+                                updateParameter(
+                                  "attentionDropout",
+                                  parseFloat(e.target.value) || 0
+                                )
+                              }
+                              className="param-input small"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* ResNetBlock Layer Parameters */}
+                    {selectedNode.type === "resnetblock" && (
+                      <>
+                        <div className="param-group">
+                          <label>Block Type</label>
+                          <select
+                            value={selectedNode.data.blockType || "Basic"}
+                            onChange={(e) =>
+                              updateParameter("blockType", e.target.value)
+                            }
+                            className="param-select"
+                          >
+                            <option value="Basic">Basic Block</option>
+                            <option value="Bottleneck">Bottleneck Block</option>
+                          </select>
+                        </div>
+
+                        <div className="param-group">
+                          <label>In Channels</label>
+                          <div className="number-input-with-controls">
+                            <input
+                              type="number"
+                              min="1"
+                              value={selectedNode.data.inChannels || 64}
+                              onChange={(e) =>
+                                updateParameter(
+                                  "inChannels",
+                                  parseInt(e.target.value) || 64
+                                )
+                              }
+                              className="param-input"
+                            />
+                            <div className="param-controls">
+                              <button
+                                className="control-btn"
+                                onClick={() =>
+                                  updateParameter(
+                                    "inChannels",
+                                    Math.max(
+                                      1,
+                                      (selectedNode.data.inChannels || 64) - 16
+                                    )
+                                  )
+                                }
+                              >
+                                <i className="fas fa-minus"></i>
+                              </button>
+                              <button
+                                className="control-btn"
+                                onClick={() =>
+                                  updateParameter(
+                                    "inChannels",
+                                    (selectedNode.data.inChannels || 64) + 16
+                                  )
+                                }
+                              >
+                                <i className="fas fa-plus"></i>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="param-group">
+                          <label>Out Channels</label>
+                          <div className="number-input-with-controls">
+                            <input
+                              type="number"
+                              min="1"
+                              value={selectedNode.data.outChannels || 64}
+                              onChange={(e) =>
+                                updateParameter(
+                                  "outChannels",
+                                  parseInt(e.target.value) || 64
+                                )
+                              }
+                              className="param-input"
+                            />
+                            <div className="param-controls">
+                              <button
+                                className="control-btn"
+                                onClick={() =>
+                                  updateParameter(
+                                    "outChannels",
+                                    Math.max(
+                                      1,
+                                      (selectedNode.data.outChannels || 64) - 16
+                                    )
+                                  )
+                                }
+                              >
+                                <i className="fas fa-minus"></i>
+                              </button>
+                              <button
+                                className="control-btn"
+                                onClick={() =>
+                                  updateParameter(
+                                    "outChannels",
+                                    (selectedNode.data.outChannels || 64) + 16
+                                  )
+                                }
+                              >
+                                <i className="fas fa-plus"></i>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="param-group">
+                          <label>Stride</label>
+                          <div className="dimension-input">
+                            <input
+                              type="number"
+                              min="1"
+                              value={selectedNode.data.stride?.[0] || "1"}
+                              onChange={(e) =>
+                                updateParameter("stride", [
+                                  parseInt(e.target.value) || 1,
+                                  selectedNode.data.stride?.[1] || 1,
+                                ])
+                              }
+                              className="param-input"
+                            />
+                            <span>×</span>
+                            <input
+                              type="number"
+                              min="1"
+                              value={selectedNode.data.stride?.[1] || "1"}
+                              onChange={(e) =>
+                                updateParameter("stride", [
+                                  selectedNode.data.stride?.[0] || 1,
+                                  parseInt(e.target.value) || 1,
+                                ])
+                              }
+                              className="param-input"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="param-group">
+                          <label>Activation</label>
+                          <select
+                            value={selectedNode.data.activation || "ReLU"}
+                            onChange={(e) =>
+                              updateParameter("activation", e.target.value)
+                            }
+                            className="param-select"
+                          >
+                            <option value="None">None</option>
+                            <option value="ReLU">ReLU</option>
+                            <option value="Sigmoid">Sigmoid</option>
+                            <option value="Tanh">Tanh</option>
+                            <option value="Leaky ReLU">Leaky ReLU</option>
+                          </select>
+                        </div>
+
+                        <div className="param-group">
+                          <label>Skip Connection</label>
+                          <select
+                            value={
+                              selectedNode.data.useSkipConnection
+                                ? "true"
+                                : "false"
+                            }
+                            onChange={(e) =>
+                              updateParameter(
+                                "useSkipConnection",
+                                e.target.value === "true"
+                              )
+                            }
+                            className="param-select"
+                          >
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                          </select>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Output Layer Parameters */}
+                    {selectedNode.type === "output" && (
+                      <div className="param-group">
+                        <label>Activation</label>
+                        <select
+                          value={selectedNode.data.activation || "None"}
+                          onChange={(e) =>
+                            updateParameter("activation", e.target.value)
+                          }
+                          className="param-select"
+                        >
+                          <option value="None">None</option>
+                          <option value="Sigmoid">Sigmoid</option>
+                          <option value="Softmax">Softmax</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Display a message when no node is selected */}
+              {!selectedNode && (
+                <div className="no-layer-selected">
+                  <i className="fas fa-mouse-pointer"></i>
+                  <p>Select a layer to edit parameters</p>
+                </div>
+              )}
+
+              {/* Hyperparameters Section */}
+              <div className="hyperparams-container">
+                <div className="hyperparams-header">
+                  <i className="fas fa-sliders-h"></i>
+                  <h3>Hyperparameters</h3>
+                </div>
+
+                <div className="hyperparams-content">
+                  <div
+                    className="param-group"
+                    data-tooltip="Number of samples processed before model update. Larger batches provide more stable gradient estimates but use more memory."
+                  >
+                    <label>
+                      <i className="fas fa-layer-group"></i> Batch Size
+                    </label>
+                    <div className="number-input-with-controls">
+                      <input
+                        type="number"
+                        min="1"
+                        value={trainingConfig.batchSize}
+                        onChange={(e) =>
+                          setTrainingConfig({
+                            ...trainingConfig,
+                            batchSize: parseInt(e.target.value) || 32,
+                          })
+                        }
+                        className="param-input"
+                      />
+                      <div className="param-controls">
+                        <button
+                          className="control-btn"
+                          onClick={() =>
+                            setTrainingConfig({
+                              ...trainingConfig,
+                              batchSize: Math.max(
+                                1,
+                                trainingConfig.batchSize - 8
+                              ),
+                            })
+                          }
+                        >
+                          <i className="fas fa-minus"></i>
+                        </button>
+                        <button
+                          className="control-btn"
+                          onClick={() =>
+                            setTrainingConfig({
+                              ...trainingConfig,
+                              batchSize: trainingConfig.batchSize + 8,
+                            })
+                          }
+                        >
+                          <i className="fas fa-plus"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    className="param-group"
+                    data-tooltip="Controls the step size during optimization. Low values: slow learning but stable. High values: faster learning but risk of overshooting."
+                  >
+                    <label>
+                      <i className="fas fa-tachometer-alt"></i> Learning Rate
+                    </label>
+                    <div className="slider-with-value">
+                      <input
+                        type="range"
+                        min="0.0001"
+                        max="0.1"
+                        step="0.0001"
+                        value={trainingConfig.learningRate}
+                        onChange={(e) =>
+                          setTrainingConfig({
+                            ...trainingConfig,
+                            learningRate: parseFloat(e.target.value) || 0.001,
+                          })
+                        }
+                        className="param-slider"
+                      />
+                      <input
+                        type="number"
+                        min="0.0001"
+                        max="0.1"
+                        step="0.0001"
+                        value={trainingConfig.learningRate}
+                        onChange={(e) =>
+                          setTrainingConfig({
+                            ...trainingConfig,
+                            learningRate: parseFloat(e.target.value) || 0.001,
+                          })
+                        }
+                        className="param-input small"
+                      />
+                    </div>
+                  </div>
+
+                  <div
+                    className="param-group"
+                    data-tooltip="Number of complete passes through the dataset. More epochs: better learning but risk of overfitting."
+                  >
+                    <label>
+                      <i className="fas fa-redo"></i> Epochs
+                    </label>
+                    <div className="number-input-with-controls">
+                      <input
+                        type="number"
+                        min="1"
+                        value={trainingConfig.epochs}
+                        onChange={(e) =>
+                          setTrainingConfig({
+                            ...trainingConfig,
+                            epochs: parseInt(e.target.value) || 10,
+                          })
+                        }
+                        className="param-input"
+                      />
+                      <div className="param-controls">
+                        <button
+                          className="control-btn"
+                          onClick={() =>
+                            setTrainingConfig({
+                              ...trainingConfig,
+                              epochs: Math.max(1, trainingConfig.epochs - 1),
+                            })
+                          }
+                        >
+                          <i className="fas fa-minus"></i>
+                        </button>
+                        <button
+                          className="control-btn"
+                          onClick={() =>
+                            setTrainingConfig({
+                              ...trainingConfig,
+                              epochs: trainingConfig.epochs + 1,
+                            })
+                          }
+                        >
+                          <i className="fas fa-plus"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    className="param-group"
+                    data-tooltip="Algorithm to adjust weights. Adam: adaptive learning rates (good default). SGD: simple but may need tuning. RMSprop: good for RNNs."
+                  >
+                    <label>
+                      <i className="fas fa-cog"></i> Optimizer
+                    </label>
+                    <select
+                      value={trainingConfig.optimizer}
+                      onChange={(e) =>
+                        setTrainingConfig({
+                          ...trainingConfig,
+                          optimizer: e.target.value,
+                        })
+                      }
+                      className="param-select"
+                    >
+                      <option value="Adam">Adam</option>
+                      <option value="SGD">SGD</option>
+                      <option value="RMSprop">RMSprop</option>
+                      <option value="Adagrad">Adagrad</option>
+                      <option value="Adadelta">Adadelta</option>
+                    </select>
+                  </div>
+
+                  <div
+                    className="param-group"
+                    data-tooltip="Function measuring prediction error. Cross-entropy: for classification. MSE: for regression. Different tasks need different loss functions."
+                  >
+                    <label>
+                      <i className="fas fa-chart-line"></i> Loss Function
+                    </label>
+                    <select
+                      value={trainingConfig.lossFunction}
+                      onChange={(e) =>
+                        setTrainingConfig({
+                          ...trainingConfig,
+                          lossFunction: e.target.value,
+                        })
+                      }
+                      className="param-select"
+                    >
+                      <option value="Categorical Cross-Entropy">
+                        Categorical Cross-Entropy
+                      </option>
+                      <option value="Binary Cross-Entropy">
+                        Binary Cross-Entropy
+                      </option>
+                      <option value="Mean Squared Error">
+                        Mean Squared Error
+                      </option>
+                      <option value="Mean Absolute Error">
+                        Mean Absolute Error
+                      </option>
+                      <option value="Huber Loss">Huber Loss</option>
+                    </select>
+                  </div>
+
+                  <div
+                    className="param-group"
+                    data-tooltip="Portion of training data used to evaluate model during training. Higher values: better validation but less training data."
+                  >
+                    <label>
+                      <i className="fas fa-percentage"></i> Validation Split
+                    </label>
+                    <div className="slider-with-value">
+                      <input
+                        type="range"
+                        min="0.1"
+                        max="0.5"
+                        step="0.05"
+                        value={trainingConfig.validationSplit}
+                        onChange={(e) =>
+                          setTrainingConfig({
+                            ...trainingConfig,
+                            validationSplit: parseFloat(e.target.value) || 0.2,
+                          })
+                        }
+                        className="param-slider"
+                      />
+                      <input
+                        type="number"
+                        min="0.1"
+                        max="0.5"
+                        step="0.05"
+                        value={trainingConfig.validationSplit}
+                        onChange={(e) =>
+                          setTrainingConfig({
+                            ...trainingConfig,
+                            validationSplit: parseFloat(e.target.value) || 0.2,
+                          })
+                        }
+                        className="param-input small"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-            {renderVisualization()}
-          </div>
-
-          <div className="export-container">
-            <h3>Export Model</h3>
-            <div className="export-options">
-              <button
-                className="export-button python"
-                disabled={isTraining}
-                onClick={() => handleExport("py")}
-                title="Export model as a Python script with TensorFlow implementation"
-              >
-                <i className="fab fa-python"></i> Python
-              </button>
-              <button
-                className="export-button keras"
-                disabled={isTraining}
-                onClick={() => handleExport("keras")}
-                title="Export as Keras .h5 model file"
-              >
-                <i className="fas fa-cube"></i> Keras
-              </button>
-              <button
-                className="export-button pytorch"
-                disabled={isTraining}
-                onClick={() => handleExport("pytorch")}
-                title="Export model converted to PyTorch format"
-              >
-                <i className="fas fa-fire"></i> PyTorch
-              </button>
-              <button
-                className="export-button savedmodel"
-                disabled={isTraining}
-                onClick={() => handleExport("savedmodel")}
-                title="Export as TensorFlow SavedModel format"
-              >
-                <i className="fas fa-save"></i> SavedModel
-              </button>
-              <button
-                className="export-button notebook"
-                disabled={isTraining}
-                onClick={() => handleExport("ipynb")}
-                title="Export as Jupyter Notebook with model code and visualization"
-              >
-                <i className="fas fa-book"></i> Notebook
-              </button>
-            </div>
-
-            {exportStatusMessage && (
-              <div
-                className={`export-status-message ${
-                  exportStatusMessage.includes("Failed") ||
-                  exportStatusMessage.includes("failed")
-                    ? "error"
-                    : exportStatusMessage.includes("Exporting")
-                    ? "pending"
-                    : "success"
-                }`}
-                role="alert"
-              >
-                {exportStatusMessage}
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </div>
     </div>

@@ -1015,23 +1015,30 @@ const NewBuildPage = (): JSX.Element => {
           type: "output",
         },
       ],
-      "Transformer Model": [
+      
+      // New Transformer Encoder template with standard architecture and skip connections
+      "Transformer Encoder": [
+        // Input layer
         {
           id: "Input-1",
           data: { label: "Input Layer" },
-          position: { x: 100, y: 100 },
+          position: { x: 150, y: 250 },
           type: "input",
         },
+
+        // First normalization layer (LN1)
         {
-          id: "BatchNorm-1",
+          id: "LayerNorm-1",
           data: {
-            label: "Layer Normalization",
+            label: "Layer Normalization 1",
             momentum: 0.99,
             epsilon: 0.001,
           },
-          position: { x: 300, y: 100 },
+          position: { x: 350, y: 150 },
           type: "batchnormalization",
         },
+
+        // Multi-head attention
         {
           id: "Attention-1",
           data: {
@@ -1040,23 +1047,85 @@ const NewBuildPage = (): JSX.Element => {
             keyDim: 64,
             dropout: 0.1,
           },
-          position: { x: 500, y: 100 },
+          position: { x: 550, y: 150 },
           type: "attention",
         },
+
+        // First Add layer (for skip connection after attention)
+        {
+          id: "Add-1",
+          data: {
+            label: "Add Layer 1",
+          },
+          position: { x: 750, y: 150 },
+          type: "addlayer",
+        },
+
+        // Second normalization layer (LN2)
+        {
+          id: "LayerNorm-2",
+          data: {
+            label: "Layer Normalization 2",
+            momentum: 0.99,
+            epsilon: 0.001,
+          },
+          position: { x: 950, y: 150 },
+          type: "batchnormalization",
+        },
+
+        // First dense layer of FFN
         {
           id: "Dense-1",
           data: {
-            label: "Feed-Forward Network",
+            label: "FFN - Dense 1",
+            neurons: 512,
+            activation: "ReLU",
+          },
+          position: { x: 950, y: 250 },
+          type: "dense",
+        },
+
+        // Optional dropout for FFN
+        {
+          id: "Dropout-1",
+          data: {
+            label: "FFN - Dropout",
+            rate: 0.1,
+          },
+          position: { x: 950, y: 350 },
+          type: "dropout",
+        },
+
+        // Second dense layer of FFN
+        {
+          id: "Dense-2",
+          data: {
+            label: "FFN - Dense 2",
             neurons: 256,
             activation: "ReLU",
           },
-          position: { x: 700, y: 100 },
+          position: { x: 750, y: 350 },
           type: "dense",
         },
+
+        // Second Add layer (for skip connection after FFN)
+        {
+          id: "Add-2",
+          data: {
+            label: "Add Layer 2",
+          },
+          position: { x: 550, y: 350 },
+          type: "addlayer",
+        },
+
+        // Output layer
         {
           id: "Output-1",
-          data: { label: "Output Layer", activation: "Softmax" },
-          position: { x: 900, y: 100 },
+          data: {
+            label: "Output Layer",
+            activation: "Softmax",
+          },
+          position: { x: 350, y: 350 },
           type: "output",
         },
       ],
@@ -1999,7 +2068,32 @@ const NewBuildPage = (): JSX.Element => {
     const templateNodes = templates[templateKey];
     if (templateNodes) {
       setNodes(templateNodes);
+
+      // Clear existing edges
       setEdges([]);
+
+      // Add specific edges for Transformer Encoder template
+      if (templateKey === "Transformer Encoder") {
+        // Create the edges for the transformer architecture
+        const transformerEdges = [
+          // Main path connections
+          { id: "e1", source: "Input-1", target: "LayerNorm-1" },
+          { id: "e2", source: "LayerNorm-1", target: "Attention-1" },
+          { id: "e3", source: "Attention-1", target: "Add-1" },
+          { id: "e4", source: "Add-1", target: "LayerNorm-2" },
+          { id: "e5", source: "LayerNorm-2", target: "Dense-1" },
+          { id: "e6", source: "Dense-1", target: "Dropout-1" },
+          { id: "e7", source: "Dropout-1", target: "Dense-2" },
+          { id: "e8", source: "Dense-2", target: "Add-2" },
+          { id: "e9", source: "Add-2", target: "Output-1" },
+
+          // Skip connections
+          { id: "skip1", source: "Input-1", target: "Add-1" }, // Skip connection around attention block
+          { id: "skip2", source: "Add-1", target: "Add-2" }, // Skip connection around FFN block
+        ];
+
+        setEdges(transformerEdges);
+      }
     }
   };
 
@@ -2934,17 +3028,20 @@ const NewBuildPage = (): JSX.Element => {
                   <i className="fas fa-plus"></i>
                 </button>
               </div>
+              
+
               <div className="template-item transformer-template">
                 <span>
-                  <i className="fas fa-random"></i> Transformer Model
+                  <i className="fas fa-project-diagram"></i> Transformer Encoder
                 </span>
                 <button
                   className="add-button"
-                  onClick={() => loadTemplate("Transformer Model")}
+                  onClick={() => loadTemplate("Transformer Encoder")}
                 >
                   <i className="fas fa-plus"></i>
                 </button>
               </div>
+
               <div className="template-item regression-template">
                 <span>
                   <i className="fas fa-chart-line"></i> Fully Connected
