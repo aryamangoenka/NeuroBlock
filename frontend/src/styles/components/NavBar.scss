@@ -1,7 +1,7 @@
 /* Navbar Styles */
 
 .navbar {
-    background: linear-gradient(to right, #1a365d, #2d4a7e);
+    background: #003049;
     color: white;
     padding: 0.5rem 1rem;
     height: 60px;
@@ -58,7 +58,7 @@
         font-weight: 600;
         font-size: 0.9rem;
         transition: all 0.2s;
-        color: white;
+        color: #000000;
         text-decoration: none;
         
         &:hover {
@@ -80,28 +80,28 @@
 
     .tutorial-button {
         @extend .navbar-btn;
-        background: linear-gradient(45deg, #3498db, #2980b9);
+        background: #f77f00;
         
         &:hover {
-            background: linear-gradient(45deg, #2980b9, #1a5276);
+            background: darken(#f77f00, 10%);
         }
     }
 
     .save-model-button {
         @extend .navbar-btn;
-        background: linear-gradient(45deg, #27ae60, #2ecc71);
+        background: #fcbf49;
         
         &:hover {
-            background: linear-gradient(45deg, #219955, #27ae60);
+            background: darken(#fcbf49, 10%);
         }
     }
 
     .train-button-red {
         @extend .navbar-btn;
-        background: linear-gradient(45deg, #e74c3c, #c0392b);
+        background: #d62828;
         
         &:hover {
-            background: linear-gradient(45deg, #c0392b, #922b21);
+            background: darken(#d62828, 10%);
         }
         
         &.training {
@@ -120,14 +120,16 @@
 
     .export-button-black {
         @extend .navbar-btn;
-        background: linear-gradient(45deg, #34495e, #2c3e50);
+        background: #eae2b7;
+        color: #333;
         
         &:hover {
-            background: linear-gradient(45deg, #2c3e50, #1a2533);
+            background: darken(#eae2b7, 10%);
         }
         
         .fa-caret-down {
             transition: transform 0.3s;
+            margin-left: 0.5rem;
             
             &.dropdown-open {
                 transform: rotate(180deg);

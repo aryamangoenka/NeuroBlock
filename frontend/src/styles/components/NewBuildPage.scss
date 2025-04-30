@@ -39,7 +39,7 @@
 .sidebar-nav {
   width: 25%;
   height: 100%;
-  background: linear-gradient(180deg, #343a40 0%, #212529 100%);
+  background: #b0886a;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -54,7 +54,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: rgba(255, 255, 255, 0.75);
+  color: #000000;
   cursor: pointer;
   transition: all 0.25s ease;
   position: relative;
@@ -74,8 +74,8 @@
 }
 
 .sidebar-nav-item:hover {
-  color: #ffffff;
-  background-color: rgba(255, 255, 255, 0.1);
+  color: #333333;
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
 .sidebar-nav-item:hover i {
@@ -83,9 +83,10 @@
 }
 
 .sidebar-nav-item.active {
-  color: #ffffff;
-  background-color: rgba(13, 110, 253, 0.15);
-  border-left: 3px solid #0d6efd;
+  color: #000000;
+  font-weight: 700;
+  background-color: rgba(0, 0, 0, 0.08);
+  border-left: 3px solid #333333;
 }
 
 .sidebar-nav-item.active::after {
@@ -105,7 +106,7 @@
 .sidebar-content {
   width: 75%;
   height: 100%;
-  background-color: var(--bw, #f8f9fa);
+  background-color: #e1e5f2;
   border-right: 1px solid var(--border, #e9ecef);
   padding: 20px;
   overflow-y: auto;
@@ -137,7 +138,7 @@
 
 /* Training Status in Sidebar */
 .sidebar-content .training-status {
-  background-color: #ffffff;
+  background-color: #b0886a;
   border-radius: 8px;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
   overflow: hidden;
@@ -356,88 +357,106 @@
 
 /* Layer-Specific Styling */
 .dense-layer {
-  background: linear-gradient(165deg, rgba(76, 175, 80, 0.15), rgba(46, 125, 50, 0.25));
-  border-left-color: #4CAF50;
+  background: #ffddca;
+  border-left-color: #ffc107;
 }
 
 .dense-layer span i {
-  color: #4CAF50;
+  color: #ffc107;
 }
 
 .dense-layer .add-button {
-  color: #4CAF50;
-  background-color: rgba(76, 175, 80, 0.1);
+  color: #eddcd2;
+  background-color: rgba(255, 193, 7, 0.1);
 }
 
 .dense-layer .add-button:hover {
-  background-color: rgba(76, 175, 80, 0.2);
+  background-color: rgba(255, 193, 7, 0.2);
 }
 
 .convolution-layer {
-  background: linear-gradient(165deg, rgba(33, 150, 243, 0.15), rgba(13, 71, 161, 0.25));
-  border-left-color: #2196F3;
+  background: #fff1e6;
+  border-left-color: #4caf50;
 }
 
 .convolution-layer span i {
-  color: #2196F3;
+  color: #4caf50;
 }
 
 .convolution-layer .add-button {
-  color: #2196F3;
-  background-color: rgba(33, 150, 243, 0.1);
+  color: #4caf50;
+  background-color: rgba(76, 175, 80, 0.1);
 }
 
 .convolution-layer .add-button:hover {
-  background-color: rgba(33, 150, 243, 0.2);
+  background-color: rgba(76, 175, 80, 0.2);
 }
 
 .maxpooling-layer {
-  background: linear-gradient(165deg, rgba(156, 39, 176, 0.15), rgba(106, 27, 154, 0.25));
-  border-left-color: #9C27B0;
+  background: #fde2e4;
+  border-left-color: #e91e63;
 }
 
 .maxpooling-layer span i {
-  color: #9C27B0;
+  color: #e91e63;
 }
 
 .maxpooling-layer .add-button {
-  color: #9C27B0;
-  background-color: rgba(156, 39, 176, 0.1);
+  color: #e91e63;
+  background-color: rgba(233, 30, 99, 0.1);
 }
 
 .maxpooling-layer .add-button:hover {
+  background-color: rgba(233, 30, 99, 0.2);
+}
+
+.avgpooling-layer {
+  background: #fad2e1;
+  border-left-color: #9c27b0;
+}
+
+.avgpooling-layer span i {
+  color: #9c27b0;
+}
+
+.avgpooling-layer .add-button {
+  color: #9c27b0;
+  background-color: rgba(156, 39, 176, 0.1);
+}
+
+.avgpooling-layer .add-button:hover {
   background-color: rgba(156, 39, 176, 0.2);
 }
 
 .flatten-layer {
-  background: linear-gradient(165deg, rgba(255, 152, 0, 0.15), rgba(230, 81, 0, 0.25));
-  border-left-color: #FF9800;
+  background: linear-gradient(165deg, rgba(0, 188, 212, 0.15), rgba(0, 188, 212, 0.25));
+  border-left-color: #00bcd4;
 }
 
 .flatten-layer span i {
-  color: #FF9800;
+  color: #00bcd4;
 }
 
 .flatten-layer .add-button {
-  color: #FF9800;
-  background-color: rgba(255, 152, 0, 0.1);
+  color: #00bcd4;
+  background-color: rgba(0, 188, 212, 0.1);
 }
 
 .flatten-layer .add-button:hover {
-  background-color: rgba(255, 152, 0, 0.2);
+  background-color: rgba(0, 188, 212, 0.2);
 }
 
 .dropout-layer {
-  background: linear-gradient(165deg, rgba(244, 67, 54, 0.15), rgba(183, 28, 28, 0.25));
-  border-left-color: #F44336;
+  background: linear-gradient(165deg, rgba(244, 67, 54, 0.15), rgba(244, 67, 54, 0.25));
+  border-left-color: #f44336;
 }
 
 .dropout-layer span i {
-  color: #F44336;
+  color: #f44336;
 }
 
 .dropout-layer .add-button {
-  color: #F44336;
+  color: #f44336;
   background-color: rgba(244, 67, 54, 0.1);
 }
 
@@ -446,99 +465,134 @@
 }
 
 .batchnorm-layer {
-  background: linear-gradient(165deg, rgba(0, 188, 212, 0.15), rgba(0, 96, 100, 0.25));
-  border-left-color: #00BCD4;
+  background: linear-gradient(165deg, rgba(3, 169, 244, 0.15), rgba(3, 169, 244, 0.25));
+  border-left-color: #03a9f4;
 }
 
 .batchnorm-layer span i {
-  color: #00BCD4;
+  color: #03a9f4;
 }
 
 .batchnorm-layer .add-button {
-  color: #00BCD4;
-  background-color: rgba(0, 188, 212, 0.1);
+  color: #03a9f4;
+  background-color: rgba(3, 169, 244, 0.1);
 }
 
 .batchnorm-layer .add-button:hover {
-  background-color: rgba(0, 188, 212, 0.2);
+  background-color: rgba(3, 169, 244, 0.2);
 }
 
 .attention-layer {
-  background: linear-gradient(165deg, rgba(103, 58, 183, 0.15), rgba(49, 27, 146, 0.25));
-  border-left-color: #673AB7;
+  background: linear-gradient(165deg, rgba(63, 81, 181, 0.15), rgba(63, 81, 181, 0.25));
+  border-left-color: #3f51b5;
 }
 
 .attention-layer span i {
-  color: #673AB7;
+  color: #3f51b5;
 }
 
 .attention-layer .add-button {
-  color: #673AB7;
-  background-color: rgba(103, 58, 183, 0.1);
+  color: #3f51b5;
+  background-color: rgba(63, 81, 181, 0.1);
 }
 
 .attention-layer .add-button:hover {
-  background-color: rgba(103, 58, 183, 0.2);
+  background-color: rgba(63, 81, 181, 0.2);
 }
 
 .input-layer {
-  background: linear-gradient(165deg, rgba(255, 193, 7, 0.15), rgba(255, 143, 0, 0.25));
-  border-left-color: #FFC107;
+  background: linear-gradient(165deg, rgba(255, 152, 0, 0.15), rgba(255, 152, 0, 0.25));
+  border-left-color: #ff9800;
 }
 
 .input-layer span i {
-  color: #FFC107;
+  color: #ff9800;
 }
 
 .input-layer .add-button {
-  color: #FFC107;
-  background-color: rgba(255, 193, 7, 0.1);
+  color: #ff9800;
+  background-color: rgba(255, 152, 0, 0.1);
 }
 
 .input-layer .add-button:hover {
-  background-color: rgba(255, 193, 7, 0.2);
+  background-color: rgba(255, 152, 0, 0.2);
 }
 
 .output-layer {
-  background: linear-gradient(165deg, rgba(255, 87, 34, 0.15), rgba(191, 54, 12, 0.25));
-  border-left-color: #FF5722;
+  background: linear-gradient(165deg, rgba(33, 150, 243, 0.15), rgba(33, 150, 243, 0.25));
+  border-left-color: #2196f3;
 }
 
 .output-layer span i {
-  color: #FF5722;
+  color: #2196f3;
 }
 
 .output-layer .add-button {
-  color: #FF5722;
-  background-color: rgba(255, 87, 34, 0.1);
+  color: #2196f3;
+  background-color: rgba(33, 150, 243, 0.1);
 }
 
 .output-layer .add-button:hover {
-  background-color: rgba(255, 87, 34, 0.2);
+  background-color: rgba(33, 150, 243, 0.2);
 }
 
-/* Class for the "batchnormalization" spelling variant */
+.resnetblock-layer {
+  background: linear-gradient(165deg, rgba(96, 125, 139, 0.15), rgba(96, 125, 139, 0.25));
+  border-left-color: #607d8b;
+}
+
+.resnetblock-layer span i {
+  color: #607d8b;
+}
+
+.resnetblock-layer .add-button {
+  color: #607d8b;
+  background-color: rgba(96, 125, 139, 0.1);
+}
+
+.resnetblock-layer .add-button:hover {
+  background-color: rgba(96, 125, 139, 0.2);
+}
+
 .batchnormalization-layer {
-  background: linear-gradient(165deg, rgba(0, 188, 212, 0.15), rgba(0, 96, 100, 0.25));
-  border-left-color: #00BCD4;
+  background: #90DBF4;
+  border-left-color: #009688;
 }
 
 .batchnormalization-layer span i {
-  color: #00BCD4;
+  color: #009688;
 }
 
 .batchnormalization-layer .add-button {
-  color: #00BCD4;
-  background-color: rgba(0, 188, 212, 0.1);
+  color: #739995;
+  background-color: rgba(0, 150, 136, 0.1);
 }
 
 .batchnormalization-layer .add-button:hover {
-  background-color: rgba(0, 188, 212, 0.2);
+  background-color: rgba(0, 150, 136, 0.2);
+}
+
+.globalaveragepool-layer {
+  background: linear-gradient(165deg, rgba(121, 85, 72, 0.15), rgba(121, 85, 72, 0.25));
+  border-left-color: #795548;
+}
+
+.globalaveragepool-layer span i {
+  color: #795548;
+}
+
+.globalaveragepool-layer .add-button {
+  color: #795548;
+  background-color: rgba(121, 85, 72, 0.1);
+}
+
+.globalaveragepool-layer .add-button:hover {
+  background-color: rgba(121, 85, 72, 0.2);
 }
 
 /* Class for GlobalAveragePooling */
 .globalaveragepool-layer {
-  background: linear-gradient(165deg, rgba(142, 36, 170, 0.15), rgba(74, 20, 140, 0.25));
+  background: #f0b3c9 !important;
   border-left-color: #8E24AA;
 }
 
@@ -547,7 +601,7 @@
 }
 
 .globalaveragepool-layer .add-button {
-  color: #8E24AA;
+  color: #90DBF4;
   background-color: rgba(142, 36, 170, 0.1);
 }
 
@@ -5404,7 +5458,7 @@
 }
 
 .resnetblock-layer {
-  background: linear-gradient(145deg, rgba(76, 95, 213, 0.15), rgba(63, 81, 181, 0.25));
+  background: #FDE4CF !important;
   border-left-color: var(--main, #88aaee);
 }
 
@@ -5497,7 +5551,7 @@
 
 /* Styling for the "add layer" option */
 .add-layer {
-  background: linear-gradient(165deg, rgba(0, 150, 136, 0.15), rgba(0, 121, 107, 0.25));
+  background: #c5dedd;
   border-left-color: #009688;
 }
 
