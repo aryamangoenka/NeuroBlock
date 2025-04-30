@@ -1,4 +1,5 @@
 /* Navbar Styles */
+@use "sass:color";
 
 .navbar {
     background: #003049;
@@ -83,7 +84,7 @@
         background: #f77f00;
         
         &:hover {
-            background: darken(#f77f00, 10%);
+            background: color.scale(#f77f00, $lightness: -10%);
         }
     }
 
@@ -92,7 +93,7 @@
         background: #fcbf49;
         
         &:hover {
-            background: darken(#fcbf49, 10%);
+            background: color.scale(#fcbf49, $lightness: -10%);
         }
     }
 
@@ -101,7 +102,7 @@
         background: #d62828;
         
         &:hover {
-            background: darken(#d62828, 10%);
+            background: color.scale(#d62828, $lightness: -10%);
         }
         
         &.training {
@@ -124,7 +125,7 @@
         color: #333;
         
         &:hover {
-            background: darken(#eae2b7, 10%);
+            background: color.scale(#eae2b7, $lightness: -10%);
         }
         
         .fa-caret-down {
