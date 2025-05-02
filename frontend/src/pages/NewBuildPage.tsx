@@ -42,6 +42,7 @@ import {
   AttentionNode,
   ResNetBlockNode,
   AddLayerNode,
+  ActivationNode,
 } from "../components/CustomNodes";
 import NavBar from "../components/NavBar";
 import axios from "axios";
@@ -73,10 +74,11 @@ const nodeTypes = {
   attention: AttentionNode,
   resnetblock: ResNetBlockNode,
   addlayer: AddLayerNode,
+  activation: ActivationNode,
 };
 
 // Define the sidebar navigation options
-type SidebarOption = "layers" | "templates";
+type SidebarOption = "layers" | "templates" | "activations";
 
 // Add these near the top of the file with other type definitions
 type ValidationErrors = string[];
@@ -866,7 +868,7 @@ const NewBuildPage = (): JSX.Element => {
   };
 
   // Function to add a new layer
-  const addLayer = (type: string): void => {
+  const addLayer = (type: string, extraParams?: Record<string, any>): Node => {
     // Get count of existing layers of this type to create a unique name
     const existingLayersOfType = nodes.filter(
       (node) => node.type?.toLowerCase() === type.toLowerCase()
@@ -899,6 +901,8 @@ const NewBuildPage = (): JSX.Element => {
           return `Output Layer ${layerNumber}`;
         case "addlayer":
           return `Add Layer Node ${layerNumber}`;
+        case "activation":
+          return `Activation Layer ${layerNumber}`;
         default:
           return `${type} Layer ${layerNumber}`;
       }
@@ -921,19 +925,29 @@ const NewBuildPage = (): JSX.Element => {
       },
       output: { activation: "None" },
       addlayer: {}, // Add Layer has no parameters
+      activation: { function: "ReLU" }, // Default activation function
+    };
+
+    // Merge the default parameters with any extra parameters
+    const mergedParams = {
+      ...defaultParams[type.toLowerCase()],
+      ...extraParams,
     };
 
     const newNode: Node = {
       id: `${type}-${Date.now()}`,
       data: {
         label: getDefaultLayerName(type),
-        ...defaultParams[type.toLowerCase()],
+        ...mergedParams,
       },
       position: { x: Math.random() * 600, y: Math.random() * 400 },
       type: type.toLowerCase(),
     };
 
     setNodes((nds) => [...nds, newNode]);
+
+    // Return the new node
+    return newNode;
   };
 
   // Function to load a template
@@ -1216,16 +1230,18 @@ const NewBuildPage = (): JSX.Element => {
         },
       ],
       "ResNet-18": [
+        // Input layer
         {
           id: "input-1",
           data: { label: "Input Layer" },
           position: { x: 100, y: 300 },
           type: "input",
         },
+        // Initial Conv + BatchNorm + MaxPool
         {
           id: "conv-1",
           data: {
-            label: "Initial Conv Layer",
+            label: "Initial Conv",
             filters: 64,
             kernelSize: [7, 7],
             stride: [2, 2],
@@ -1238,7 +1254,7 @@ const NewBuildPage = (): JSX.Element => {
         {
           id: "batchnorm-1",
           data: {
-            label: "BatchNorm Layer",
+            label: "BatchNorm",
             momentum: 0.9,
             epsilon: 1e-5,
           },
@@ -1248,7 +1264,7 @@ const NewBuildPage = (): JSX.Element => {
         {
           id: "maxpool-1",
           data: {
-            label: "Initial MaxPool",
+            label: "MaxPool",
             poolSize: [3, 3],
             stride: [2, 2],
             padding: "same",
@@ -1256,125 +1272,301 @@ const NewBuildPage = (): JSX.Element => {
           position: { x: 550, y: 300 },
           type: "maxpooling",
         },
-        // Layer 1 - 2 Basic Blocks
+
+        // First ResNet Block (Layer 1-1)
         {
-          id: "resblock-1-1",
+          id: "conv-1-1-1",
           data: {
-            label: "ResBlock 1-1",
-            blockType: "Basic",
+            label: "Conv1-1-1",
             filters: 64,
+            kernelSize: [3, 3],
             stride: [1, 1],
+            padding: "same",
             activation: "ReLU",
           },
-          position: { x: 700, y: 250 },
-          type: "resnetblock",
+          position: { x: 700, y: 240 },
+          type: "convolution",
         },
         {
-          id: "resblock-1-2",
+          id: "batchnorm-1-1-1",
           data: {
-            label: "ResBlock 1-2",
-            blockType: "Basic",
+            label: "BN1-1-1",
+            momentum: 0.9,
+            epsilon: 1e-5,
+          },
+          position: { x: 800, y: 240 },
+          type: "batchnormalization",
+        },
+        {
+          id: "conv-1-1-2",
+          data: {
+            label: "Conv1-1-2",
             filters: 64,
+            kernelSize: [3, 3],
             stride: [1, 1],
+            padding: "same",
+          },
+          position: { x: 900, y: 240 },
+          type: "convolution",
+        },
+        {
+          id: "batchnorm-1-1-2",
+          data: {
+            label: "BN1-1-2",
+            momentum: 0.9,
+            epsilon: 1e-5,
+          },
+          position: { x: 1000, y: 240 },
+          type: "batchnormalization",
+        },
+        {
+          id: "add-1-1",
+          data: {
+            label: "Add1-1",
+          },
+          position: { x: 1100, y: 270 },
+          type: "addlayer",
+        },
+        {
+          id: "activation-1-1",
+          data: {
+            label: "ReLU1-1",
             activation: "ReLU",
           },
-          position: { x: 700, y: 350 },
-          type: "resnetblock",
+          position: { x: 1200, y: 270 },
+          type: "activation",
         },
-        // Layer 2 - 2 Basic Blocks
+
+        // Second ResNet Block (Layer 1-2)
         {
-          id: "resblock-2-1",
+          id: "conv-1-2-1",
           data: {
-            label: "ResBlock 2-1",
-            blockType: "Basic",
+            label: "Conv1-2-1",
+            filters: 64,
+            kernelSize: [3, 3],
+            stride: [1, 1],
+            padding: "same",
+            activation: "ReLU",
+          },
+          position: { x: 1300, y: 240 },
+          type: "convolution",
+        },
+        {
+          id: "batchnorm-1-2-1",
+          data: {
+            label: "BN1-2-1",
+            momentum: 0.9,
+            epsilon: 1e-5,
+          },
+          position: { x: 1400, y: 240 },
+          type: "batchnormalization",
+        },
+        {
+          id: "conv-1-2-2",
+          data: {
+            label: "Conv1-2-2",
+            filters: 64,
+            kernelSize: [3, 3],
+            stride: [1, 1],
+            padding: "same",
+          },
+          position: { x: 1500, y: 240 },
+          type: "convolution",
+        },
+        {
+          id: "batchnorm-1-2-2",
+          data: {
+            label: "BN1-2-2",
+            momentum: 0.9,
+            epsilon: 1e-5,
+          },
+          position: { x: 1600, y: 240 },
+          type: "batchnormalization",
+        },
+        {
+          id: "add-1-2",
+          data: {
+            label: "Add1-2",
+          },
+          position: { x: 1700, y: 270 },
+          type: "addlayer",
+        },
+        {
+          id: "activation-1-2",
+          data: {
+            label: "ReLU1-2",
+            activation: "ReLU",
+          },
+          position: { x: 1800, y: 270 },
+          type: "activation",
+        },
+
+        // First Block of Layer 2 with downsampling (stride 2)
+        {
+          id: "conv-2-1-1",
+          data: {
+            label: "Conv2-1-1",
             filters: 128,
+            kernelSize: [3, 3],
             stride: [2, 2],
+            padding: "same",
             activation: "ReLU",
           },
-          position: { x: 900, y: 250 },
-          type: "resnetblock",
+          position: { x: 700, y: 380 },
+          type: "convolution",
         },
         {
-          id: "resblock-2-2",
+          id: "batchnorm-2-1-1",
           data: {
-            label: "ResBlock 2-2",
-            blockType: "Basic",
+            label: "BN2-1-1",
+            momentum: 0.9,
+            epsilon: 1e-5,
+          },
+          position: { x: 800, y: 380 },
+          type: "batchnormalization",
+        },
+        {
+          id: "conv-2-1-2",
+          data: {
+            label: "Conv2-1-2",
             filters: 128,
+            kernelSize: [3, 3],
             stride: [1, 1],
-            activation: "ReLU",
+            padding: "same",
           },
-          position: { x: 900, y: 350 },
-          type: "resnetblock",
+          position: { x: 900, y: 380 },
+          type: "convolution",
         },
-        // Layer 3 - 2 Basic Blocks
         {
-          id: "resblock-3-1",
+          id: "batchnorm-2-1-2",
           data: {
-            label: "ResBlock 3-1",
-            blockType: "Basic",
-            filters: 256,
+            label: "BN2-1-2",
+            momentum: 0.9,
+            epsilon: 1e-5,
+          },
+          position: { x: 1000, y: 380 },
+          type: "batchnormalization",
+        },
+        // Projection shortcut for downsampling
+        {
+          id: "conv-2-1-skip",
+          data: {
+            label: "Conv2-1-Skip",
+            filters: 128,
+            kernelSize: [1, 1],
             stride: [2, 2],
-            activation: "ReLU",
+            padding: "same",
           },
-          position: { x: 1100, y: 250 },
-          type: "resnetblock",
+          position: { x: 850, y: 470 },
+          type: "convolution",
         },
         {
-          id: "resblock-3-2",
+          id: "batchnorm-2-1-skip",
           data: {
-            label: "ResBlock 3-2",
-            blockType: "Basic",
-            filters: 256,
+            label: "BN2-1-Skip",
+            momentum: 0.9,
+            epsilon: 1e-5,
+          },
+          position: { x: 950, y: 470 },
+          type: "batchnormalization",
+        },
+        {
+          id: "add-2-1",
+          data: {
+            label: "Add2-1",
+          },
+          position: { x: 1100, y: 420 },
+          type: "addlayer",
+        },
+        {
+          id: "activation-2-1",
+          data: {
+            label: "ReLU2-1",
+            activation: "ReLU",
+          },
+          position: { x: 1200, y: 420 },
+          type: "activation",
+        },
+
+        // Second Block of Layer 2
+        {
+          id: "conv-2-2-1",
+          data: {
+            label: "Conv2-2-1",
+            filters: 128,
+            kernelSize: [3, 3],
             stride: [1, 1],
+            padding: "same",
             activation: "ReLU",
           },
-          position: { x: 1100, y: 350 },
-          type: "resnetblock",
+          position: { x: 1300, y: 380 },
+          type: "convolution",
         },
-        // Layer 4 - 2 Basic Blocks
         {
-          id: "resblock-4-1",
+          id: "batchnorm-2-2-1",
           data: {
-            label: "ResBlock 4-1",
-            blockType: "Basic",
-            inChannels: 256,
-            outChannels: 512,
-            stride: [2, 2],
-            activation: "ReLU",
-            useSkipConnection: true,
-            downsampleType: "Conv1x1",
+            label: "BN2-2-1",
+            momentum: 0.9,
+            epsilon: 1e-5,
           },
-          position: { x: 1300, y: 250 },
-          type: "resnetblock",
+          position: { x: 1400, y: 380 },
+          type: "batchnormalization",
         },
         {
-          id: "resblock-4-2",
+          id: "conv-2-2-2",
           data: {
-            label: "ResBlock 4-2",
-            blockType: "Basic",
-            inChannels: 512,
-            outChannels: 512,
+            label: "Conv2-2-2",
+            filters: 128,
+            kernelSize: [3, 3],
             stride: [1, 1],
-            activation: "ReLU",
-            useSkipConnection: true,
-            downsampleType: "None",
+            padding: "same",
           },
-          position: { x: 1300, y: 350 },
-          type: "resnetblock",
+          position: { x: 1500, y: 380 },
+          type: "convolution",
         },
-        // Add GlobalAveragePooling layer
+        {
+          id: "batchnorm-2-2-2",
+          data: {
+            label: "BN2-2-2",
+            momentum: 0.9,
+            epsilon: 1e-5,
+          },
+          position: { x: 1600, y: 380 },
+          type: "batchnormalization",
+        },
+        {
+          id: "add-2-2",
+          data: {
+            label: "Add2-2",
+          },
+          position: { x: 1700, y: 420 },
+          type: "addlayer",
+        },
+        {
+          id: "activation-2-2",
+          data: {
+            label: "ReLU2-2",
+            activation: "ReLU",
+          },
+          position: { x: 1800, y: 420 },
+          type: "activation",
+        },
+
+        // Global Pooling and Output
         {
           id: "globalavgpool-1",
           data: {
             label: "Global AvgPool",
           },
-          position: { x: 1500, y: 300 },
+          position: { x: 900, y: 550 },
           type: "globalaveragepool",
         },
         {
           id: "flatten-1",
-          data: { label: "Flatten Layer" },
-          position: { x: 1650, y: 300 },
+          data: {
+            label: "Flatten",
+          },
+          position: { x: 1050, y: 550 },
           type: "flatten",
         },
         {
@@ -1384,13 +1576,16 @@ const NewBuildPage = (): JSX.Element => {
             neurons: 1000,
             activation: "ReLU",
           },
-          position: { x: 1800, y: 300 },
+          position: { x: 1200, y: 550 },
           type: "dense",
         },
         {
           id: "output-1",
-          data: { label: "Output Layer", activation: "Softmax" },
-          position: { x: 1950, y: 300 },
+          data: {
+            label: "Output",
+            activation: "Softmax",
+          },
+          position: { x: 1350, y: 550 },
           type: "output",
         },
       ],
@@ -1735,7 +1930,7 @@ const NewBuildPage = (): JSX.Element => {
           position: { x: 550, y: 300 },
           type: "maxpooling",
         },
-        // Layer 1 - 3 Bottleneck Blocks for ResNet-50
+        // Layer 1 - 3 Bottleneck blocks
         {
           id: "resblock-1-1",
           data: {
@@ -1775,7 +1970,7 @@ const NewBuildPage = (): JSX.Element => {
           position: { x: 700, y: 400 },
           type: "resnetblock",
         },
-        // Layer 2 - 4 Bottleneck Blocks
+        // Layer 2 - 4 Bottleneck blocks
         {
           id: "resblock-2-1",
           data: {
@@ -1836,7 +2031,7 @@ const NewBuildPage = (): JSX.Element => {
           position: { x: 900, y: 450 },
           type: "resnetblock",
         },
-        // Layer 3 - 6 Bottleneck Blocks
+        // Layer 3 - 6 Bottleneck blocks
         {
           id: "resblock-3-1",
           data: {
@@ -1927,7 +2122,7 @@ const NewBuildPage = (): JSX.Element => {
           position: { x: 1100, y: 500 },
           type: "resnetblock",
         },
-        // Layer 4 - 3 Bottleneck Blocks
+        // Layer 4 - 3 Bottleneck blocks
         {
           id: "resblock-4-1",
           data: {
@@ -2045,27 +2240,65 @@ const NewBuildPage = (): JSX.Element => {
           { id: "e2", source: "conv-1", target: "batchnorm-1" },
           { id: "e3", source: "batchnorm-1", target: "maxpool-1" },
 
-          // Stage 1
-          { id: "e4", source: "maxpool-1", target: "resblock-1-1" },
-          { id: "e5", source: "resblock-1-1", target: "resblock-1-2" },
+          // Layer 1-1: First ResNet Block main path
+          { id: "e4", source: "maxpool-1", target: "conv-1-1-1" },
+          { id: "e5", source: "conv-1-1-1", target: "batchnorm-1-1-1" },
+          { id: "e6", source: "batchnorm-1-1-1", target: "conv-1-1-2" },
+          { id: "e7", source: "conv-1-1-2", target: "batchnorm-1-1-2" },
+          { id: "e8", source: "batchnorm-1-1-2", target: "add-1-1" },
 
-          // Stage 2
-          { id: "e6", source: "resblock-1-2", target: "resblock-2-1" },
-          { id: "e7", source: "resblock-2-1", target: "resblock-2-2" },
+          // Layer 1-1: Skip connection
+          { id: "e9", source: "maxpool-1", target: "add-1-1" },
 
-          // Stage 3
-          { id: "e8", source: "resblock-2-2", target: "resblock-3-1" },
-          { id: "e9", source: "resblock-3-1", target: "resblock-3-2" },
+          // Layer 1-1: Post-addition activation
+          { id: "e10", source: "add-1-1", target: "activation-1-1" },
 
-          // Stage 4
-          { id: "e10", source: "resblock-3-2", target: "resblock-4-1" },
-          { id: "e11", source: "resblock-4-1", target: "resblock-4-2" },
+          // Layer 1-2: Second ResNet Block main path
+          { id: "e11", source: "activation-1-1", target: "conv-1-2-1" },
+          { id: "e12", source: "conv-1-2-1", target: "batchnorm-1-2-1" },
+          { id: "e13", source: "batchnorm-1-2-1", target: "conv-1-2-2" },
+          { id: "e14", source: "conv-1-2-2", target: "batchnorm-1-2-2" },
+          { id: "e15", source: "batchnorm-1-2-2", target: "add-1-2" },
 
-          // Final layers - using the correct nodes from the template
-          { id: "e12", source: "resblock-4-2", target: "globalavgpool-1" },
-          { id: "e13", source: "globalavgpool-1", target: "flatten-1" },
-          { id: "e14", source: "flatten-1", target: "dense-1" },
-          { id: "e15", source: "dense-1", target: "output-1" },
+          // Layer 1-2: Skip connection
+          { id: "e16", source: "activation-1-1", target: "add-1-2" },
+
+          // Layer 1-2: Post-addition activation
+          { id: "e17", source: "add-1-2", target: "activation-1-2" },
+
+          // Layer 2-1: First block of layer 2 with downsampling (main path)
+          { id: "e18", source: "activation-1-2", target: "conv-2-1-1" },
+          { id: "e19", source: "conv-2-1-1", target: "batchnorm-2-1-1" },
+          { id: "e20", source: "batchnorm-2-1-1", target: "conv-2-1-2" },
+          { id: "e21", source: "conv-2-1-2", target: "batchnorm-2-1-2" },
+          { id: "e22", source: "batchnorm-2-1-2", target: "add-2-1" },
+
+          // Layer 2-1: Skip connection with projection
+          { id: "e23", source: "activation-1-2", target: "conv-2-1-skip" },
+          { id: "e24", source: "conv-2-1-skip", target: "batchnorm-2-1-skip" },
+          { id: "e25", source: "batchnorm-2-1-skip", target: "add-2-1" },
+
+          // Layer 2-1: Post-addition activation
+          { id: "e26", source: "add-2-1", target: "activation-2-1" },
+
+          // Layer 2-2: Second block of layer 2 (main path)
+          { id: "e27", source: "activation-2-1", target: "conv-2-2-1" },
+          { id: "e28", source: "conv-2-2-1", target: "batchnorm-2-2-1" },
+          { id: "e29", source: "batchnorm-2-2-1", target: "conv-2-2-2" },
+          { id: "e30", source: "conv-2-2-2", target: "batchnorm-2-2-2" },
+          { id: "e31", source: "batchnorm-2-2-2", target: "add-2-2" },
+
+          // Layer 2-2: Skip connection
+          { id: "e32", source: "activation-2-1", target: "add-2-2" },
+
+          // Layer 2-2: Post-addition activation
+          { id: "e33", source: "add-2-2", target: "activation-2-2" },
+
+          // Final classification layers
+          { id: "e34", source: "activation-2-2", target: "globalavgpool-1" },
+          { id: "e35", source: "globalavgpool-1", target: "flatten-1" },
+          { id: "e36", source: "flatten-1", target: "dense-1" },
+          { id: "e37", source: "dense-1", target: "output-1" },
         ];
 
         setEdges(resnetEdges);
@@ -2486,6 +2719,24 @@ const NewBuildPage = (): JSX.Element => {
             );
           }
           break;
+        case "activation":
+          if (
+            ![
+              "ReLU",
+              "Sigmoid",
+              "Tanh",
+              "Softmax",
+              "Leaky ReLU",
+              "ELU",
+              "PReLU",
+              "SELU",
+            ].includes(node.data.function)
+          ) {
+            errors.push(
+              `Activation layer ${node.id}: Invalid activation function`
+            );
+          }
+          break;
       }
     });
 
@@ -2862,6 +3113,8 @@ const NewBuildPage = (): JSX.Element => {
         return "fa-code-branch";
       case "addlayer":
         return "fa-plus-circle"; // Plus circle icon for Add Layer
+      case "activation":
+        return "fa-bolt"; // Bolt icon for Activation Layer
       default:
         return "fa-cube";
     }
@@ -2949,6 +3202,17 @@ const NewBuildPage = (): JSX.Element => {
                 <button
                   className="add-button"
                   onClick={() => addLayer("BatchNormalization")}
+                >
+                  <i className="fas fa-plus"></i>
+                </button>
+              </div>
+              <div className="layer-item activation-layer">
+                <span>
+                  <i className="fas fa-bolt"></i> Activation
+                </span>
+                <button
+                  className="add-button"
+                  onClick={() => addLayer("Activation")}
                 >
                   <i className="fas fa-plus"></i>
                 </button>
@@ -3091,6 +3355,149 @@ const NewBuildPage = (): JSX.Element => {
             </div>
           </div>
         );
+      case "activations":
+        return (
+          <div className="sidebar-content-section">
+            <h3>
+              <i className="fas fa-bolt"></i> Activation Functions
+            </h3>
+            <p className="sidebar-description">
+              Add standalone activation layers to your model
+            </p>
+            <div className="activation-list">
+              <div className="activation-item relu-activation">
+                <span>
+                  <i className="fas fa-bolt"></i> ReLU
+                  <div className="activation-visual relu-visual"></div>
+                </span>
+                <button
+                  className="add-button"
+                  onClick={() =>
+                    addLayer("Activation", {
+                      function: "ReLU",
+                      label: `ReLU Activation ${
+                        nodes.filter(
+                          (n) =>
+                            n.type === "activation" &&
+                            n.data.function === "ReLU"
+                        ).length + 1
+                      }`,
+                    })
+                  }
+                  title="Add ReLU activation layer"
+                >
+                  <i className="fas fa-plus"></i>
+                </button>
+              </div>
+              <div className="activation-item sigmoid-activation">
+                <span>
+                  <i className="fas fa-bolt"></i> Sigmoid
+                  <div className="activation-visual sigmoid-visual"></div>
+                </span>
+                <button
+                  className="add-button"
+                  onClick={() =>
+                    addLayer("Activation", {
+                      function: "Sigmoid",
+                      label: `Sigmoid Activation ${
+                        nodes.filter(
+                          (n) =>
+                            n.type === "activation" &&
+                            n.data.function === "Sigmoid"
+                        ).length + 1
+                      }`,
+                    })
+                  }
+                  title="Add Sigmoid activation layer"
+                >
+                  <i className="fas fa-plus"></i>
+                </button>
+              </div>
+              <div className="activation-item tanh-activation">
+                <span>
+                  <i className="fas fa-bolt"></i> Tanh
+                  <div className="activation-visual tanh-visual"></div>
+                </span>
+                <button
+                  className="add-button"
+                  onClick={() => addLayer("Activation", { function: "Tanh" })}
+                  title="Add Tanh activation layer"
+                >
+                  <i className="fas fa-plus"></i>
+                </button>
+              </div>
+              <div className="activation-item softmax-activation">
+                <span>
+                  <i className="fas fa-bolt"></i> Softmax
+                  <div className="activation-visual softmax-visual"></div>
+                </span>
+                <button
+                  className="add-button"
+                  onClick={() =>
+                    addLayer("Activation", { function: "Softmax" })
+                  }
+                  title="Add Softmax activation layer"
+                >
+                  <i className="fas fa-plus"></i>
+                </button>
+              </div>
+              <div className="activation-item leaky-relu-activation">
+                <span>
+                  <i className="fas fa-bolt"></i> Leaky ReLU
+                  <div className="activation-visual leaky-relu-visual"></div>
+                </span>
+                <button
+                  className="add-button"
+                  onClick={() =>
+                    addLayer("Activation", { function: "Leaky ReLU" })
+                  }
+                  title="Add Leaky ReLU activation layer"
+                >
+                  <i className="fas fa-plus"></i>
+                </button>
+              </div>
+              <div className="activation-item elu-activation">
+                <span>
+                  <i className="fas fa-bolt"></i> ELU
+                  <div className="activation-visual elu-visual"></div>
+                </span>
+                <button
+                  className="add-button"
+                  onClick={() => addLayer("Activation", { function: "ELU" })}
+                  title="Add ELU activation layer"
+                >
+                  <i className="fas fa-plus"></i>
+                </button>
+              </div>
+              <div className="activation-item prelu-activation">
+                <span>
+                  <i className="fas fa-bolt"></i> PReLU
+                  <div className="activation-visual prelu-visual"></div>
+                </span>
+                <button
+                  className="add-button"
+                  onClick={() => addLayer("Activation", { function: "PReLU" })}
+                  title="Add PReLU activation layer"
+                >
+                  <i className="fas fa-plus"></i>
+                </button>
+              </div>
+              <div className="activation-item selu-activation">
+                <span>
+                  <i className="fas fa-bolt"></i> SELU
+                  <div className="activation-visual selu-visual"></div>
+                </span>
+                <button
+                  className="add-button"
+                  onClick={() => addLayer("Activation", { function: "SELU" })}
+                  title="Add SELU activation layer"
+                >
+                  <i className="fas fa-plus"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        );
       default:
         return (
           <div className="sidebar-content-section">
@@ -3119,6 +3526,8 @@ const NewBuildPage = (): JSX.Element => {
           "Step size for filter movement. Larger strides reduce output dimensions and add automatic skip projections.",
         poolSize:
           "Size of the pooling window. Larger pools reduce dimensions more aggressively.",
+        function:
+          "Determines how the input is transformed. Different functions have different properties and applications.",
       };
 
       return (
@@ -4145,6 +4554,49 @@ const NewBuildPage = (): JSX.Element => {
               </p>
             </div>
           )}
+
+          {/* Activation Layer */}
+          {selectedNode.type === "activation" && (
+            <div className="parameter-section">
+              <div className="parameter-section-title">
+                Activation Layer Settings
+              </div>
+              <label>
+                Function:
+                <div className="parameter-hint">
+                  <i className="fas fa-info-circle"></i>
+                  <span className="hint-text">
+                    {getParameterHint("function")}
+                  </span>
+                </div>
+              </label>
+              <select
+                value={selectedNode.data.function || "ReLU"}
+                onChange={(e) => updateParameter("function", e.target.value)}
+                className="activation-select"
+              >
+                <option value="ReLU">ReLU</option>
+                <option value="Sigmoid">Sigmoid</option>
+                <option value="Tanh">Tanh</option>
+                <option value="Softmax">Softmax</option>
+                <option value="Leaky ReLU">Leaky ReLU</option>
+                <option value="ELU">ELU</option>
+                <option value="PReLU">PReLU</option>
+                <option value="SELU">SELU</option>
+              </select>
+              {selectedNode.data.function && (
+                <div className="activation-preview">
+                  <div className="activation-function-visual">
+                    <div
+                      className={`activation-graph ${selectedNode.data.function
+                        .replace(" ", "-")
+                        .toLowerCase()}`}
+                    ></div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -4802,6 +5254,15 @@ const NewBuildPage = (): JSX.Element => {
             >
               <i className="fas fa-file-code"></i>
               <span>Templates</span>
+            </div>
+            <div
+              className={`sidebar-nav-item ${
+                activeSidebarOption === "activations" ? "active" : ""
+              }`}
+              onClick={() => setActiveSidebarOption("activations")}
+            >
+              <i className="fas fa-bolt"></i>
+              <span>Activations</span>
             </div>
           </div>
           <div className="sidebar-content">{renderSidebarContent()}</div>

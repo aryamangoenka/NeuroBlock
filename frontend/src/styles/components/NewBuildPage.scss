@@ -6277,3 +6277,395 @@
   animation: fadeIn 0.3s ease;
 }
 
+/* Activation tab styles */
+.sidebar-description {
+  font-size: 0.85rem;
+  color: #8e9aaf;
+  margin: 5px 0 15px;
+  padding: 0 10px;
+  text-align: center;
+}
+
+.activation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.activation-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 15px;
+  background: linear-gradient(145deg, #2a344a, #1e2a40);
+  border-radius: 8px;
+  border-left: 4px solid #4a90e2;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.03);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    
+    &::before {
+      transform: translateX(0);
+    }
+    
+    .activation-visual {
+      opacity: 0.9;
+      transform: scale(1.05);
+    }
+  }
+  
+  span {
+    display: flex;
+    align-items: center;
+    color: #e9ecef;
+    font-weight: 500;
+    
+    i {
+      margin-right: 8px;
+      color: #4a90e2;
+      font-size: 14px;
+    }
+  }
+  
+  .add-button {
+    background-color: rgba(74, 144, 226, 0.2);
+    color: #4a90e2;
+    border: 1px solid rgba(74, 144, 226, 0.3);
+    border-radius: 4px;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background-color: #4a90e2;
+      color: white;
+    }
+  }
+}
+
+/* Specific activation function styles */
+.activation-visual {
+  width: 40px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  margin-left: 10px;
+  opacity: 0.7;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.relu-activation {
+  border-left-color: #FF5252;
+  
+  i {
+    color: #FF5252 !important;
+  }
+  
+  .relu-visual::after {
+    background: linear-gradient(90deg, transparent 40%, #FF5252 40%);
+    clip-path: polygon(0 100%, 40% 100%, 40% 50%, 100% 50%, 100% 0, 40% 0, 40% 100%);
+  }
+}
+
+.sigmoid-activation {
+  border-left-color: #448AFF;
+  
+  i {
+    color: #448AFF !important;
+  }
+  
+  .sigmoid-visual::after {
+    background-color: #448AFF;
+    clip-path: polygon(0 80%, 30% 30%, 70% 10%, 100% 0%);
+  }
+}
+
+.tanh-activation {
+  border-left-color: #7C4DFF;
+  
+  i {
+    color: #7C4DFF !important;
+  }
+  
+  .tanh-visual::after {
+    background-color: #7C4DFF;
+    clip-path: polygon(0 10%, 30% 70%, 70% 30%, 100% 90%);
+  }
+}
+
+.softmax-activation {
+  border-left-color: #00BCD4;
+  
+  i {
+    color: #00BCD4 !important;
+  }
+  
+  .softmax-visual::after {
+    background-color: #00BCD4;
+    clip-path: polygon(0 100%, 20% 80%, 50% 20%, 80% 80%, 100% 100%);
+  }
+}
+
+.leaky-relu-activation {
+  border-left-color: #FF9800;
+  
+  i {
+    color: #FF9800 !important;
+  }
+  
+  .leaky-relu-visual::after {
+    background: linear-gradient(90deg, transparent 40%, #FF9800 40%);
+    clip-path: polygon(0 80%, 40% 60%, 40% 50%, 100% 50%, 100% 0, 40% 0, 40% 60%, 0 80%);
+  }
+}
+
+.elu-activation {
+  border-left-color: #4CAF50;
+  
+  i {
+    color: #4CAF50 !important;
+  }
+  
+  .elu-visual::after {
+    background-color: #4CAF50;
+    clip-path: polygon(0 70%, 30% 50%, 40% 40%, 100% 40%);
+  }
+}
+
+.prelu-activation {
+  border-left-color: #E91E63;
+  
+  i {
+    color: #E91E63 !important;
+  }
+  
+  .prelu-visual::after {
+    background-color: #E91E63;
+    clip-path: polygon(0 70%, 40% 55%, 40% 40%, 100% 40%);
+  }
+}
+
+.selu-activation {
+  border-left-color: #9C27B0;
+  
+  i {
+    color: #9C27B0 !important;
+  }
+  
+  .selu-visual::after {
+    background-color: #9C27B0;
+    clip-path: polygon(0 70%, 30% 60%, 40% 40%, 100% 40%);
+  }
+}
+
+/* Enhanced activation preview */
+.activation-preview {
+  margin-top: 15px;
+  padding: 10px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.15);
+  
+  .activation-function-visual {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100px;
+    position: relative;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      width: 100%;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+    
+    &::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 0;
+      width: 1px;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+  
+  .activation-graph {
+    width: 80%;
+    height: 80%;
+    position: relative;
+    
+    &.relu {
+      background: linear-gradient(90deg, rgba(255, 82, 82, 0.1) 0%, rgba(255, 82, 82, 0.2) 100%);
+      clip-path: polygon(50% 50%, 50% 10%, 95% 10%);
+      
+      &::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 45%;
+        height: 2px;
+        background: #FF5252;
+        transform-origin: left center;
+        transform: rotate(-45deg);
+      }
+    }
+    
+    &.sigmoid {
+      background: linear-gradient(90deg, rgba(68, 138, 255, 0.1) 0%, rgba(68, 138, 255, 0.2) 100%);
+      
+      &::after {
+        content: '';
+        position: absolute;
+        top: 10%;
+        left: 10%;
+        width: 80%;
+        height: 80%;
+        border: 2px solid #448AFF;
+        border-radius: 100% 100% 0 0;
+        border-bottom: none;
+        transform: skewX(10deg);
+      }
+    }
+    
+    &.tanh {
+      background: linear-gradient(90deg, rgba(124, 77, 255, 0.1) 0%, rgba(124, 77, 255, 0.2) 100%);
+      
+      &::after {
+        content: '';
+        position: absolute;
+        top: 10%;
+        left: 10%;
+        width: 80%;
+        height: 80%;
+        border: 2px solid #7C4DFF;
+        border-radius: 50%;
+        clip-path: polygon(0 50%, 100% 50%, 100% 0, 0 100%);
+        transform: rotate(45deg);
+      }
+    }
+  }
+}
+
+/* Activation layer on canvas styling */
+[data-type="activation"] {
+  .react-flow__node-inner {
+    background: linear-gradient(145deg, #2a344a, #1e2a40);
+    border-radius: 8px;
+    border-left: 4px solid #4a90e2;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+    
+    .node-header {
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      
+      .node-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        
+        i {
+          color: #4a90e2;
+        }
+      }
+    }
+    
+    .node-content {
+      padding: 8px 12px;
+      
+      .activation-indicator {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        margin-top: 4px;
+        background: rgba(74, 144, 226, 0.2);
+        color: #4a90e2;
+      }
+      
+      &.relu .activation-indicator {
+        background: rgba(255, 82, 82, 0.2);
+        color: #FF5252;
+      }
+      
+      &.sigmoid .activation-indicator {
+        background: rgba(68, 138, 255, 0.2);
+        color: #448AFF;
+      }
+      
+      &.tanh .activation-indicator {
+        background: rgba(124, 77, 255, 0.2);
+        color: #7C4DFF;
+      }
+      
+      &.softmax .activation-indicator {
+        background: rgba(0, 188, 212, 0.2);
+        color: #00BCD4;
+      }
+      
+      &.leaky-relu .activation-indicator {
+        background: rgba(255, 152, 0, 0.2);
+        color: #FF9800;
+      }
+      
+      &.elu .activation-indicator {
+        background: rgba(76, 175, 80, 0.2);
+        color: #4CAF50;
+      }
+      
+      &.prelu .activation-indicator {
+        background: rgba(233, 30, 99, 0.2);
+        color: #E91E63;
+      }
+      
+      &.selu .activation-indicator {
+        background: rgba(156, 39, 176, 0.2);
+        color: #9C27B0;
+      }
+    }
+  }
+}
+
+// ... existing code ...
+

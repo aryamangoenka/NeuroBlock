@@ -15,6 +15,7 @@ export {
   ResNetBlockNode,
   OutputNode,
   AddLayerNode,
+  ActivationNode,
 };
 
 // Dense Node
@@ -276,3 +277,30 @@ const AddLayerNode = ({ data }: { data: any }) => (
     />
   </div>
 );
+
+// Activation Node
+const ActivationNode = ({ data }: { data: any }) => {
+  // Convert function name to lowercase and hyphenated for CSS
+  const functionClass = (data.function || "relu")
+    .toLowerCase()
+    .replace(/\s+/g, "-");
+
+  return (
+    <div
+      className={`custom-node activation-node ${functionClass}-node`}
+      data-activation-type={data.function || "ReLU"}
+    >
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{ background: "#555" }}
+      />
+      <div className="simple-activation-content">{data.function || "ReLU"}</div>
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{ background: "#555" }}
+      />
+    </div>
+  );
+};

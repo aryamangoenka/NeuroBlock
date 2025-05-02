@@ -290,3 +290,55 @@
   }
 }
 
+/* Activation Node Styling */
+.activation-node {
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(145deg, #2a344a, #1e2a40);
+  border-left: 4px solid #4a90e2;
+  overflow: hidden;
+  min-width: 120px;
+  
+  /* Simple activation content - just the name */
+  .simple-activation-content {
+    padding: 12px;
+    text-align: center;
+    font-weight: 500;
+    font-size: 14px;
+    color: #fff;
+  }
+  
+  /* Styling for different activation function types */
+  &.relu-node {
+    border-left-color: #FF5252;
+  }
+  
+  &.sigmoid-node {
+    border-left-color: #448AFF;
+  }
+  
+  &.tanh-node {
+    border-left-color: #7C4DFF;
+  }
+  
+  &.softmax-node {
+    border-left-color: #00BCD4;
+  }
+  
+  &.leaky-relu-node {
+    border-left-color: #FF9800;
+  }
+  
+  &.elu-node {
+    border-left-color: #4CAF50;
+  }
+  
+  &.prelu-node {
+    border-left-color: #E91E63;
+  }
+  
+  &.selu-node {
+    border-left-color: #9C27B0;
+  }
+}
+
