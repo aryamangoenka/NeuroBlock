@@ -3,7 +3,7 @@
   width: 180px;
   padding: 14px;
   border-radius: 10px;
-  color: #fff;
+  color: black;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-size: 0.9rem;
   text-align: center;
@@ -40,56 +40,56 @@
 
 /* Dense Layer Node */
 .dense-node {
-  background: linear-gradient(135deg, #4CAF50, #2e7d32);
-  border-color: #4CAF50;
+  background: #e8c4b0;
+  border-color: black;
 }
 
 /* Convolution Layer Node */
 .convolution-node {
-  background: linear-gradient(135deg, #2196F3, #0d47a1);
-  border-color: #2196F3;
+  background: #c0b5ac;
+  border-color: black;
 }
 
 /* MaxPooling Layer Node */
 .maxpooling-node {
-  background: linear-gradient(135deg, #9C27B0, #6a1b9a);
-  border-color: #9C27B0;
+  background: #e6c5c7;
+  border-color: black;
 }
 
 /* GlobalAveragePooling Layer Node */
 .globalaveragepool-node {
-  background: linear-gradient(135deg, #8E24AA, #6a1b9a);
-  border-color: #9C27B0;
+  background: #f0b3c9;
+  border-color: black;
 }
 
 /* Flatten Layer Node */
 .flatten-node {
-  background: linear-gradient(135deg, #FF9800, #e65100);
-  border-color: #FF9800;
+  background: #6de4f4;
+  border-color: black;
 }
 
 /* Dropout Layer Node */
 .dropout-node {
-  background: linear-gradient(135deg, #F44336, #b71c1c);
-  border-color: #F44336;
+  background: #e97f77;
+  border-color: black;
 }
 
 /* Batch Normalization Node */
 .batchnormalization-node {
-  background: linear-gradient(135deg, #00BCD4, #006064);
-  border-color: #00BCD4;
+  background: #78c9ef;
+  border-color: black;
 }
 
 /* Attention Node */
 .attention-node {
-  background: linear-gradient(135deg, #673AB7, #311b92);
-  border-color: #673AB7;
+  background: #8e98d4;
+  border-color: black;
 }
 
 /* Add Layer Node */
 .add-layer-node {
-  background: linear-gradient(135deg, #009688, #00796b);
-  border-color: #009688;
+  background:  #65bcb9;
+  border-color: black;
   
   .add-layer-icon {
     font-size: 2rem;
@@ -134,8 +134,8 @@
 
 /* Input Node */
 .input-node {
-  background: linear-gradient(135deg, #FFC107, #FF8F00);
-  border-color: #FFC107;
+  background: #f4b255f1;
+  border-color: black;
   color: #fff;
   padding: 14px;
   border-radius: 10px;
@@ -153,9 +153,9 @@
 
 /* Output Node */
 .output-node {
-  background: linear-gradient(135deg, #FF5722, #bf360c);
-  border-color: #FF5722;
-  color: #fff;
+  background: #78d27b;
+  border-color: black;
+  color: black;
   padding: 14px;
   border-radius: 10px;
   text-align: center;

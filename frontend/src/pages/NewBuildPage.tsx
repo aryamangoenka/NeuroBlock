@@ -571,23 +571,160 @@ const NewBuildPage = (): JSX.Element => {
         .join(", ")}`;
     }
 
-    // For regression datasets, ensure output activation is appropriate
-    if (selectedDataset === "California Housing" && outputLayer) {
-      if (outputLayer.data?.activation === "Softmax") {
-        return "Regression tasks should not use Softmax activation in the output layer";
-      }
-    }
-
-    // For classification datasets, ensure output activation is appropriate
+    // For classification datasets, check that a Softmax activation is connected to the output
     if (
       (selectedDataset === "MNIST" ||
         selectedDataset === "CIFAR-10" ||
         selectedDataset === "Iris" ||
         selectedDataset === "Breast Cancer") &&
-      outputLayer &&
-      outputLayer.data?.activation !== "Softmax"
+      outputLayer
     ) {
-      return "Classification tasks should use Softmax activation in the output layer";
+      // Find all Softmax activation layers
+      const softmaxLayers = nodes.filter(
+        (node) => node.type === "activation" && node.data.function === "Softmax"
+      );
+
+      if (softmaxLayers.length === 0) {
+        return "Classification tasks should use Softmax activation in the output layer";
+      }
+
+      // Build a connectivity graph to check for both direct and indirect connections
+      const graph = new Map<string, Set<string>>();
+
+      // Initialize graph with all nodes
+      nodes.forEach((node) => {
+        graph.set(node.id, new Set<string>());
+      });
+
+      // Add connections to the graph (in both directions for undirected traversal)
+      edges.forEach((edge) => {
+        if (graph.has(edge.source)) {
+          graph.get(edge.source)!.add(edge.target);
+        }
+        if (graph.has(edge.target)) {
+          graph.get(edge.target)!.add(edge.source);
+        }
+      });
+
+      // Check if there's any path between output layer and any Softmax activation layer
+      let isSoftmaxConnected = false;
+
+      // Breadth-first search to find connections
+      const bfs = (startNodeId: string) => {
+        const queue: string[] = [startNodeId];
+        const visited = new Set<string>([startNodeId]);
+
+        while (queue.length > 0) {
+          const currentNodeId = queue.shift()!;
+
+          // Check if this is a Softmax activation layer
+          if (softmaxLayers.some((node) => node.id === currentNodeId)) {
+            isSoftmaxConnected = true;
+            break;
+          }
+
+          // Add connected nodes to the queue
+          const neighbors = graph.get(currentNodeId) || new Set<string>();
+          neighbors.forEach((neighborId) => {
+            if (!visited.has(neighborId)) {
+              visited.add(neighborId);
+              queue.push(neighborId);
+            }
+          });
+        }
+      };
+
+      // Start BFS from the output layer
+      bfs(outputLayer.id);
+
+      // Also check the reverse: if any Softmax layer is connected to the output
+      if (!isSoftmaxConnected && softmaxLayers.length > 0) {
+        for (const layer of softmaxLayers) {
+          if (!isSoftmaxConnected) {
+            const visited = new Set<string>();
+
+            // Depth-first search to see if this Softmax layer connects to output
+            const dfs = (nodeId: string) => {
+              if (visited.has(nodeId)) return;
+              visited.add(nodeId);
+
+              if (nodeId === outputLayer.id) {
+                isSoftmaxConnected = true;
+                return;
+              }
+
+              const neighbors = graph.get(nodeId) || new Set<string>();
+              neighbors.forEach((neighborId) => {
+                if (!isSoftmaxConnected) {
+                  dfs(neighborId);
+                }
+              });
+            };
+
+            dfs(layer.id);
+          }
+        }
+      }
+
+      if (!isSoftmaxConnected) {
+        return "Classification tasks should use Softmax activation in the output layer";
+      }
+    }
+
+    // For regression datasets, ensure no Softmax activation is connected to output
+    if (selectedDataset === "California Housing" && outputLayer) {
+      // Find all Softmax activation layers
+      const softmaxLayers = nodes.filter(
+        (node) => node.type === "activation" && node.data.function === "Softmax"
+      );
+
+      if (softmaxLayers.length > 0) {
+        // Build a connectivity graph
+        const graph = new Map<string, Set<string>>();
+
+        // Initialize graph
+        nodes.forEach((node) => {
+          graph.set(node.id, new Set<string>());
+        });
+
+        // Add connections
+        edges.forEach((edge) => {
+          if (graph.has(edge.source)) {
+            graph.get(edge.source)!.add(edge.target);
+          }
+          if (graph.has(edge.target)) {
+            graph.get(edge.target)!.add(edge.source);
+          }
+        });
+
+        // Check for connection between output and Softmax
+        let hasSoftmaxConnection = false;
+
+        // BFS from output
+        const queue: string[] = [outputLayer.id];
+        const visited = new Set<string>([outputLayer.id]);
+
+        while (queue.length > 0 && !hasSoftmaxConnection) {
+          const currentNodeId = queue.shift()!;
+
+          if (softmaxLayers.some((node) => node.id === currentNodeId)) {
+            hasSoftmaxConnection = true;
+            break;
+          }
+
+          const neighbors = graph.get(currentNodeId) || new Set<string>();
+          neighbors.forEach((neighborId) => {
+            if (!visited.has(neighborId)) {
+              visited.add(neighborId);
+              queue.push(neighborId);
+            }
+          });
+        }
+
+        if (hasSoftmaxConnection) {
+          return "Regression tasks should not use Softmax activation in the output layer";
+        }
+      }
     }
 
     console.log("Basic pre-validation passed");
@@ -965,16 +1102,34 @@ const NewBuildPage = (): JSX.Element => {
           data: {
             label: "Hidden Dense Layer",
             neurons: 64,
-            activation: "ReLU",
+            activation: "None",
           },
           position: { x: 300, y: 200 },
           type: "dense",
         },
         {
+          id: "Activation-1",
+          data: {
+            label: "Activation Layer 1",
+            function: "ReLU",
+          },
+          position: { x: 300, y: 250 },
+          type: "activation",
+        },
+        {
           id: "Output-1",
-          data: { label: "Output Layer", activation: "Softmax" },
+          data: { label: "Output Layer", activation: "None" },
           position: { x: 500, y: 300 },
           type: "output",
+        },
+        {
+          id: "Activation-2",
+          data: {
+            label: "Activation Layer 2",
+            function: "Softmax",
+          },
+          position: { x: 500, y: 350 },
+          type: "activation",
         },
       ],
       CNN: [
@@ -991,10 +1146,19 @@ const NewBuildPage = (): JSX.Element => {
             filters: 32,
             kernelSize: [3, 3],
             stride: [1, 1],
-            activation: "ReLU",
+            activation: "None",
           },
           position: { x: 300, y: 200 },
           type: "convolution",
+        },
+        {
+          id: "Activation-1",
+          data: {
+            label: "Activation Layer 1",
+            function: "ReLU",
+          },
+          position: { x: 300, y: 250 },
+          type: "activation",
         },
         {
           id: "MaxPool-1",
@@ -1015,15 +1179,33 @@ const NewBuildPage = (): JSX.Element => {
         },
         {
           id: "Dense-1",
-          data: { label: "Dense Layer", neurons: 64, activation: "ReLU" },
+          data: { label: "Dense Layer", neurons: 64, activation: "None" },
           position: { x: 900, y: 500 },
           type: "dense",
         },
         {
+          id: "Activation-2",
+          data: {
+            label: "Activation Layer 2",
+            function: "ReLU",
+          },
+          position: { x: 900, y: 550 },
+          type: "activation",
+        },
+        {
           id: "Output-1",
-          data: { label: "Output Layer", activation: "Softmax" },
+          data: { label: "Output Layer", activation: "None" },
           position: { x: 1100, y: 600 },
           type: "output",
+        },
+        {
+          id: "Activation-3",
+          data: {
+            label: "Activation Layer 3",
+            function: "Softmax",
+          },
+          position: { x: 1100, y: 650 },
+          type: "activation",
         },
       ],
 
@@ -1090,10 +1272,20 @@ const NewBuildPage = (): JSX.Element => {
           data: {
             label: "FFN - Dense 1",
             neurons: 512,
-            activation: "ReLU",
+            activation: "None",
           },
           position: { x: 950, y: 250 },
           type: "dense",
+        },
+
+        {
+          id: "Activation-1",
+          data: {
+            label: "FFN - Activation",
+            function: "ReLU",
+          },
+          position: { x: 950, y: 300 },
+          type: "activation",
         },
 
         // Optional dropout for FFN
@@ -1113,7 +1305,7 @@ const NewBuildPage = (): JSX.Element => {
           data: {
             label: "FFN - Dense 2",
             neurons: 256,
-            activation: "ReLU",
+            activation: "None",
           },
           position: { x: 750, y: 350 },
           type: "dense",
@@ -1134,10 +1326,21 @@ const NewBuildPage = (): JSX.Element => {
           id: "Output-1",
           data: {
             label: "Output Layer",
-            activation: "Softmax",
+            activation: "None",
           },
           position: { x: 350, y: 350 },
           type: "output",
+        },
+
+        // Output activation
+        {
+          id: "Activation-2",
+          data: {
+            label: "Output Activation",
+            function: "Softmax",
+          },
+          position: { x: 350, y: 450 },
+          type: "activation",
         },
       ],
       "Fully Connected Regression": [
@@ -1149,15 +1352,33 @@ const NewBuildPage = (): JSX.Element => {
         },
         {
           id: "Dense-1",
-          data: { label: "Dense Layer", neurons: 64, activation: "ReLU" },
+          data: { label: "Dense Layer", neurons: 64, activation: "None" },
           position: { x: 300, y: 200 },
           type: "dense",
         },
         {
+          id: "Activation-1",
+          data: {
+            label: "Activation Layer 1",
+            function: "ReLU",
+          },
+          position: { x: 300, y: 250 },
+          type: "activation",
+        },
+        {
           id: "Dense-2",
-          data: { label: "Dense Layer", neurons: 32, activation: "ReLU" },
+          data: { label: "Dense Layer", neurons: 32, activation: "None" },
           position: { x: 500, y: 300 },
           type: "dense",
+        },
+        {
+          id: "Activation-2",
+          data: {
+            label: "Activation Layer 2",
+            function: "ReLU",
+          },
+          position: { x: 500, y: 350 },
+          type: "activation",
         },
         {
           id: "Output-1",
@@ -1194,10 +1415,19 @@ const NewBuildPage = (): JSX.Element => {
             filters: 32,
             kernelSize: [3, 3],
             stride: [1, 1],
-            activation: "ReLU",
+            activation: "None",
           },
           position: { x: 300, y: 200 },
           type: "convolution",
+        },
+        {
+          id: "Activation-1",
+          data: {
+            label: "Activation Layer 1",
+            function: "ReLU",
+          },
+          position: { x: 300, y: 250 },
+          type: "activation",
         },
         {
           id: "MaxPool-1",
@@ -1218,15 +1448,33 @@ const NewBuildPage = (): JSX.Element => {
         },
         {
           id: "Dense-1",
-          data: { label: "Dense Layer", neurons: 64, activation: "ReLU" },
+          data: { label: "Dense Layer", neurons: 64, activation: "None" },
           position: { x: 900, y: 500 },
           type: "dense",
         },
         {
+          id: "Activation-2",
+          data: {
+            label: "Activation Layer 2",
+            function: "ReLU",
+          },
+          position: { x: 900, y: 550 },
+          type: "activation",
+        },
+        {
           id: "Output-1",
-          data: { label: "Output Layer", activation: "Softmax" },
+          data: { label: "Output Layer", activation: "None" },
           position: { x: 1100, y: 600 },
           type: "output",
+        },
+        {
+          id: "Activation-3",
+          data: {
+            label: "Activation Layer 3",
+            function: "Softmax",
+          },
+          position: { x: 1100, y: 650 },
+          type: "activation",
         },
       ],
       "ResNet-18": [
@@ -2430,6 +2678,8 @@ const NewBuildPage = (): JSX.Element => {
   };
 
   const onConnect = (connection: Connection): void => {
+    console.log("Connection attempted:", connection);
+
     // Check if the target node already has 5 incoming connections
     const targetNodeId = connection.target;
     const incomingConnectionsCount = edges.filter(
@@ -2537,18 +2787,6 @@ const NewBuildPage = (): JSX.Element => {
               `Dense layer ${node.id}: Number of neurons must be a positive integer`
             );
           }
-          if (
-            ![
-              "None",
-              "ReLU",
-              "Sigmoid",
-              "Softmax",
-              "Tanh",
-              "Leaky ReLU",
-            ].includes(node.data.activation)
-          ) {
-            errors.push(`Dense layer ${node.id}: Invalid activation function`);
-          }
           break;
         case "convolution":
           if (!Number.isInteger(node.data.filters) || node.data.filters <= 0) {
@@ -2576,15 +2814,6 @@ const NewBuildPage = (): JSX.Element => {
           ) {
             errors.push(
               `Convolution layer ${node.id}: Stride must be an array of two positive integers`
-            );
-          }
-          if (
-            !["None", "ReLU", "Sigmoid", "Tanh", "Leaky ReLU"].includes(
-              node.data.activation
-            )
-          ) {
-            errors.push(
-              `Convolution layer ${node.id}: Invalid activation function`
             );
           }
           break;
@@ -2721,16 +2950,9 @@ const NewBuildPage = (): JSX.Element => {
           break;
         case "activation":
           if (
-            ![
-              "ReLU",
-              "Sigmoid",
-              "Tanh",
-              "Softmax",
-              "Leaky ReLU",
-              "ELU",
-              "PReLU",
-              "SELU",
-            ].includes(node.data.function)
+            !["ReLU", "Sigmoid", "Tanh", "Softmax", "Leaky ReLU"].includes(
+              node.data.function
+            )
           ) {
             errors.push(
               `Activation layer ${node.id}: Invalid activation function`
@@ -2816,9 +3038,71 @@ const NewBuildPage = (): JSX.Element => {
 
         // Output layer must use Softmax for classification (this is a strict requirement)
         if (outputLayer && outputLayer.data.activation !== "Softmax") {
-          errors.push(
-            `Output layer must use Softmax activation for ${selectedDataset} dataset`
+          // For standalone activation layers, we'll check connectivity instead
+          // Find all activation layers with Softmax
+          const softmaxLayers = nodes.filter(
+            (node) =>
+              node.type === "activation" && node.data.function === "Softmax"
           );
+
+          let needsActivationError = true;
+
+          if (softmaxLayers.length > 0) {
+            // Build a connectivity graph to check for both direct and indirect connections
+            const graph = new Map<string, Set<string>>();
+
+            // Initialize graph with all nodes
+            nodes.forEach((node) => {
+              graph.set(node.id, new Set<string>());
+            });
+
+            // Add connections to the graph (in both directions for undirected traversal)
+            edges.forEach((edge) => {
+              if (graph.has(edge.source)) {
+                graph.get(edge.source)!.add(edge.target);
+              }
+              if (graph.has(edge.target)) {
+                graph.get(edge.target)!.add(edge.source);
+              }
+            });
+
+            // Check if there's any path between output layer and any Softmax activation layer
+            let isSoftmaxConnected = false;
+
+            // BFS to find Softmax activation connected to output layer
+            const queue: string[] = [outputLayer.id];
+            const visited = new Set<string>([outputLayer.id]);
+
+            while (queue.length > 0 && !isSoftmaxConnected) {
+              const currentNodeId = queue.shift()!;
+
+              if (softmaxLayers.some((node) => node.id === currentNodeId)) {
+                isSoftmaxConnected = true;
+                break;
+              }
+
+              const neighbors = graph.get(currentNodeId) || new Set<string>();
+              neighbors.forEach((neighborId) => {
+                if (!visited.has(neighborId)) {
+                  visited.add(neighborId);
+                  queue.push(neighborId);
+                }
+              });
+            }
+
+            // If output is connected to Softmax activation, we're good
+            if (isSoftmaxConnected) {
+              // Skip the error as we found a valid connection
+              needsActivationError = false;
+            }
+          }
+
+          // If we get here, neither the output has Softmax activation nor is connected to a Softmax layer
+          if (needsActivationError) {
+            errors.push(
+              `Output layer must use Softmax activation for ${selectedDataset} dataset`
+            );
+          }
         }
       }
 
@@ -2853,24 +3137,226 @@ const NewBuildPage = (): JSX.Element => {
         // Output activations still have strict requirements based on task type
         if (selectedDataset === "Iris") {
           // Multi-class classification
-          if (outputLayer && outputLayer.data.activation !== "Softmax") {
-            errors.push(
-              `Output layer must use Softmax activation for Iris dataset (multi-class classification)`
+          // Check if an activation layer with Softmax is connected to the output layer (in either direction)
+          if (outputLayer) {
+            // Find all activation layers with Softmax
+            const activationLayers = nodes.filter(
+              (node) =>
+                node.type === "activation" && node.data.function === "Softmax"
             );
+
+            // Build a connectivity graph to check for both direct and indirect connections
+            const graph = new Map<string, Set<string>>();
+
+            // Initialize graph with all nodes
+            nodes.forEach((node) => {
+              graph.set(node.id, new Set<string>());
+            });
+
+            // Add connections to the graph (in both directions for undirected traversal)
+            edges.forEach((edge) => {
+              if (graph.has(edge.source)) {
+                graph.get(edge.source)!.add(edge.target);
+              }
+              if (graph.has(edge.target)) {
+                graph.get(edge.target)!.add(edge.source);
+              }
+            });
+
+            // Check if there's any path between output layer and any Softmax activation layer
+            let isSoftmaxConnected = false;
+
+            // Breadth-first search to find connections
+            const bfs = (startNodeId: string) => {
+              const queue: string[] = [startNodeId];
+              const visited = new Set<string>([startNodeId]);
+
+              while (queue.length > 0) {
+                const currentNodeId = queue.shift()!;
+
+                // Check if this is a Softmax activation layer
+                if (
+                  activationLayers.some((node) => node.id === currentNodeId)
+                ) {
+                  isSoftmaxConnected = true;
+                  break;
+                }
+
+                // Add connected nodes to the queue
+                const neighbors = graph.get(currentNodeId) || new Set<string>();
+                neighbors.forEach((neighborId) => {
+                  if (!visited.has(neighborId)) {
+                    visited.add(neighborId);
+                    queue.push(neighborId);
+                  }
+                });
+              }
+            };
+
+            // Start BFS from the output layer
+            bfs(outputLayer.id);
+
+            // Also check the reverse: if any activation layer connects to the output
+            if (!isSoftmaxConnected) {
+              activationLayers.forEach((activationLayer) => {
+                bfs(activationLayer.id);
+              });
+            }
+
+            if (!isSoftmaxConnected) {
+              errors.push(
+                `Output layer must be connected to a Softmax activation layer for Iris dataset (multi-class classification)`
+              );
+            }
           }
         } else if (selectedDataset === "Breast Cancer") {
           // Binary classification
-          if (outputLayer && outputLayer.data.activation !== "Sigmoid") {
-            errors.push(
-              `Output layer must use Sigmoid activation for Breast Cancer dataset (binary classification)`
+          // Check if an activation layer with Sigmoid is connected to the output layer
+          if (outputLayer) {
+            // Find all activation layers with Sigmoid
+            const activationLayers = nodes.filter(
+              (node) =>
+                node.type === "activation" && node.data.function === "Sigmoid"
             );
+
+            // Build a connectivity graph to check for both direct and indirect connections
+            const graph = new Map<string, Set<string>>();
+
+            // Initialize graph with all nodes
+            nodes.forEach((node) => {
+              graph.set(node.id, new Set<string>());
+            });
+
+            // Add connections to the graph (in both directions for undirected traversal)
+            edges.forEach((edge) => {
+              if (graph.has(edge.source)) {
+                graph.get(edge.source)!.add(edge.target);
+              }
+              if (graph.has(edge.target)) {
+                graph.get(edge.target)!.add(edge.source);
+              }
+            });
+
+            // Check if there's any path between output layer and any Sigmoid activation layer
+            let isSigmoidConnected = false;
+
+            // Breadth-first search to find connections
+            const bfs = (startNodeId: string) => {
+              const queue: string[] = [startNodeId];
+              const visited = new Set<string>([startNodeId]);
+
+              while (queue.length > 0) {
+                const currentNodeId = queue.shift()!;
+
+                // Check if this is a Sigmoid activation layer
+                if (
+                  activationLayers.some((node) => node.id === currentNodeId)
+                ) {
+                  isSigmoidConnected = true;
+                  break;
+                }
+
+                // Add connected nodes to the queue
+                const neighbors = graph.get(currentNodeId) || new Set<string>();
+                neighbors.forEach((neighborId) => {
+                  if (!visited.has(neighborId)) {
+                    visited.add(neighborId);
+                    queue.push(neighborId);
+                  }
+                });
+              }
+            };
+
+            // Start BFS from the output layer
+            bfs(outputLayer.id);
+
+            // Also check the reverse: if any activation layer connects to the output
+            if (!isSigmoidConnected) {
+              activationLayers.forEach((activationLayer) => {
+                bfs(activationLayer.id);
+              });
+            }
+
+            if (!isSigmoidConnected) {
+              errors.push(
+                `Output layer must be connected to a Sigmoid activation layer for Breast Cancer dataset (binary classification)`
+              );
+            }
           }
         } else if (selectedDataset === "California Housing") {
-          // Regression
-          if (outputLayer && outputLayer.data.activation !== "None") {
-            errors.push(
-              `Output layer should have no activation (linear) for California Housing dataset (regression)`
+          // Regression - no activation needed (linear output)
+          // Check that no activation is connected to the output, or if connected, it's set to linear/none
+          if (outputLayer) {
+            // Find potentially invalid activation layers
+            const nonLinearActivations = nodes.filter(
+              (node) =>
+                node.type === "activation" &&
+                !["None", "Linear"].includes(node.data.function)
             );
+
+            // Build a connectivity graph to check for both direct and indirect connections
+            const graph = new Map<string, Set<string>>();
+
+            // Initialize graph with all nodes
+            nodes.forEach((node) => {
+              graph.set(node.id, new Set<string>());
+            });
+
+            // Add connections to the graph (in both directions for undirected traversal)
+            edges.forEach((edge) => {
+              if (graph.has(edge.source)) {
+                graph.get(edge.source)!.add(edge.target);
+              }
+              if (graph.has(edge.target)) {
+                graph.get(edge.target)!.add(edge.source);
+              }
+            });
+
+            // Check if there's any path between output layer and any non-linear activation
+            let hasInvalidActivation = false;
+
+            // Breadth-first search to find connections
+            const bfs = (startNodeId: string) => {
+              const queue: string[] = [startNodeId];
+              const visited = new Set<string>([startNodeId]);
+
+              while (queue.length > 0) {
+                const currentNodeId = queue.shift()!;
+
+                // Check if this is a non-linear activation layer
+                if (
+                  nonLinearActivations.some((node) => node.id === currentNodeId)
+                ) {
+                  hasInvalidActivation = true;
+                  break;
+                }
+
+                // Add connected nodes to the queue
+                const neighbors = graph.get(currentNodeId) || new Set<string>();
+                neighbors.forEach((neighborId) => {
+                  if (!visited.has(neighborId)) {
+                    visited.add(neighborId);
+                    queue.push(neighborId);
+                  }
+                });
+              }
+            };
+
+            // Start BFS from the output layer
+            bfs(outputLayer.id);
+
+            // Also check the reverse: if any activation layer connects to the output
+            if (!hasInvalidActivation) {
+              nonLinearActivations.forEach((activationLayer) => {
+                bfs(activationLayer.id);
+              });
+            }
+
+            if (hasInvalidActivation) {
+              errors.push(
+                `Output layer should not have an activation or should use a linear activation for California Housing dataset (regression)`
+              );
+            }
           }
         }
       }
@@ -3206,17 +3692,7 @@ const NewBuildPage = (): JSX.Element => {
                   <i className="fas fa-plus"></i>
                 </button>
               </div>
-              <div className="layer-item activation-layer">
-                <span>
-                  <i className="fas fa-bolt"></i> Activation
-                </span>
-                <button
-                  className="add-button"
-                  onClick={() => addLayer("Activation")}
-                >
-                  <i className="fas fa-plus"></i>
-                </button>
-              </div>
+
               <div className="layer-item attention-layer">
                 <span>
                   <i className="fas fa-brain"></i> Attention
@@ -3229,28 +3705,6 @@ const NewBuildPage = (): JSX.Element => {
                 </button>
               </div>
 
-              <div className="layer-item resnetblock-layer">
-                <span>
-                  <i className="fas fa-code-branch"></i> ResNet Block
-                </span>
-                <button
-                  className="add-button"
-                  onClick={() => addLayer("ResNetBlock")}
-                >
-                  <i className="fas fa-plus"></i>
-                </button>
-              </div>
-              <div className="layer-item output-layer">
-                <span>
-                  <i className="fas fa-sign-out-alt"></i> Output
-                </span>
-                <button
-                  className="add-button"
-                  onClick={() => addLayer("Output")}
-                >
-                  <i className="fas fa-plus"></i>
-                </button>
-              </div>
               <div className="layer-item add-layer">
                 <span>
                   <i className="fas fa-plus-circle"></i> Add Layer
@@ -3326,28 +3780,6 @@ const NewBuildPage = (): JSX.Element => {
                 <button
                   className="add-button"
                   onClick={() => loadTemplate("ResNet-18")}
-                >
-                  <i className="fas fa-plus"></i>
-                </button>
-              </div>
-              <div className="template-item resnet-template">
-                <span>
-                  <i className="fas fa-code-branch"></i> ResNet-34
-                </span>
-                <button
-                  className="add-button"
-                  onClick={() => loadTemplate("ResNet-34")}
-                >
-                  <i className="fas fa-plus"></i>
-                </button>
-              </div>
-              <div className="template-item resnet-template">
-                <span>
-                  <i className="fas fa-code-branch"></i> ResNet-50
-                </span>
-                <button
-                  className="add-button"
-                  onClick={() => loadTemplate("ResNet-50")}
                 >
                   <i className="fas fa-plus"></i>
                 </button>
@@ -3452,45 +3884,6 @@ const NewBuildPage = (): JSX.Element => {
                     addLayer("Activation", { function: "Leaky ReLU" })
                   }
                   title="Add Leaky ReLU activation layer"
-                >
-                  <i className="fas fa-plus"></i>
-                </button>
-              </div>
-              <div className="activation-item elu-activation">
-                <span>
-                  <i className="fas fa-bolt"></i> ELU
-                  <div className="activation-visual elu-visual"></div>
-                </span>
-                <button
-                  className="add-button"
-                  onClick={() => addLayer("Activation", { function: "ELU" })}
-                  title="Add ELU activation layer"
-                >
-                  <i className="fas fa-plus"></i>
-                </button>
-              </div>
-              <div className="activation-item prelu-activation">
-                <span>
-                  <i className="fas fa-bolt"></i> PReLU
-                  <div className="activation-visual prelu-visual"></div>
-                </span>
-                <button
-                  className="add-button"
-                  onClick={() => addLayer("Activation", { function: "PReLU" })}
-                  title="Add PReLU activation layer"
-                >
-                  <i className="fas fa-plus"></i>
-                </button>
-              </div>
-              <div className="activation-item selu-activation">
-                <span>
-                  <i className="fas fa-bolt"></i> SELU
-                  <div className="activation-visual selu-visual"></div>
-                </span>
-                <button
-                  className="add-button"
-                  onClick={() => addLayer("Activation", { function: "SELU" })}
-                  title="Add SELU activation layer"
                 >
                   <i className="fas fa-plus"></i>
                 </button>
@@ -4580,9 +4973,6 @@ const NewBuildPage = (): JSX.Element => {
                 <option value="Tanh">Tanh</option>
                 <option value="Softmax">Softmax</option>
                 <option value="Leaky ReLU">Leaky ReLU</option>
-                <option value="ELU">ELU</option>
-                <option value="PReLU">PReLU</option>
-                <option value="SELU">SELU</option>
               </select>
               {selectedNode.data.function && (
                 <div className="activation-preview">
@@ -5278,6 +5668,15 @@ const NewBuildPage = (): JSX.Element => {
               onConnect={onConnect}
               onNodeClick={onNodeClick}
               nodeTypes={nodeTypes}
+              isValidConnection={(connection) => {
+                // Allow connections from any node, including output nodes
+                return true;
+              }}
+              connectionLineStyle={{ stroke: "#555", strokeWidth: 2 }}
+              defaultEdgeOptions={{
+                animated: true,
+                style: { stroke: "#555", strokeWidth: 2 },
+              }}
               fitView
               style={{ width: "100%", height: "100%" }}
             >
@@ -5442,24 +5841,6 @@ const NewBuildPage = (): JSX.Element => {
                             </div>
                           </div>
                         </div>
-
-                        <div className="param-group">
-                          <label>Activation</label>
-                          <select
-                            value={selectedNode.data.activation || "None"}
-                            onChange={(e) =>
-                              updateParameter("activation", e.target.value)
-                            }
-                            className="param-select"
-                          >
-                            <option value="None">None</option>
-                            <option value="ReLU">ReLU</option>
-                            <option value="Sigmoid">Sigmoid</option>
-                            <option value="Tanh">Tanh</option>
-                            <option value="Softmax">Softmax</option>
-                            <option value="Leaky ReLU">Leaky ReLU</option>
-                          </select>
-                        </div>
                       </>
                     )}
 
@@ -5621,21 +6002,12 @@ const NewBuildPage = (): JSX.Element => {
                           </select>
                         </div>
 
+                        {/* Activation functionality moved to separate activation layers */}
                         <div className="param-group">
-                          <label>Activation</label>
-                          <select
-                            value={selectedNode.data.activation || "None"}
-                            onChange={(e) =>
-                              updateParameter("activation", e.target.value)
-                            }
-                            className="param-select"
-                          >
-                            <option value="None">None</option>
-                            <option value="ReLU">ReLU</option>
-                            <option value="Sigmoid">Sigmoid</option>
-                            <option value="Tanh">Tanh</option>
-                            <option value="Leaky ReLU">Leaky ReLU</option>
-                          </select>
+                          <p className="param-info">
+                            For activation functions, add a separate Activation
+                            layer after this layer.
+                          </p>
                         </div>
                       </>
                     )}
@@ -6008,18 +6380,21 @@ const NewBuildPage = (): JSX.Element => {
                     {/* Output Layer Parameters */}
                     {selectedNode.type === "output" && (
                       <div className="param-group">
-                        <label>Activation</label>
-                        <select
-                          value={selectedNode.data.activation || "None"}
-                          onChange={(e) =>
-                            updateParameter("activation", e.target.value)
-                          }
-                          className="param-select"
-                        >
-                          <option value="None">None</option>
-                          <option value="Sigmoid">Sigmoid</option>
-                          <option value="Softmax">Softmax</option>
-                        </select>
+                        <p className="param-info">
+                          Output layer has no configurable parameters. Add an
+                          activation layer and connect it to this output layer.
+                        </p>
+                        <div className="activation-tip">
+                          <i className="fas fa-info-circle"></i>
+                          <p>
+                            For classification tasks:
+                            <ul>
+                              <li>Multi-class: Use Softmax activation</li>
+                              <li>Binary: Use Sigmoid activation</li>
+                              <li>Regression: No activation (linear)</li>
+                            </ul>
+                          </p>
+                        </div>
                       </div>
                     )}
                   </div>

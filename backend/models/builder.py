@@ -165,6 +165,36 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
                             momentum=layer_data["momentum"],
                             epsilon=layer_data["epsilon"]
                         )(input_layer)
+                    elif layer_type == "activation":
+                        # Handle standalone activation layers
+                        activation_func = layer_data.get("function", "relu").lower()
+                        logger.info(f"Adding activation layer with function: {activation_func}", 
+                                   extra={"context": {
+                                       "layer_id": node["id"],
+                                       "activation_function": activation_func,
+                                       "layer_data": layer_data
+                                   }})
+                        
+                        # Map frontend activation names to TensorFlow activation functions
+                        activation_map = {
+                            "relu": "relu",
+                            "sigmoid": "sigmoid",
+                            "tanh": "tanh",
+                            "softmax": "softmax",
+                            "leaky relu": "leaky_relu",
+                            "leakyrelu": "leaky_relu"
+                        }
+                        
+                        # Use the mapped activation function or default to relu if not found
+                        mapped_activation = activation_map.get(activation_func.lower(), "relu")
+                        logger.debug(f"Mapped activation function: {mapped_activation}")
+                        
+                        # Special handling for Leaky ReLU which needs the alpha parameter
+                        if mapped_activation == "leaky_relu":
+                            alpha = layer_data.get("alpha", 0.3)  # Default alpha is 0.3
+                            x = tf.keras.layers.LeakyReLU(alpha=alpha)(input_layer)
+                        else:
+                            x = tf.keras.layers.Activation(mapped_activation)(input_layer)
                     elif layer_type == "attention":
                         # Get the attention parameters
                         num_heads = layer_data.get("heads", 8)
@@ -319,6 +349,36 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
                             momentum=layer_data["momentum"],
                             epsilon=layer_data["epsilon"]
                         ))
+                    elif layer_type == "activation":
+                        # Handle standalone activation layers
+                        activation_func = layer_data.get("function", "relu").lower()
+                        logger.info(f"Adding activation layer with function: {activation_func}", 
+                                   extra={"context": {
+                                       "layer_id": target_id,
+                                       "activation_function": activation_func,
+                                       "layer_data": layer_data
+                                   }})
+                        
+                        # Map frontend activation names to TensorFlow activation functions
+                        activation_map = {
+                            "relu": "relu",
+                            "sigmoid": "sigmoid",
+                            "tanh": "tanh",
+                            "softmax": "softmax",
+                            "leaky relu": "leaky_relu",
+                            "leakyrelu": "leaky_relu"
+                        }
+                        
+                        # Use the mapped activation function or default to relu if not found
+                        mapped_activation = activation_map.get(activation_func.lower(), "relu")
+                        logger.debug(f"Mapped activation function: {mapped_activation}")
+                        
+                        # Special handling for Leaky ReLU which needs the alpha parameter
+                        if mapped_activation == "leaky_relu":
+                            alpha = layer_data.get("alpha", 0.3)  # Default alpha is 0.3
+                            model.add(tf.keras.layers.LeakyReLU(alpha=alpha))
+                        else:
+                            model.add(tf.keras.layers.Activation(mapped_activation))
                     elif layer_type == "attention":
                         # Get the attention parameters
                         num_heads = layer_data.get("heads", 8)

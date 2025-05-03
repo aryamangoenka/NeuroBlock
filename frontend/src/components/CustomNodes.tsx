@@ -28,7 +28,6 @@ const DenseNode = ({ data }: { data: any }) => (
     />
     <h4>{data.label || "Dense Layer"}</h4>
     <p>Neurons: {data.neurons}</p>
-    <p>Activation: {data.activation}</p>
     <Handle
       type="source"
       position={Position.Right}
@@ -49,7 +48,6 @@ const ConvolutionNode = ({ data }: { data: any }) => (
     <p>Filters: {data.filters}</p>
     <p>Kernel Size: {data.kernelSize?.join("x")}</p>
     <p>Stride: {data.stride?.join("x")}</p>
-    <p>Activation: {data.activation}</p>
     <Handle
       type="source"
       position={Position.Right}
@@ -209,9 +207,6 @@ const ResNetBlockNode = ({ data }: { data: any }) => (
             ? data.stride.join("x")
             : data.stride || "1x1"}
         </p>
-        <p>
-          <strong>Activation:</strong> {data.activation || "ReLU"}
-        </p>
       </div>
       <div className="resnet-structure">
         {data.blockType === "Bottleneck" ? (
@@ -246,17 +241,46 @@ const ResNetBlockNode = ({ data }: { data: any }) => (
 );
 
 // Output Node
-const OutputNode = ({ data }: { data: any }) => (
-  <div className="custom-node output-node">
-    <Handle
-      type="target"
-      position={Position.Left}
-      style={{ background: "#555" }}
-    />
-    <h4>{data.label || "Output Layer"}</h4>
-    <p>Activation: {data.activation}</p>
-  </div>
-);
+const OutputNode = ({ data }: { data: any }) => {
+  // Use inline styling to ensure handles are visible and accessible
+  const handleStyle = {
+    background: "#555",
+    width: "10px",
+    height: "10px",
+    border: "2px solid #fff",
+  };
+
+  return (
+    <div className="custom-node output-node">
+      {/* Input handle */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={handleStyle}
+        id="input"
+        isConnectable={true}
+      />
+
+      <div className="output-node-content">
+        <h4>{data.label || "Output Layer"}</h4>
+      </div>
+
+      {/* Output handle with enhanced visibility */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{
+          ...handleStyle,
+          background: "#f44336", // Make more visible with red color
+          border: "2px solid #fff",
+          zIndex: 10, // Ensure it's above other elements
+        }}
+        id="output"
+        isConnectable={true}
+      />
+    </div>
+  );
+};
 
 // Add Layer Node
 const AddLayerNode = ({ data }: { data: any }) => (

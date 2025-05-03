@@ -21,6 +21,13 @@ A web-based tool that allows users to visually design, train, and export custom 
 
 Developing neural networks can be complex and time-consuming, especially for beginners. This project simplifies that process by offering an interactive visual builder and eliminating the need for manual coding during model design.
 
+## Recent Updates
+
+- Added support for standalone activation layers to all templates
+- Modified Simple Feedforward template to use separate activation layers instead of built-in activations
+- Activation functions now have their own layer type for better flexibility and visualization
+- Backend now properly processes standalone activation layers
+
 ---
 
 ## 🛠 Tech Stack
