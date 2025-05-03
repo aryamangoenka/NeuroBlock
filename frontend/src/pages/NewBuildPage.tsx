@@ -17,7 +17,7 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { io, Socket } from "socket.io-client";
-import { Line } from "react-chartjs-2";
+import { Line, Scatter } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -233,10 +233,19 @@ const NewBuildPage = (): JSX.Element => {
   // Function to get visualization options based on dataset
   const getVisualizationOptions = () => {
     // Default options available for all datasets
-    const defaultOptions = [
-      { value: "accuracy", label: "Accuracy" },
-      { value: "loss", label: "Loss" },
-    ];
+    const defaultOptions = [{ value: "loss", label: "Loss" }];
+
+    // Classification datasets show accuracy, regression datasets don't
+    const isClassificationDataset = [
+      "MNIST",
+      "CIFAR-10",
+      "Iris",
+      "Breast Cancer",
+    ].includes(selectedDataset || "");
+
+    if (isClassificationDataset) {
+      defaultOptions.unshift({ value: "accuracy", label: "Accuracy" });
+    }
 
     // Dataset-specific options that are currently supported
     const datasetOptions: Record<string, { value: string; label: string }[]> = {
@@ -248,13 +257,17 @@ const NewBuildPage = (): JSX.Element => {
       ],
       "California Housing": [
         { value: "heatmap", label: "Multicollinearity Heatmap" },
+        { value: "residual_plot", label: "Residual Plot" },
       ],
     };
 
     // Combine default options with dataset-specific options
-    return selectedDataset
+    const options = selectedDataset
       ? [...defaultOptions, ...(datasetOptions[selectedDataset] || [])]
       : defaultOptions;
+
+    console.log("Visualization options for dataset:", selectedDataset, options);
+    return options;
   };
 
   // Update the socket.io event handling for training progress
@@ -354,28 +367,68 @@ const NewBuildPage = (): JSX.Element => {
 
       // California Housing specific metrics
       if (selectedDataset === "California Housing") {
+        console.log("Processing California Housing specific metrics");
+
         // Set RMSE and R2 score if available
-        if (data.metrics?.rmse) setRmse(data.metrics.rmse);
-        if (data.metrics?.r2) setR2(data.metrics.r2);
+        if (data.metrics?.rmse) {
+          console.log("RMSE received:", data.metrics.rmse);
+          setRmse(data.metrics.rmse);
+        } else {
+          console.log("No RMSE in metrics");
+        }
+
+        if (data.metrics?.r2) {
+          console.log("R² Score received:", data.metrics.r2);
+          setR2(data.metrics.r2);
+        } else {
+          console.log("No R² Score in metrics");
+        }
 
         // Set residuals and predicted values for residual plot
         if (data.metrics?.residuals_plot) {
+          const predictedValues =
+            data.metrics.residuals_plot.predicted_values || [];
+          const residualsData = data.metrics.residuals_plot.residuals || [];
+
           console.log(
-            "Residuals plot data received:",
-            data.metrics.residuals_plot
+            "Residuals plot data received - length:",
+            `predicted_values: ${predictedValues.length}`,
+            `residuals: ${residualsData.length}`
           );
-          setPredictedValues(
-            data.metrics.residuals_plot.predicted_values || []
-          );
-          setResiduals(data.metrics.residuals_plot.residuals || []);
+
+          setPredictedValues(predictedValues);
+          setResiduals(residualsData);
+
+          // If no heatmap is present, show residual plot automatically
+          if (!data.metrics?.multicollinearity_heatmap) {
+            console.log(
+              "No heatmap received, switching to residual plot visualization"
+            );
+            setSelectedVisualization("residual_plot");
+            // Force re-render
+            setChartKey((prev) => prev + 1);
+          }
+        } else {
+          console.log("No residual plot data in metrics");
         }
 
         // Set heatmap image if available
         if (data.metrics?.multicollinearity_heatmap) {
-          console.log("Multicollinearity heatmap received");
-          setHeatmapImage(
-            `data:image/png;base64,${data.metrics.multicollinearity_heatmap}`
+          console.log(
+            "Multicollinearity heatmap received - data length:",
+            data.metrics.multicollinearity_heatmap.length
           );
+
+          const heatmapData = `data:image/png;base64,${data.metrics.multicollinearity_heatmap}`;
+          setHeatmapImage(heatmapData);
+
+          // Set visualization to heatmap if California Housing dataset is selected
+          console.log("Switching to heatmap visualization");
+          setSelectedVisualization("heatmap");
+          // Force re-render
+          setChartKey((prev) => prev + 1);
+        } else {
+          console.log("No multicollinearity heatmap in metrics");
         }
       }
     });
@@ -5069,16 +5122,27 @@ const NewBuildPage = (): JSX.Element => {
           </div>
         );
       case "heatmap":
+        console.log(
+          "Rendering heatmap visualization with image:",
+          heatmapImage ? "available" : "not available",
+          "- chartKey:",
+          chartKey
+        );
         return (
           <div className="visualization-container">
             <h4>Multicollinearity Heatmap</h4>
             <div
               className="chart-container"
-              style={{ height: "auto", minHeight: "280px" }}
+              style={{
+                height: "auto",
+                minHeight: "280px",
+                overflow: "visible",
+              }}
             >
               {heatmapImage ? (
                 <div className="heatmap-container">
                   <img
+                    key={`heatmap-${chartKey}`}
                     src={heatmapImage}
                     alt="Multicollinearity Heatmap"
                     style={{
@@ -5087,19 +5151,14 @@ const NewBuildPage = (): JSX.Element => {
                       margin: "0 auto",
                       display: "block",
                     }}
+                    onLoad={() =>
+                      console.log("Heatmap image loaded successfully")
+                    }
+                    onError={(e) => {
+                      console.error("Error loading heatmap image:", e);
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
                   />
-                  {rmse !== null && r2 !== null && (
-                    <div className="regression-metrics">
-                      <div className="metric-item">
-                        <span className="metric-label">RMSE:</span>
-                        <span className="metric-value">{rmse.toFixed(4)}</span>
-                      </div>
-                      <div className="metric-item">
-                        <span className="metric-label">R² Score:</span>
-                        <span className="metric-value">{r2.toFixed(4)}</span>
-                      </div>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="empty-chart">
@@ -5163,12 +5222,83 @@ const NewBuildPage = (): JSX.Element => {
           </div>
         );
       case "residual_plot":
+        console.log(
+          "Rendering residual plot with data - Residuals:",
+          residuals?.length || 0,
+          "Predicted values:",
+          predictedValues?.length || 0,
+          "- chartKey:",
+          chartKey
+        );
+
+        // Create residual plot data
+        const residualPlotData = {
+          datasets: [
+            {
+              label: "Residuals",
+              data: predictedValues.map((pred, index) => ({
+                x: pred,
+                y: residuals[index],
+              })),
+              backgroundColor: "rgba(255, 159, 64, 0.2)",
+              borderColor: "rgba(255, 159, 64, 1)",
+              borderWidth: 1,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              showLine: false,
+            },
+          ],
+        };
+
+        const residualPlotOptions = {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: true },
+            tooltip: { enabled: true },
+          },
+          scales: {
+            x: {
+              type: "linear" as const,
+              position: "bottom" as const,
+              title: {
+                display: true,
+                text: "Predicted Values",
+              },
+            },
+            y: {
+              title: {
+                display: true,
+                text: "Residuals (Actual - Predicted)",
+              },
+            },
+          },
+        };
+
         return (
           <div className="visualization-container">
             <h4>Residual Plot</h4>
-            <div className="placeholder-visualization">
-              <p>Residual plot will be shown here after training</p>
-              <div className="residual-placeholder"></div>
+            <div
+              className="chart-container"
+              style={{
+                height: "400px",
+                minHeight: "280px",
+                overflow: "visible",
+              }}
+            >
+              {residuals.length > 0 && predictedValues.length > 0 ? (
+                <div className="residual-plot-container">
+                  <Scatter
+                    key={`residual-plot-${chartKey}`}
+                    data={residualPlotData}
+                    options={residualPlotOptions}
+                  />
+                </div>
+              ) : (
+                <div className="empty-chart">
+                  <p>Train the model to generate a residual plot</p>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -5433,6 +5563,9 @@ const NewBuildPage = (): JSX.Element => {
 
   // Render the training metrics that will be displayed on the right
   const renderTrainingMetrics = () => {
+    // Check if this is a regression dataset (California Housing)
+    const isRegressionDataset = selectedDataset === "California Housing";
+
     return (
       <div className="training-metrics-card">
         <div className="metrics-header">
@@ -5483,9 +5616,10 @@ const NewBuildPage = (): JSX.Element => {
           </div>
         </div>
 
-        {/* Metrics Grid - Compact Layout */}
-        <div className="metrics-compact-grid">
+        {/* Consolidated Metrics Section */}
+        <div className="metrics-section">
           <div className="metrics-row">
+            {/* Loss and Val Loss Metrics */}
             <div className="metric-compact-item">
               <div className="metric-icon">
                 <i className="fas fa-chart-line"></i>
@@ -5505,26 +5639,6 @@ const NewBuildPage = (): JSX.Element => {
             </div>
             <div className="metric-compact-item">
               <div className="metric-icon">
-                <i className="fas fa-bullseye"></i>
-              </div>
-              <div className="metric-content">
-                <div className="metric-label">Accuracy</div>
-                <div
-                  className={`metric-value ${
-                    trainingProgress.accuracy > 0 ? "good" : "na"
-                  }`}
-                >
-                  {trainingProgress.accuracy > 0
-                    ? (trainingProgress.accuracy * 100).toFixed(2) + "%"
-                    : "—"}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="metrics-row">
-            <div className="metric-compact-item">
-              <div className="metric-icon">
                 <i className="fas fa-chart-area"></i>
               </div>
               <div className="metric-content">
@@ -5540,24 +5654,83 @@ const NewBuildPage = (): JSX.Element => {
                 </div>
               </div>
             </div>
-            <div className="metric-compact-item">
-              <div className="metric-icon">
-                <i className="fas fa-check-circle"></i>
-              </div>
-              <div className="metric-content">
-                <div className="metric-label">Val Accuracy</div>
-                <div
-                  className={`metric-value ${
-                    trainingProgress.valAccuracy > 0 ? "good" : "na"
-                  }`}
-                >
-                  {trainingProgress.valAccuracy > 0
-                    ? (trainingProgress.valAccuracy * 100).toFixed(2) + "%"
-                    : "—"}
-                </div>
-              </div>
-            </div>
           </div>
+
+          {/* Conditional row for Regression or Classification metrics */}
+          {((isRegressionDataset && (rmse !== null || r2 !== null)) ||
+            (!isRegressionDataset &&
+              (trainingProgress.accuracy > 0 ||
+                trainingProgress.valAccuracy > 0))) && (
+            <div className="metrics-row mt-2">
+              {/* Regression Metrics */}
+              {isRegressionDataset ? (
+                <>
+                  {rmse !== null && (
+                    <div className="metric-compact-item">
+                      <div className="metric-icon">
+                        <i className="fas fa-ruler"></i>
+                      </div>
+                      <div className="metric-content">
+                        <div className="metric-label">RMSE</div>
+                        <div className="metric-value warning">
+                          {rmse.toFixed(4)}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {r2 !== null && (
+                    <div className="metric-compact-item">
+                      <div className="metric-icon">
+                        <i className="fas fa-percentage"></i>
+                      </div>
+                      <div className="metric-content">
+                        <div className="metric-label">R² Score</div>
+                        <div className="metric-value good">{r2.toFixed(4)}</div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="metric-compact-item">
+                    <div className="metric-icon">
+                      <i className="fas fa-bullseye"></i>
+                    </div>
+                    <div className="metric-content">
+                      <div className="metric-label">Accuracy</div>
+                      <div
+                        className={`metric-value ${
+                          trainingProgress.accuracy > 0 ? "good" : "na"
+                        }`}
+                      >
+                        {trainingProgress.accuracy > 0
+                          ? (trainingProgress.accuracy * 100).toFixed(2) + "%"
+                          : "—"}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="metric-compact-item">
+                    <div className="metric-icon">
+                      <i className="fas fa-check-circle"></i>
+                    </div>
+                    <div className="metric-content">
+                      <div className="metric-label">Val Accuracy</div>
+                      <div
+                        className={`metric-value ${
+                          trainingProgress.valAccuracy > 0 ? "good" : "na"
+                        }`}
+                      >
+                        {trainingProgress.valAccuracy > 0
+                          ? (trainingProgress.valAccuracy * 100).toFixed(2) +
+                            "%"
+                          : "—"}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Weights & Biases Button - Compact Version */}
@@ -5596,6 +5769,56 @@ const NewBuildPage = (): JSX.Element => {
       </div>
     );
   };
+
+  // Add a useEffect hook to log when visualization changes
+  useEffect(() => {
+    console.log("Selected visualization changed to:", selectedVisualization);
+
+    // If California Housing is selected, check available visualization data
+    if (selectedDataset === "California Housing") {
+      console.log("California Housing dataset - Visualization state:", {
+        selectedVisualization,
+        heatmapAvailable: heatmapImage !== null,
+        residualPlotAvailable:
+          residuals.length > 0 && predictedValues.length > 0,
+        rmseValue: rmse,
+        r2Value: r2,
+      });
+
+      // Force selection of appropriate visualization if data is available but not showing
+      if (
+        heatmapImage &&
+        selectedVisualization !== "heatmap" &&
+        (!residuals.length || !predictedValues.length)
+      ) {
+        console.log(
+          "Heatmap data available but not showing - switching to heatmap visualization"
+        );
+        setSelectedVisualization("heatmap");
+      } else if (
+        residuals.length > 0 &&
+        predictedValues.length > 0 &&
+        !heatmapImage &&
+        selectedVisualization !== "residual_plot"
+      ) {
+        console.log(
+          "Residual plot data available but not showing - switching to residual plot visualization"
+        );
+        setSelectedVisualization("residual_plot");
+      }
+    }
+
+    // Return void or cleanup function
+    return;
+  }, [
+    selectedVisualization,
+    selectedDataset,
+    heatmapImage,
+    residuals,
+    predictedValues,
+    rmse,
+    r2,
+  ]);
 
   return (
     <div className="new-build-page">
@@ -5718,20 +5941,29 @@ const NewBuildPage = (): JSX.Element => {
                   </select>
                 </div>
               </div>
-              {renderVisualization()}
-              {(isTraining || labels.length > 0) && (
-                <div className="visualization-metrics">
-                  {renderTrainingMetrics()}
-                </div>
-              )}
+              {/* Visualization content - Render before metrics to ensure proper display */}
+              <div className="visualization-content">
+                {renderVisualization()}
+              </div>
 
-              <div className="visualization-back-button-container">
-                <button
-                  className="visualization-back-button"
-                  onClick={handleBackButtonClick}
-                >
-                  <i className="fas fa-arrow-left"></i> Back
-                </button>
+              {/* Training metrics and back button in a single container */}
+              <div className="metrics-and-controls-container">
+                {/* Training metrics */}
+                {(isTraining || labels.length > 0) && (
+                  <div className="training-metrics-container">
+                    {renderTrainingMetrics()}
+                  </div>
+                )}
+
+                {/* Back button */}
+                <div className="visualization-back-button-container">
+                  <button
+                    className="visualization-back-button"
+                    onClick={handleBackButtonClick}
+                  >
+                    <i className="fas fa-arrow-left"></i> Back
+                  </button>
+                </div>
               </div>
             </div>
           ) : (

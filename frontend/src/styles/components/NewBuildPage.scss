@@ -1976,6 +1976,33 @@
   align-items: center;
   width: 100%;
   padding: 10px 0;
+  overflow: visible;
+}
+
+.heatmap-container img {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Residual plot styles */
+.residual-plot-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 10px 0;
+  overflow: visible;
+  height: 100%;
+}
+
+.residual-plot-container canvas {
+  max-width: 100%;
+  height: auto !important;
+  border-radius: 4px;
+  margin-bottom: 10px;
 }
 
 .regression-metrics {
@@ -6665,4 +6692,415 @@
 }
 
 // ... existing code ...
+
+/* Regression metrics section in training status */
+.regression-metrics-section {
+  background-color: #f8fafc;
+  border-radius: 8px;
+  padding: 14px 15px;
+  margin: 12px 0;
+  border: 1px solid #bae6fd;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.regression-metrics-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0369a1;
+  margin-bottom: 12px;
+  text-align: center;
+  border-bottom: 1px solid #bae6fd;
+  padding-bottom: 8px;
+}
+
+/* Enhanced metric styling for regression metrics */
+.regression-metrics-section .metric-compact-item {
+  border-radius: 6px;
+  transition: transform 0.15s ease;
+  padding: 4px 0;
+}
+
+.regression-metrics-section .metric-compact-item:hover {
+  transform: translateY(-2px);
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+.regression-metrics-section .metric-icon {
+  color: #0284c7;
+}
+
+.regression-metrics-section .metric-label {
+  font-weight: 500;
+  color: #0369a1;
+}
+
+.regression-metrics-section .metric-value.warning {
+  color: #ea580c;
+  font-weight: 600;
+}
+
+.regression-metrics-section .metric-value.good {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+/* Shared styles for all metrics sections */
+.metrics-section,
+.regression-metrics-section,
+.classification-metrics-section {
+  background-color: #f0f9ff;
+  border-radius: 8px;
+  padding: 14px 15px;
+  margin: 12px 0;
+  border: 1px solid #bae6fd;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.metrics-title,
+.regression-metrics-title,
+.classification-metrics-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0369a1;
+  margin-bottom: 12px;
+  text-align: center;
+  border-bottom: 1px solid #bae6fd;
+  padding-bottom: 8px;
+}
+
+/* Specific colors for different metric sections */
+.metrics-title {
+  color: #0369a1; /* Blue for general training metrics */
+}
+
+.regression-metrics-title {
+  color: #0c4a6e; /* Darker blue for regression metrics */
+}
+
+.classification-metrics-title {
+  color: #1e40af; /* Purple-blue for classification metrics */
+}
+
+/* Styling for metric items in all sections */
+.metrics-section .metric-compact-item,
+.regression-metrics-section .metric-compact-item,
+.classification-metrics-section .metric-compact-item {
+  border-radius: 6px;
+  transition: transform 0.15s ease;
+  padding: 4px 0;
+}
+
+.metrics-section .metric-compact-item:hover,
+.regression-metrics-section .metric-compact-item:hover,
+.classification-metrics-section .metric-compact-item:hover {
+  transform: translateY(-2px);
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+/* Icon colors for different sections */
+.metrics-section .metric-icon {
+  color: #0284c7; /* Blue for general metrics */
+}
+
+.regression-metrics-section .metric-icon {
+  color: #0c4a6e; /* Darker blue for regression metrics */
+}
+
+.classification-metrics-section .metric-icon {
+  color: #1e40af; /* Purple-blue for classification metrics */
+}
+
+/* Label styling */
+.metrics-section .metric-label,
+.regression-metrics-section .metric-label,
+.classification-metrics-section .metric-label {
+  font-weight: 500;
+}
+
+/* Value styling */
+.metric-value.warning {
+  color: #ea580c;
+  font-weight: 600;
+}
+
+.metric-value.good {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.metric-value.na {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* Shared styles for all metrics sections */
+.metrics-section {
+  background-color: #f0f9ff;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 10px 0;
+  border: 1px solid #bae6fd;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.metrics-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.metrics-row.mt-2 {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(186, 230, 253, 0.5);
+}
+
+.metric-compact-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.metric-compact-item:hover {
+  transform: translateY(-2px);
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+.metric-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0284c7;
+  font-size: 0.9rem;
+}
+
+.metric-content {
+  flex: 1;
+}
+
+.metric-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #64748b;
+  margin-bottom: 2px;
+}
+
+.metric-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.metric-value.warning {
+  color: #ea580c;
+}
+
+.metric-value.good {
+  color: #16a34a;
+}
+
+.metric-value.na {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* Remove old separate sections styles */
+.regression-metrics-section,
+.classification-metrics-section {
+  display: none; /* Hide these sections as they're now consolidated */
+}
+
+/* Training metrics card more compact */
+.training-metrics-card {
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.metrics-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 15px;
+  background: linear-gradient(to right, #0f172a, #1e293b);
+  color: white;
+}
+
+.metrics-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  flex: 1;
+}
+
+.metrics-header i {
+  color: #93c5fd;
+  font-size: 1rem;
+}
+
+/* Make progress container more compact */
+.progress-container {
+  padding: 10px 15px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.progress-info {
+  margin-bottom: 6px;
+}
+
+.progress-bar-container {
+  height: 8px;
+}
+
+/* Training status indicator more compact */
+.training-status-indicator {
+  padding: 8px 15px;
+  border-top: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.status-badge i {
+  color: #0ea5e9;
+}
+
+/* W&B button more compact */
+.wandb-controls-compact {
+  padding: 8px 10px;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* Visualization Content and Training Metrics Layout */
+.visualization-content {
+  width: 100%;
+  min-height: 350px; /* Reduced from 400px */
+  margin-bottom: 5px; /* Reduced from 10px to 5px */
+  position: relative;
+  z-index: 2; /* Ensure visualizations are above other elements */
+}
+
+.training-metrics-container {
+  width: 100%;
+  position: relative;
+  z-index: 1;
+  margin-top: 0;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 10px; /* Reduced from 15px to 10px */
+  overflow: visible; /* Allow metrics to be fully visible */
+}
+
+/* Visualization Section */
+.visualization-section {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 15px 20px; /* Reduced top/bottom padding from 20px to 15px */
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.visualization-section h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 15px; /* Reduced from 20px to 15px */
+  text-align: center;
+  position: relative;
+}
+
+.visualization-section h3::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(to right, #0ea5e9, #2563eb);
+  border-radius: 3px;
+}
+
+/* Ensure residual plot and heatmap are visible */
+.residual-plot-container,
+.heatmap-container {
+  width: 100%;
+  min-height: 400px;
+  position: relative;
+  z-index: 5;
+}
+
+.residual-plot-container canvas,
+.heatmap-container img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Adjust back button spacing */
+.visualization-back-button-container {
+  margin-top: 0; /* Removed margin */
+  padding-top: 0; /* Removed padding */
+  border-top: none; /* Removed border */
+}
+
+.visualization-back-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #334155;
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: auto;
+  margin: 0 auto; /* Center the button */
+}
+
+.visualization-back-button:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+/* Make training metrics card more compact */
+.training-metrics-card {
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  margin-bottom: 5px; /* Reduced from 10px to 5px */
+}
+
+/* Metrics and Controls Container */
+.metrics-and-controls-container {
+  display: flex;
+  flex-direction: column;
+  gap: 5px; /* Very small gap between metrics and back button */
+  margin-top: 0;
+  padding-top: 0;
+}
+
+/* Visualization Section */
+.visualization-section {
+  position: relative;
+}
 
