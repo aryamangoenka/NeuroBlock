@@ -152,11 +152,19 @@ def export_model(format):
         trained_model_path = current_app.config.get('TRAINED_MODEL_PATH')
         model_architecture_file = current_app.config.get('MODEL_ARCHITECTURE_FILE')
         
+        # Log paths for debugging
+        logger.debug(f"Export paths: export_folder={export_folder}, trained_model_path={trained_model_path}, model_architecture_file={model_architecture_file}")
+        
         # Make sure the export directory exists
         os.makedirs(export_folder, exist_ok=True)
         
+        # Initialize variables with safe defaults
+        dataset_name = ""
+        model_architecture = {}
+        
         # Check if the saved model exists
         trained_model_exists = os.path.exists(trained_model_path)
+        logger.debug(f"Trained model exists: {trained_model_exists}")
         
         # If the trained model doesn't exist, try to use the saved architecture to create a model
         if not trained_model_exists:
@@ -164,7 +172,7 @@ def export_model(format):
             
             # Check if model architecture exists
             if not os.path.exists(model_architecture_file):
-                logger.error("No model architecture found for export")
+                logger.error(f"No model architecture found for export at path: {model_architecture_file}")
                 return jsonify({"error": "No model found. Please create and save a model first."}), 400
             
             # Load the model architecture
@@ -175,11 +183,26 @@ def export_model(format):
                 logger.error("Model architecture is empty or invalid")
                 return jsonify({"error": "Model architecture is invalid. Please create a valid model."}), 400
             
-            # Create a dummy dataset shape if needed
-            dummy_shape = x_train_shape if x_train_shape is not None else (None, 28, 28, 1)  # Default MNIST-like shape
-            
             # Get dataset name
             dataset_name = model_architecture.get("dataset", "")
+            
+            # Create a default shape based on the dataset
+            if dataset_name == "MNIST":
+                default_shape = (None, 28, 28, 1)
+            elif dataset_name == "CIFAR-10":
+                default_shape = (None, 32, 32, 3)
+            elif dataset_name in ["Iris", "Breast Cancer", "California Housing"]:
+                # Get the input size from the model architecture
+                input_size = next((node.get("params", {}).get("units", 4) 
+                                for node in model_architecture.get("nodes", [])
+                                if node.get("type") == "Input"), 4)
+                default_shape = (None, input_size)
+            else:
+                default_shape = (None, 28, 28, 1)  # Default to MNIST-like shape
+            
+            # Use x_train_shape if available, otherwise use the default shape
+            dummy_shape = x_train_shape if (x_train_shape and len(x_train_shape) > 0) else default_shape
+            logger.debug(f"Using shape for model building: {dummy_shape}")
             
             # Build model from architecture
             try:
@@ -197,14 +220,30 @@ def export_model(format):
             model = tf.keras.models.load_model(trained_model_path, compile=False)
         
         # Get the dataset name from the latest training config or model architecture
-        dataset_name = latest_training_config.get("dataset", "")
-        if not dataset_name and os.path.exists(model_architecture_file):
-            with open(model_architecture_file, "r") as f:
-                model_arch = json.load(f)
-                dataset_name = model_arch.get("dataset", "")
+        config_dataset = latest_training_config.get("dataset", "")
+        if config_dataset:
+            dataset_name = config_dataset
+        elif not dataset_name and os.path.exists(model_architecture_file):
+            try:
+                with open(model_architecture_file, "r") as f:
+                    model_arch = json.load(f)
+                    dataset_name = model_arch.get("dataset", "")
+            except Exception as e:
+                logger.warning(f"Could not load dataset name from model architecture: {str(e)}")
         
         logger.debug(f"Dataset for export: {dataset_name}")
-
+        
+        # Create a safe training config
+        safe_training_config = latest_training_config.copy() if latest_training_config else {}
+        if not safe_training_config.get("dataset") and dataset_name:
+            safe_training_config["dataset"] = dataset_name
+        
+        # Get model input shape, with fallback
+        try:
+            model_input_shape = model.input_shape
+        except:
+            model_input_shape = dummy_shape if 'dummy_shape' in locals() else default_shape if 'default_shape' in locals() else (None, 28, 28, 1)
+        
         # Use the architecture and model for export operations
         # Export according to the requested format
         if format == "py":
@@ -216,7 +255,7 @@ def export_model(format):
             
             # Make sure the file exists
             with open(file_path, "w") as f:
-                f.write(generate_python_script(model, latest_training_config or {"dataset": dataset_name}, x_train_shape or model.input_shape))
+                f.write(generate_python_script(model, safe_training_config, model_input_shape))
             logger.info(f"Python script saved to {file_path}")
             
             # Check if file exists after writing
@@ -232,7 +271,7 @@ def export_model(format):
             logger.info("Generating Jupyter notebook")
             file_path = os.path.join(export_folder, "trained_model.ipynb")
             with open(file_path, "w") as f:
-                f.write(generate_notebook(model, latest_training_config or {"dataset": dataset_name}, x_train_shape or model.input_shape))
+                f.write(generate_notebook(model, safe_training_config, model_input_shape))
             logger.info(f"Jupyter notebook saved to {file_path}")
             # Use absolute path for send_file
             return send_file(os.path.abspath(file_path), as_attachment=True)
@@ -379,7 +418,7 @@ model.load_weights('weights.h5')
             # Approach 1: Try to save with tf.saved_model.save and custom signatures
             try:
                 logger.debug("Attempting to save model with tf.saved_model.save and custom signatures")
-                # Define serving signature with explicit tensor conversion to avoid __dict__ descriptor issues
+                # Define serving signature with explicit tensor conversion to avoid descriptor issues
                 @tf.function
                 def serving_fn(inputs):
                     # Convert inputs to tensor explicitly to avoid descriptor issues
@@ -387,7 +426,7 @@ model.load_weights('weights.h5')
                     return {"outputs": model(inputs_tensor, training=False)}
                 
                 # Create input signature separately
-                input_signature = [tf.TensorSpec(shape=model.input_shape, dtype=tf.float32, name="inputs")]
+                input_signature = [tf.TensorSpec(shape=model_input_shape, dtype=tf.float32, name="inputs")]
                 
                 # Get the concrete function
                 concrete_serving_fn = serving_fn.get_concrete_function(*input_signature)
@@ -410,18 +449,18 @@ model.load_weights('weights.h5')
                 logger.warning(f"Could not save with approach 1: {str(e)}")
             
             # Approach 2: If approach 1 failed, try rebuilding the model
-            if not success:
+            if not success and os.path.exists(model_architecture_file):
                 try:
                     logger.debug("Attempting to save model by rebuilding from architecture")
                     # Get the model architecture from the saved file
                     with open(model_architecture_file, "r") as f:
-                        model_architecture = json.load(f)
+                        rebuild_arch = json.load(f)
                     
                     # Build a fresh model from the architecture
                     from backend.models.builder import build_model_from_architecture
                     fresh_model = build_model_from_architecture(
-                        model_architecture, 
-                        x_train_shape, 
+                        rebuild_arch, 
+                        model_input_shape, 
                         dataset_name
                     )
                     
@@ -578,26 +617,24 @@ Please use the 'load_model.py' script in the 'weights_only' directory to load th
         elif format == "pytorch":
             logger.info("Exporting to PyTorch format")
             # Convert Keras model to PyTorch manually
-            pytorch_script = generate_pytorch_script(model, latest_training_config or {"dataset": dataset_name}, x_train_shape or model.input_shape)
+            pytorch_script = generate_pytorch_script(model, safe_training_config, model_input_shape)
 
             # Save to a file
             file_path = os.path.join(export_folder, "trained_model_pytorch.py")
             with open(file_path, "w") as f:
                 f.write(pytorch_script)
+            logger.info(f"PyTorch script saved to {file_path}")
             
-            logger.info(f"PyTorch model saved to {file_path}")
             # Use absolute path for send_file
             return send_file(os.path.abspath(file_path), as_attachment=True)
             
         else:
-            logger.warning(f"Unsupported export format requested: {format}")
-            return jsonify({"error": f"Unsupported format: {format}"}), 400
+            logger.warning(f"Unsupported export format: {format}")
+            return jsonify({"error": f"Unsupported export format: {format}"}), 400
 
     except Exception as e:
-        import traceback
-        traceback_str = traceback.format_exc()
-        logger.error(f"Export error: {str(e)}", extra={"context": {"traceback": traceback_str}}, exc_info=True)
-        return jsonify({"error": str(e), "traceback": traceback_str}), 500
+        logger.error(f"Error in export_model: {str(e)}", exc_info=True)
+        return jsonify({"error": f"Export failed: {str(e)}"}), 500
 
 @api_blueprint.route("/clear_model", methods=["POST"])
 def redirect_clear_model():

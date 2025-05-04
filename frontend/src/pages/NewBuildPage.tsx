@@ -123,6 +123,9 @@ const NewBuildPage = (): JSX.Element => {
   // Socket.io reference
   const socketRef = useRef<Socket | null>(null);
 
+  // Reference to track if visualization was manually selected by user
+  const visualizationUserSelected = useRef<boolean>(false);
+
   // State to track which sidebar option is active
   const [activeSidebarOption, setActiveSidebarOption] =
     useState<SidebarOption>("layers");
@@ -132,7 +135,7 @@ const NewBuildPage = (): JSX.Element => {
 
   // State to track the selected visualization
   const [selectedVisualization, setSelectedVisualization] =
-    useState<string>("accuracy");
+    useState<string>("loss"); // Default to loss view instead of accuracy
 
   // Add these state variables with the other useState declarations
   const [showValidationErrors, setShowValidationErrors] =
@@ -244,7 +247,21 @@ const NewBuildPage = (): JSX.Element => {
     ].includes(selectedDataset || "");
 
     if (isClassificationDataset) {
+      // Add accuracy at the beginning for classification datasets
       defaultOptions.unshift({ value: "accuracy", label: "Accuracy" });
+
+      // If no visualization is explicitly set, default to accuracy for classification
+      if (
+        selectedVisualization === "loss" &&
+        !visualizationUserSelected.current
+      ) {
+        setTimeout(() => setSelectedVisualization("accuracy"), 0);
+      }
+    } else {
+      // For regression datasets, make sure we're not showing accuracy
+      if (selectedVisualization === "accuracy") {
+        setTimeout(() => setSelectedVisualization("loss"), 0);
+      }
     }
 
     // Dataset-specific options that are currently supported
@@ -351,6 +368,10 @@ const NewBuildPage = (): JSX.Element => {
     // Listen for training complete
     socket.on("training_complete", (data) => {
       console.log("Training complete:", data.message);
+      console.log(
+        "FULL TRAINING COMPLETE DATA:",
+        JSON.stringify(data, null, 2)
+      );
       setIsTraining(false);
 
       // Check for confusion matrix data
@@ -368,6 +389,18 @@ const NewBuildPage = (): JSX.Element => {
       // California Housing specific metrics
       if (selectedDataset === "California Housing") {
         console.log("Processing California Housing specific metrics");
+
+        // Debug California Housing visualizations specifically
+        console.log("California Housing DEBUG:", {
+          hasRMSE: !!data.metrics?.rmse,
+          hasR2: !!data.metrics?.r2,
+          hasResidualsPlot: !!data.metrics?.residuals_plot,
+          residualsLength: data.metrics?.residuals_plot?.residuals?.length || 0,
+          predictedValuesLength:
+            data.metrics?.residuals_plot?.predicted_values?.length || 0,
+          hasHeatmap: !!data.metrics?.multicollinearity_heatmap,
+          heatmapLength: data.metrics?.multicollinearity_heatmap?.length || 0,
+        });
 
         // Set RMSE and R2 score if available
         if (data.metrics?.rmse) {
@@ -402,11 +435,25 @@ const NewBuildPage = (): JSX.Element => {
           // If no heatmap is present, show residual plot automatically
           if (!data.metrics?.multicollinearity_heatmap) {
             console.log(
-              "No heatmap received, switching to residual plot visualization"
+              "No heatmap received, checking if we should switch to residual plot"
             );
-            setSelectedVisualization("residual_plot");
-            // Force re-render
-            setChartKey((prev) => prev + 1);
+
+            const shouldSwitchToResidualPlot =
+              selectedDataset === "California Housing" &&
+              !["heatmap", "residual_plot"].includes(selectedVisualization);
+
+            if (shouldSwitchToResidualPlot) {
+              console.log(
+                "Switching to residual plot (user didn't select a specific view yet)"
+              );
+              setSelectedVisualization("residual_plot");
+              // Force re-render
+              setChartKey((prev) => prev + 1);
+            } else {
+              console.log(
+                `Keeping current visualization: ${selectedVisualization} (user selection preserved)`
+              );
+            }
           }
         } else {
           console.log("No residual plot data in metrics");
@@ -422,9 +469,22 @@ const NewBuildPage = (): JSX.Element => {
           const heatmapData = `data:image/png;base64,${data.metrics.multicollinearity_heatmap}`;
           setHeatmapImage(heatmapData);
 
-          // Set visualization to heatmap if California Housing dataset is selected
-          console.log("Switching to heatmap visualization");
-          setSelectedVisualization("heatmap");
+          // Only switch to heatmap if California Housing dataset is selected AND user hasn't already chosen a visualization
+          const shouldSwitchToHeatmap =
+            selectedDataset === "California Housing" &&
+            !["heatmap", "residual_plot"].includes(selectedVisualization);
+
+          if (shouldSwitchToHeatmap) {
+            console.log(
+              "Switching to heatmap visualization (user didn't select a specific view yet)"
+            );
+            setSelectedVisualization("heatmap");
+          } else {
+            console.log(
+              `Keeping current visualization: ${selectedVisualization} (user selection preserved)`
+            );
+          }
+
           // Force re-render
           setChartKey((prev) => prev + 1);
         } else {
@@ -5047,20 +5107,30 @@ const NewBuildPage = (): JSX.Element => {
 
   // Render visualization based on selected option
   const renderVisualization = () => {
-    if (!selectedDataset) {
-      return (
-        <div className="visualization-placeholder">
-          <p>Select a dataset to view visualizations</p>
-        </div>
-      );
-    }
+    console.log("Rendering visualization:", selectedVisualization, {
+      heatmapStatus: heatmapImage
+        ? `Available (${heatmapImage.substring(0, 50)}...)`
+        : "Not available",
+      residualStatus: {
+        residuals: residuals.length,
+        predictedValues: predictedValues.length,
+      },
+      datasetSelected: selectedDataset,
+      chartKey: chartKey,
+    });
 
     switch (selectedVisualization) {
       case "accuracy":
         return (
           <div className="visualization-container">
             <h4>Accuracy Over Time</h4>
-            <div className="chart-container">
+            <div
+              className="chart-container"
+              style={{
+                height: "280px",
+                overflow: "visible",
+              }}
+            >
               {isTraining || labels.length > 0 ? (
                 <Line
                   key={`accuracy-chart-${chartKey}`}
@@ -5080,7 +5150,13 @@ const NewBuildPage = (): JSX.Element => {
         return (
           <div className="visualization-container">
             <h4>Loss Over Time</h4>
-            <div className="chart-container">
+            <div
+              className="chart-container"
+              style={{
+                height: "280px",
+                overflow: "visible",
+              }}
+            >
               {isTraining || labels.length > 0 ? (
                 <Line
                   key={`loss-chart-${chartKey}`}
@@ -5134,7 +5210,7 @@ const NewBuildPage = (): JSX.Element => {
             <div
               className="chart-container"
               style={{
-                height: "auto",
+                height: "280px", // Changed from auto to 280px to match other visualization containers
                 minHeight: "280px",
                 overflow: "visible",
               }}
@@ -5281,7 +5357,7 @@ const NewBuildPage = (): JSX.Element => {
             <div
               className="chart-container"
               style={{
-                height: "400px",
+                height: "280px", // Changed from 400px to 280px to match other visualization containers
                 minHeight: "280px",
                 overflow: "visible",
               }}
@@ -5570,7 +5646,13 @@ const NewBuildPage = (): JSX.Element => {
       <div className="training-metrics-card">
         <div className="metrics-header">
           <i className="fas fa-chart-bar"></i>
-          <h3>Training Status</h3>
+          <h3>
+            {isTraining
+              ? "Training in Progress"
+              : trainingProgress.currentEpoch > 0
+              ? "Training Complete"
+              : "Training Status"}
+          </h3>
           {isTraining && (
             <div className="training-pulse-indicator">
               <div className="pulse-dot"></div>
@@ -5752,20 +5834,6 @@ const NewBuildPage = (): JSX.Element => {
             </a>
           </div>
         )}
-
-        {/* Training status indicator */}
-        <div className="training-status-indicator">
-          <div className="status-badge">
-            <i
-              className={`fas ${
-                isTraining ? "fa-sync fa-spin" : "fa-check-circle"
-              }`}
-            ></i>
-            <span>
-              {isTraining ? "Training in progress" : "Training complete"}
-            </span>
-          </div>
-        </div>
       </div>
     );
   };
@@ -5929,8 +5997,10 @@ const NewBuildPage = (): JSX.Element => {
                   <select
                     id="visualization-select"
                     value={selectedVisualization}
-                    onChange={(e) => setSelectedVisualization(e.target.value)}
-                    disabled={!selectedDataset}
+                    onChange={(e) => {
+                      visualizationUserSelected.current = true;
+                      setSelectedVisualization(e.target.value);
+                    }}
                     className="visualization-select"
                   >
                     {getVisualizationOptions().map((option) => (

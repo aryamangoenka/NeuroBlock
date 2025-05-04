@@ -1977,6 +1977,7 @@
   width: 100%;
   padding: 10px 0;
   overflow: visible;
+  height: 280px; /* Added explicit height to match chart-container */
 }
 
 .heatmap-container img {
@@ -1995,7 +1996,7 @@
   width: 100%;
   padding: 10px 0;
   overflow: visible;
-  height: 100%;
+  height: 280px; /* Changed from 100% to 280px to match chart-container */
 }
 
 .residual-plot-container canvas {
@@ -7039,7 +7040,7 @@
 .residual-plot-container,
 .heatmap-container {
   width: 100%;
-  min-height: 400px;
+  min-height: 240px; /* Changed from 400px to 280px to match chart-container */
   position: relative;
   z-index: 5;
 }
@@ -7102,5 +7103,29 @@
 /* Visualization Section */
 .visualization-section {
   position: relative;
+}
+
+/* Fix for visualization containers */
+.heatmap-container, .residual-plot-container {
+  position: relative !important;
+  z-index: 100 !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 280px !important; /* Changed from 400px to 280px to match chart-container */
+  display: block !important;
+}
+
+.heatmap-container img, .residual-plot-container canvas {
+  display: block !important;
+  max-width: 100% !important;
+  height: auto !important;
+  position: relative !important;
+  z-index: 101 !important;
+}
+
+.chart-container {
+  overflow: visible !important;
+  position: relative !important;
+  z-index: 10 !important;
 }
 
