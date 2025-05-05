@@ -942,20 +942,30 @@ const NewBuildPage = (): JSX.Element => {
         saveButton.disabled = true;
       }
 
-      // Prepare model architecture
-      const modelArchitecture = {
-        nodes: nodes.map((node) => ({
-          id: node.id,
-          type: node.type,
-          position: node.position,
-          data: node.data,
-        })),
-        edges: edges.map((edge) => ({
-          id: edge.id,
-          source: edge.source,
-          target: edge.target,
-        })),
-        dataset: normalizeDatasetName(selectedDataset),
+      // Prepare model architecture and training configuration
+      const modelData = {
+        architecture: {
+          nodes: nodes.map((node) => ({
+            id: node.id,
+            type: node.type,
+            position: node.position,
+            data: node.data,
+          })),
+          edges: edges.map((edge) => ({
+            id: edge.id,
+            source: edge.source,
+            target: edge.target,
+          })),
+          dataset: normalizeDatasetName(selectedDataset),
+        },
+        training_config: {
+          epochs: trainingConfig.epochs,
+          batchSize: trainingConfig.batchSize,
+          optimizer: trainingConfig.optimizer,
+          lossFunction: trainingConfig.lossFunction,
+          learningRate: trainingConfig.learningRate,
+          validationSplit: trainingConfig.validationSplit,
+        },
       };
 
       // Make a POST request to the backend
@@ -964,7 +974,7 @@ const NewBuildPage = (): JSX.Element => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(modelArchitecture),
+        body: JSON.stringify(modelData),
       });
 
       // Reset button state
@@ -5497,7 +5507,7 @@ const NewBuildPage = (): JSX.Element => {
 
     try {
       const response = await axios.get(
-        `http://127.0.0.1:5000/export/${format}`,
+        `http://127.0.0.1:5000/api/export/${format}`,
         {
           responseType: "blob", // Important for file download
           timeout: 30000, // 30 seconds timeout

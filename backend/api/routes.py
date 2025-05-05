@@ -39,7 +39,7 @@ def redirect_save_model():
 @api_blueprint.route('/api/save_model', methods=["POST"])
 def save_model_api():
     """
-    Save the model architecture received from the frontend.
+    Save the model architecture and training configuration received from the frontend.
     """
     logger.info("Save model endpoint called")
     try:
@@ -50,94 +50,31 @@ def save_model_api():
 
         # Get paths from app config
         model_architecture_file = current_app.config.get('MODEL_ARCHITECTURE_FILE')
+        training_config_file = current_app.config.get('TRAINING_CONFIG_FILE')
 
         # Save model architecture to a file
         with open(model_architecture_file, "w") as f:
-            json.dump(data, f)
+            json.dump(data.get('architecture', {}), f)
         
-        logger.info("Model architecture saved successfully")
+        # Save training configuration to a file
+        with open(training_config_file, "w") as f:
+            json.dump(data.get('training_config', {}), f)
+        
+        logger.info("Model architecture and training configuration saved successfully")
             
         # Print ResNet model structure if ResNet blocks are present
-        nodes = data.get("nodes", [])
-        edges = data.get("edges", [])
+        nodes = data.get('architecture', {}).get("nodes", [])
+        edges = data.get('architecture', {}).get("edges", [])
         resnet_blocks = [node for node in nodes if node.get("type") == "resnetblock"]
         
-        if resnet_blocks:
-            logger.info("ResNet model structure detected", 
-                       extra={"context": {"resnet_blocks_count": len(resnet_blocks)}})
-            
-            # Create a dictionary of nodes by ID
-            nodes_by_id = {node["id"]: node for node in nodes}
-            
-            # Create an adjacency list representation of the graph
-            adjacency_list = {node["id"]: [] for node in nodes}
-            for edge in edges:
-                source_id = edge["source"]
-                target_id = edge["target"]
-                if source_id in adjacency_list:
-                    adjacency_list[source_id].append(target_id)
-            
-            # Find the input node
-            input_node = next((node for node in nodes if node["type"] == "input"), None)
-            if not input_node:
-                logger.warning("Input node not found in the model")
-                return jsonify({"message": "Model architecture saved successfully"}), 200
-                
-            # Build model structure using BFS traversal
-            logger.debug("Analyzing model structure")
-            
-            visited = set()
-            queue = [(input_node["id"], 0)]  # (node_id, depth)
-            
-            while queue:
-                node_id, depth = queue.pop(0)
-                
-                if node_id in visited:
-                    continue
-                    
-                visited.add(node_id)
-                node = nodes_by_id[node_id]
-                
-                # Log node information
-                if node["type"] == "resnetblock":
-                    block_type = node["data"].get("blockType", "Basic")
-                    filters = node["data"].get("filters", 64)
-                    stride = node["data"].get("stride", [1, 1])
-                    activation = node["data"].get("activation", "ReLU")
-                    
-                    logger.debug(f"ResNet Block: type={block_type}, filters={filters}, stride={stride}",
-                               extra={"context": {
-                                   "node_id": node_id,
-                                   "depth": depth,
-                                   "block_type": block_type,
-                                   "filters": filters,
-                                   "stride": stride
-                               }})
-                else:
-                    logger.debug(f"{node['type'].capitalize()} Layer",
-                               extra={"context": {
-                                   "node_id": node_id,
-                                   "depth": depth,
-                                   "layer_type": node['type']
-                               }})
-                
-                # Add children to the queue
-                for child_id in adjacency_list.get(node_id, []):
-                    queue.append((child_id, depth + 1))
-            
-            # Analyze ResNet architecture
-            logger.info("ResNet Architecture Analysis", 
-                       extra={"context": {
-                           "total_blocks": len(resnet_blocks),
-                           "basic_blocks": sum(1 for node in resnet_blocks if node["data"].get("blockType") == "Basic"),
-                           "bottleneck_blocks": sum(1 for node in resnet_blocks if node["data"].get("blockType") == "Bottleneck"),
-                           "has_batch_norm": any(node["type"] == "batchnormalization" for node in nodes)
-                       }})
+        return jsonify({
+            "message": "Model architecture and training configuration saved successfully",
+            "resnet_blocks": len(resnet_blocks)
+        }), 200
 
-        return jsonify({"message": "Model architecture saved successfully"}), 200
     except Exception as e:
-        logger.error(f"Error saving model architecture: {str(e)}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error in save_model_api: {str(e)}", exc_info=True)
+        return jsonify({"error": f"Failed to save model: {str(e)}"}), 500
 
 @api_blueprint.route('/export/<format>', methods=["GET"])
 def export_model(format):
@@ -151,9 +88,10 @@ def export_model(format):
         export_folder = current_app.config.get('EXPORT_FOLDER')
         trained_model_path = current_app.config.get('TRAINED_MODEL_PATH')
         model_architecture_file = current_app.config.get('MODEL_ARCHITECTURE_FILE')
+        training_config_file = current_app.config.get('TRAINING_CONFIG_FILE')
         
         # Log paths for debugging
-        logger.debug(f"Export paths: export_folder={export_folder}, trained_model_path={trained_model_path}, model_architecture_file={model_architecture_file}")
+        logger.debug(f"Export paths: export_folder={export_folder}, trained_model_path={trained_model_path}, model_architecture_file={model_architecture_file}, training_config_file={training_config_file}")
         
         # Make sure the export directory exists
         os.makedirs(export_folder, exist_ok=True)
@@ -161,6 +99,13 @@ def export_model(format):
         # Initialize variables with safe defaults
         dataset_name = ""
         model_architecture = {}
+        training_config = {}
+        
+        # Load the training configuration
+        if os.path.exists(training_config_file):
+            with open(training_config_file, "r") as f:
+                training_config = json.load(f)
+            logger.debug(f"Loaded training configuration: {training_config}")
         
         # Check if the saved model exists
         trained_model_exists = os.path.exists(trained_model_path)
@@ -220,7 +165,7 @@ def export_model(format):
             model = tf.keras.models.load_model(trained_model_path, compile=False)
         
         # Get the dataset name from the latest training config or model architecture
-        config_dataset = latest_training_config.get("dataset", "")
+        config_dataset = training_config.get("dataset", "")
         if config_dataset:
             dataset_name = config_dataset
         elif not dataset_name and os.path.exists(model_architecture_file):
@@ -232,11 +177,6 @@ def export_model(format):
                 logger.warning(f"Could not load dataset name from model architecture: {str(e)}")
         
         logger.debug(f"Dataset for export: {dataset_name}")
-        
-        # Create a safe training config
-        safe_training_config = latest_training_config.copy() if latest_training_config else {}
-        if not safe_training_config.get("dataset") and dataset_name:
-            safe_training_config["dataset"] = dataset_name
         
         # Get model input shape, with fallback
         try:
@@ -255,7 +195,7 @@ def export_model(format):
             
             # Make sure the file exists
             with open(file_path, "w") as f:
-                f.write(generate_python_script(model, safe_training_config, model_input_shape))
+                f.write(generate_python_script(model, training_config, model_input_shape))
             logger.info(f"Python script saved to {file_path}")
             
             # Check if file exists after writing
@@ -271,7 +211,7 @@ def export_model(format):
             logger.info("Generating Jupyter notebook")
             file_path = os.path.join(export_folder, "trained_model.ipynb")
             with open(file_path, "w") as f:
-                f.write(generate_notebook(model, safe_training_config, model_input_shape))
+                f.write(generate_notebook(model, training_config, model_input_shape))
             logger.info(f"Jupyter notebook saved to {file_path}")
             # Use absolute path for send_file
             return send_file(os.path.abspath(file_path), as_attachment=True)
@@ -617,7 +557,7 @@ Please use the 'load_model.py' script in the 'weights_only' directory to load th
         elif format == "pytorch":
             logger.info("Exporting to PyTorch format")
             # Convert Keras model to PyTorch manually
-            pytorch_script = generate_pytorch_script(model, safe_training_config, model_input_shape)
+            pytorch_script = generate_pytorch_script(model, training_config, model_input_shape)
 
             # Save to a file
             file_path = os.path.join(export_folder, "trained_model_pytorch.py")

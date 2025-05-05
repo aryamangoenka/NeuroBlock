@@ -23,50 +23,31 @@ def generate_python_script(model, training_config, x_train_shape):
     script = [
         "import tensorflow as tf",
         "import numpy as np",
-        "import wandb",
         "from tensorflow.keras.models import Sequential",
-        "from tensorflow.keras.layers import Dense, Conv2D, Flatten, Dropout, MaxPooling2D, BatchNormalization, Input, Reshape"
+        "from tensorflow.keras.layers import Dense, Conv2D, Flatten, Dropout, MaxPooling2D, BatchNormalization, Input, Reshape, Activation"
     ]
     
-    # Only add MultiHeadAttention and Lambda imports if needed
+    # Add attention layer imports if needed
     if has_attention_layer:
-        script[-1] = "from tensorflow.keras.layers import Dense, Conv2D, Flatten, Dropout, MaxPooling2D, BatchNormalization, Input, MultiHeadAttention, Lambda, Reshape"
         script.extend([
+            "from tensorflow.keras.layers import MultiHeadAttention, Lambda",
+            "from tensorflow.keras import Model",
             "",
-            "# Enable unsafe deserialization for Lambda layers",
-            "tf.keras.config.enable_unsafe_deserialization()",
-            "",
-            "# Define custom attention function for Lambda layer",
-            "@tf.keras.utils.register_keras_serializable(package='custom_layers')",
-            "def apply_attention(x, num_heads=8, key_dim=64, dropout=0.0):",
-            "    attention_layer = MultiHeadAttention(",
-            "        num_heads=num_heads,",
-            "        key_dim=key_dim,",
-            "        dropout=dropout",
-            "    )",
-            "    return attention_layer(x, x)",
-            "",
-            "# Define custom attention layer class",
-            "@tf.keras.utils.register_keras_serializable(package='custom_layers')",
             "class CustomAttentionLayer(tf.keras.layers.Layer):",
-            "    def __init__(self, num_heads=8, key_dim=64, dropout=0.0, **kwargs):",
+            "    def __init__(self, num_heads, key_dim, dropout=0.0, **kwargs):",
             "        super(CustomAttentionLayer, self).__init__(**kwargs)",
             "        self.num_heads = num_heads",
             "        self.key_dim = key_dim",
             "        self.dropout = dropout",
-            "        self.attention = None  # Will be initialized in build()",
-            "        ",
-            "    def build(self, input_shape):",
             "        self.attention = MultiHeadAttention(",
-            "            num_heads=self.num_heads,",
-            "            key_dim=self.key_dim,",
-            "            dropout=self.dropout",
+            "            num_heads=num_heads,",
+            "            key_dim=key_dim,",
+            "            dropout=dropout",
             "        )",
-            "        super(CustomAttentionLayer, self).build(input_shape)",
-            "        ",
+            "",
             "    def call(self, inputs, training=None):",
             "        return self.attention(inputs, inputs, training=training)",
-            "        ",
+            "",
             "    def get_config(self):",
             "        config = super(CustomAttentionLayer, self).get_config()",
             "        config.update({",
@@ -81,25 +62,15 @@ def generate_python_script(model, training_config, x_train_shape):
     # Get dataset name from training config
     dataset_name = training_config.get("dataset", "Unknown")
     
-    # Add WandB initialization
-    script.append("")
-    script.append("# Initialize Weights & Biases for experiment tracking")
-    script.append(f"wandb.init(project=\"dnd-neural-network\", name=\"{dataset_name}-model\", config={{")
-    script.append(f"    \"dataset\": \"{dataset_name}\",")
-    script.append(f"    \"optimizer\": \"{training_config.get('optimizer', 'adam')}\",")
-    script.append(f"    \"loss_function\": \"{training_config.get('lossFunction', 'categorical_crossentropy')}\",")
-    script.append(f"    \"batch_size\": {training_config.get('batchSize', 32)},")
-    script.append(f"    \"epochs\": {training_config.get('epochs', 10)},")
-    script.append(f"    \"learning_rate\": {training_config.get('learningRate', 0.001)}")
-    script.append("})")
+    # Get the actual input shape from the model
+    input_shape = model.input_shape[1:] if model.input_shape else x_train_shape[1:]
+    input_shape_str = str(input_shape)
     
-    # Determine input shape based on dataset
-    input_shape_str = str(x_train_shape[1:]) if len(x_train_shape) > 1 else "(None,)"
-    
-    # Extract model parameters
+    # Extract model parameters from training config
     epochs = training_config.get("epochs", 10)
     batch_size = training_config.get("batchSize", 32)
-    validation_split = 0.2
+    validation_split = training_config.get("validationSplit", 0.2)
+    learning_rate = training_config.get("learningRate", 0.001)
     
     # Start building the script
     script.append("")
@@ -112,25 +83,26 @@ def generate_python_script(model, training_config, x_train_shape):
             "(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()",
             "# Normalize pixel values to be between 0 and 1",
             "x_train, x_test = x_train / 255.0, x_test / 255.0",
-            "# Reshape for CNN input (28, 28, 1)",
-            "x_train = x_train.reshape(x_train.shape[0], 28, 28, 1)",
-            "x_test = x_test.reshape(x_test.shape[0], 28, 28, 1)",
+            f"# Reshape for model input {input_shape}",
+            f"x_train = x_train.reshape(x_train.shape[0], {', '.join(str(dim) for dim in input_shape)})",
+            f"x_test = x_test.reshape(x_test.shape[0], {', '.join(str(dim) for dim in input_shape)})",
             "# Convert class vectors to binary class matrices (one-hot encoding)",
             "y_train = tf.keras.utils.to_categorical(y_train, 10)",
             "y_test = tf.keras.utils.to_categorical(y_test, 10)"
         ])
-        input_shape_str = "(28, 28, 1)"
     elif dataset_name == "CIFAR-10":
         script.extend([
             "# Load CIFAR-10 dataset",
             "(x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()",
             "# Normalize pixel values to be between 0 and 1",
             "x_train, x_test = x_train / 255.0, x_test / 255.0",
+            f"# Reshape for model input {input_shape}",
+            f"x_train = x_train.reshape(x_train.shape[0], {', '.join(str(dim) for dim in input_shape)})",
+            f"x_test = x_test.reshape(x_test.shape[0], {', '.join(str(dim) for dim in input_shape)})",
             "# Convert class vectors to binary class matrices (one-hot encoding)",
             "y_train = tf.keras.utils.to_categorical(y_train, 10)",
             "y_test = tf.keras.utils.to_categorical(y_test, 10)"
         ])
-        input_shape_str = "(32, 32, 3)"
     elif dataset_name == "Iris":
         script.extend([
             "# Load Iris dataset",
@@ -151,9 +123,11 @@ def generate_python_script(model, training_config, x_train_shape):
             "y_encoded = encoder.fit_transform(y)",
             "",
             "# Split the data",
-            "x_train, x_test, y_train, y_test = train_test_split(X_scaled, y_encoded, test_size=0.2, random_state=42)"
+            "x_train, x_test, y_train, y_test = train_test_split(X_scaled, y_encoded, test_size=0.2, random_state=42)",
+            f"# Reshape for model input {input_shape}",
+            f"x_train = x_train.reshape(x_train.shape[0], {', '.join(str(dim) for dim in input_shape)})",
+            f"x_test = x_test.reshape(x_test.shape[0], {', '.join(str(dim) for dim in input_shape)})"
         ])
-        input_shape_str = "(4,)"
     elif dataset_name == "Breast Cancer":
         script.extend([
             "# Load Breast Cancer dataset",
@@ -170,9 +144,11 @@ def generate_python_script(model, training_config, x_train_shape):
             "X_scaled = scaler.fit_transform(X)",
             "",
             "# Split the data",
-            "x_train, x_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)"
+            "x_train, x_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)",
+            f"# Reshape for model input {input_shape}",
+            f"x_train = x_train.reshape(x_train.shape[0], {', '.join(str(dim) for dim in input_shape)})",
+            f"x_test = x_test.reshape(x_test.shape[0], {', '.join(str(dim) for dim in input_shape)})"
         ])
-        input_shape_str = "(30,)"
     elif dataset_name == "California Housing":
         script.extend([
             "# Load California Housing dataset",
@@ -189,14 +165,17 @@ def generate_python_script(model, training_config, x_train_shape):
             "X_scaled = scaler.fit_transform(X)",
             "",
             "# Split the data",
-            "x_train, x_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)"
+            "x_train, x_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)",
+            f"# Reshape for model input {input_shape}",
+            f"x_train = x_train.reshape(x_train.shape[0], {', '.join(str(dim) for dim in input_shape)})",
+            f"x_test = x_test.reshape(x_test.shape[0], {', '.join(str(dim) for dim in input_shape)})"
         ])
-        input_shape_str = "(8,)"
     else:
         script.extend([
             "# Replace with your own dataset loading code",
             "# x_train, y_train = ...",
-            "# x_test, y_test = ..."
+            "# x_test, y_test = ...",
+            f"# Make sure to reshape your data to match the model input shape: {input_shape}"
         ])
     
     script.append("")
@@ -226,66 +205,152 @@ def generate_python_script(model, training_config, x_train_shape):
         
     for layer in model.layers[start_idx:]:
         layer_class = layer.__class__.__name__
+        layer_name = getattr(layer, 'name', '').lower()
+        layer_type = getattr(layer, 'type', '').lower()
         
         # Handle different layer types
-        if layer_class == "Dense":
+        if "dense" in layer_type or "dense" in layer_name or layer_class == "Dense":
+            # Only get the values that were explicitly set
+            units = layer.units
             activation = layer.activation.__name__ if hasattr(layer.activation, '__name__') else 'None'
             
             # Check if this is potentially an output layer (last layer)
             if layer == model.layers[-1] and expected_output_units is not None:
-                if layer.units != expected_output_units:
+                if units != expected_output_units:
                     # This is an output layer with incorrect units
                     script.append(f"# Note: Modified output layer to match dataset requirements")
                     script.append(f"model.add(Dense({expected_output_units}, activation='{activation}'))")
                     has_output_layer = True
                 else:
-                    script.append(f"model.add(Dense({layer.units}, activation='{activation}'))")
+                    script.append(f"model.add(Dense({units}, activation='{activation}'))")
                     has_output_layer = True
             else:
-                script.append(f"model.add(Dense({layer.units}, activation='{activation}'))")
+                script.append(f"model.add(Dense({units}, activation='{activation}'))")
                 
                 # If this is the last layer, mark that we have an output layer
                 if layer == model.layers[-1]:
                     has_output_layer = True
             
-        elif layer_class == "Conv2D":
-            kernel_size = tuple(layer.kernel_size) if hasattr(layer, 'kernel_size') else (3, 3)
-            strides = tuple(layer.strides) if hasattr(layer, 'strides') else (1, 1)
-            padding = "'" + layer.padding + "'" if hasattr(layer, 'padding') else "'valid'"
+        elif "convolution" in layer_type or "conv2d" in layer_name or layer_class == "Conv2D":
+            # Only get the values that were explicitly set
+            filters = layer.filters
             activation = layer.activation.__name__ if hasattr(layer.activation, '__name__') else 'None'
-            script.append(f"model.add(Conv2D({layer.filters}, kernel_size={kernel_size}, strides={strides}, padding={padding}, activation='{activation}'))")
             
-        elif layer_class == "MaxPooling2D":
-            pool_size = tuple(layer.pool_size) if hasattr(layer, 'pool_size') else (2, 2)
-            strides = tuple(layer.strides) if hasattr(layer, 'strides') else None
-            padding = "'" + layer.padding + "'" if hasattr(layer, 'padding') else "'valid'"
+            # Get kernel size from layer data if available
+            kernel_size = getattr(layer, 'kernel_size', (3,3))
+            if hasattr(layer, 'data') and 'kernelSize' in layer.data:
+                kernel_size = tuple(layer.data['kernelSize'])
             
-            if strides is None:
-                script.append(f"model.add(MaxPooling2D(pool_size={pool_size}, padding={padding}))")
-            else:
-                script.append(f"model.add(MaxPooling2D(pool_size={pool_size}, strides={strides}, padding={padding}))")
+            # Get stride from layer data if available
+            strides = getattr(layer, 'strides', (1,1))
+            if hasattr(layer, 'data') and 'stride' in layer.data:
+                strides = tuple(layer.data['stride'])
             
-        elif layer_class == "Flatten":
+            # Get padding from layer data if available
+            padding = getattr(layer, 'padding', 'valid')
+            if hasattr(layer, 'data') and 'padding' in layer.data:
+                padding = layer.data['padding']
+            
+            # Build the layer string with only the parameters that were explicitly set
+            layer_str = f"model.add(Conv2D({filters}"
+            if kernel_size != (3,3):
+                layer_str += f", kernel_size={kernel_size}"
+            if strides != (1,1):
+                layer_str += f", strides={strides}"
+            if padding != 'valid':
+                layer_str += f", padding='{padding}'"
+            if activation != 'None':
+                layer_str += f", activation='{activation}'"
+            layer_str += "))"
+            
+            script.append(layer_str)
+            
+        elif "maxpooling" in layer_type or "maxpooling2d" in layer_name or layer_class == "MaxPooling2D":
+            # Get pool size from layer data if available
+            pool_size = getattr(layer, 'pool_size', (2,2))
+            if hasattr(layer, 'data') and 'poolSize' in layer.data:
+                pool_size = tuple(layer.data['poolSize'])
+            
+            # Get stride from layer data if available
+            strides = getattr(layer, 'strides', None)
+            if hasattr(layer, 'data') and 'stride' in layer.data:
+                strides = tuple(layer.data['stride'])
+            
+            # Get padding from layer data if available
+            padding = getattr(layer, 'padding', 'valid')
+            if hasattr(layer, 'data') and 'padding' in layer.data:
+                padding = layer.data['padding']
+            
+            # Build the layer string with only the parameters that were explicitly set
+            layer_str = "model.add(MaxPooling2D("
+            if pool_size != (2,2):
+                layer_str += f"pool_size={pool_size}"
+            if strides:
+                layer_str += f", strides={strides}"
+            if padding != 'valid':
+                layer_str += f", padding='{padding}'"
+            layer_str += "))"
+            
+            script.append(layer_str)
+            
+        elif "flatten" in layer_type or "flatten" in layer_name or layer_class == "Flatten":
             script.append(f"model.add(Flatten())")
             
-        elif layer_class == "Dropout":
-            script.append(f"model.add(Dropout({layer.rate}))")
+        elif "dropout" in layer_type or "dropout" in layer_name or layer_class == "Dropout":
+            # Only include rate if it's not the default 0.5
+            rate = layer.rate if hasattr(layer, 'rate') and layer.rate != 0.5 else None
+            if rate is not None:
+                script.append(f"model.add(Dropout({rate}))")
+            else:
+                script.append(f"model.add(Dropout())")
             
-        elif layer_class == "BatchNormalization":
-            momentum = layer.momentum if hasattr(layer, 'momentum') else 0.99
-            epsilon = layer.epsilon if hasattr(layer, 'epsilon') else 0.001
-            script.append(f"model.add(BatchNormalization(momentum={momentum}, epsilon={epsilon}))")
+        elif "batchnormalization" in layer_type or "batchnormalization" in layer_name or layer_class == "BatchNormalization":
+            # Only get the values that were explicitly set
+            momentum = layer.momentum if hasattr(layer, 'momentum') and layer.momentum != 0.99 else None
+            epsilon = layer.epsilon if hasattr(layer, 'epsilon') and layer.epsilon != 0.001 else None
             
-        elif layer_class == "Reshape":
-            target_shape = layer.target_shape if hasattr(layer, 'target_shape') else (None,)
-            script.append(f"model.add(Reshape({target_shape}))")
+            # Build the layer string with only the parameters that were explicitly set
+            layer_str = "model.add(BatchNormalization("
+            if momentum is not None:
+                layer_str += f"momentum={momentum}"
+            if epsilon is not None:
+                layer_str += f", epsilon={epsilon}"
+            layer_str += "))"
             
-        elif "attention" in layer_class.lower() or "multihead" in layer_class.lower():
-            # Add attention layer with custom parameters if available
-            num_heads = layer.num_heads if hasattr(layer, 'num_heads') else 8
-            key_dim = layer.key_dim if hasattr(layer, 'key_dim') else 64
-            dropout = layer.dropout if hasattr(layer, 'dropout') else 0.0
-            script.append(f"model.add(CustomAttentionLayer(num_heads={num_heads}, key_dim={key_dim}, dropout={dropout}))")
+            script.append(layer_str)
+            
+        elif "reshape" in layer_type or "reshape" in layer_name or layer_class == "Reshape":
+            # Only include target_shape if it was explicitly set
+            target_shape = layer.target_shape if hasattr(layer, 'target_shape') else None
+            if target_shape:
+                script.append(f"model.add(Reshape({target_shape}))")
+            else:
+                script.append(f"model.add(Reshape())")
+            
+        elif "activation" in layer_type or "activation" in layer_name:
+            # Get activation function from layer data if available
+            activation = 'relu'  # default
+            if hasattr(layer, 'data') and 'function' in layer.data:
+                activation = layer.data['function'].lower()
+            script.append(f"model.add(Activation('{activation}'))")
+            
+        elif "attention" in layer_type or "attention" in layer_name or "multihead" in layer_name:
+            # Only get the values that were explicitly set
+            num_heads = layer.num_heads if hasattr(layer, 'num_heads') else None
+            key_dim = layer.key_dim if hasattr(layer, 'key_dim') else None
+            dropout = layer.dropout if hasattr(layer, 'dropout') and layer.dropout != 0.0 else None
+            
+            # Build the layer string with only the parameters that were explicitly set
+            layer_str = "model.add(CustomAttentionLayer("
+            if num_heads is not None:
+                layer_str += f"num_heads={num_heads}"
+            if key_dim is not None:
+                layer_str += f", key_dim={key_dim}"
+            if dropout is not None:
+                layer_str += f", dropout={dropout}"
+            layer_str += "))"
+            
+            script.append(layer_str)
             
         else:
             # For any other layer types, add a comment
@@ -318,9 +383,12 @@ def generate_python_script(model, training_config, x_train_shape):
     }
     loss_value = LOSS_FUNCTION_MAPPING.get(loss_function, loss_function.lower())
     
+    # Configure optimizer with learning rate
+    optimizer_config = f"tf.keras.optimizers.{optimizer.capitalize()}(learning_rate={learning_rate})"
+    
     script.append(f"# Compile the model")
     script.append(f"model.compile(")
-    script.append(f"    optimizer='{optimizer}',")
+    script.append(f"    optimizer={optimizer_config},")
     script.append(f"    loss='{loss_value}',")
     script.append(f"    metrics=['accuracy']")
     script.append(f")")
@@ -329,84 +397,19 @@ def generate_python_script(model, training_config, x_train_shape):
     script.append("model.summary()")
     script.append("")
     
-    # Add W&B model watching
-    script.append("# Log model architecture with Weights & Biases")
-    script.append("wandb.watch(model, log='all')")
-    script.append("")
-    
-    # Define WandB callback
-    script.append("# Define Weights & Biases callback for logging")
-    script.append("wandb_callback = wandb.keras.WandbCallback()")
-    script.append("")
-    
     script.append("# Train the model")
     script.append(f"history = model.fit(")
     script.append(f"    x_train, y_train,")
     script.append(f"    epochs={epochs},")
     script.append(f"    batch_size={batch_size},")
-    script.append(f"    validation_split={validation_split},")
-    script.append(f"    callbacks=[wandb_callback]")
+    script.append(f"    validation_split={validation_split}")
     script.append(f")")
     script.append("")
     script.append("# Evaluate the model")
     script.append("test_loss, test_acc = model.evaluate(x_test, y_test)")
     script.append("print(f'Test accuracy: {test_acc:.4f}')")
     script.append("")
-    
-    # Add W&B logging for additional metrics
-    script.append("# Log additional evaluation metrics to W&B")
-    script.append("if dataset_name in ['Iris', 'MNIST', 'CIFAR-10', 'Breast Cancer']:")
-    script.append("    # Get predictions")
-    script.append("    predictions = model.predict(x_test)")
-    script.append("    if dataset_name == 'Breast Cancer':")
-    script.append("        y_pred = (predictions > 0.5).astype(int)")
-    script.append("        y_true = y_test")
-    script.append("    else:")
-    script.append("        y_pred = np.argmax(predictions, axis=1)")
-    script.append("        y_true = np.argmax(y_test, axis=1) if len(y_test.shape) > 1 else y_test")
-    script.append("    ")
-    script.append("    # Log confusion matrix")
-    script.append("    from sklearn.metrics import confusion_matrix")
-    script.append("    import matplotlib.pyplot as plt")
-    script.append("    import seaborn as sns")
-    script.append("    ")
-    script.append("    cm = confusion_matrix(y_true, y_pred)")
-    script.append("    plt.figure(figsize=(10, 8))")
-    script.append("    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')")
-    script.append("    plt.title('Confusion Matrix')")
-    script.append("    plt.ylabel('True Label')")
-    script.append("    plt.xlabel('Predicted Label')")
-    script.append("    wandb.log({'confusion_matrix': wandb.Image(plt)})")
-    script.append("")
-    
     script.append("# Save the model")
-    script.append("model.save('trained_model.keras')")
-    script.append("wandb.save('trained_model.keras')  # Also save to W&B")
-    script.append("")
-    script.append("# Visualize training history")
-    script.append("import matplotlib.pyplot as plt")
-    script.append("")
-    script.append("plt.figure(figsize=(12, 4))")
-    script.append("plt.subplot(1, 2, 1)")
-    script.append("plt.plot(history.history['loss'], label='Training Loss')")
-    script.append("plt.plot(history.history['val_loss'], label='Validation Loss')")
-    script.append("plt.title('Loss over Epochs')")
-    script.append("plt.xlabel('Epoch')")
-    script.append("plt.ylabel('Loss')")
-    script.append("plt.legend()")
-    script.append("")
-    script.append("plt.subplot(1, 2, 2)")
-    script.append("plt.plot(history.history['accuracy'], label='Training Accuracy')")
-    script.append("plt.plot(history.history['val_accuracy'], label='Validation Accuracy')")
-    script.append("plt.title('Accuracy over Epochs')")
-    script.append("plt.xlabel('Epoch')")
-    script.append("plt.ylabel('Accuracy')")
-    script.append("plt.legend()")
-    script.append("plt.tight_layout()")
-    script.append("wandb.log({'training_curves': wandb.Image(plt)})")
-    script.append("plt.show()")
-    script.append("")
-    script.append("# Finish the W&B run")
-    script.append("wandb.finish()")
+    script.append("model.save('trained_model.h5')")
     
     return "\n".join(script) 

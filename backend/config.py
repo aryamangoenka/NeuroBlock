@@ -12,6 +12,7 @@ class Config:
     EXPORT_FOLDER = os.path.join(PROJECT_ROOT, 'exports')
     MODEL_ARCHITECTURE_FILE = os.path.join(PROJECT_ROOT, 'saved_model.json')
     TRAINED_MODEL_PATH = os.path.join(EXPORT_FOLDER, 'trained_model.keras')
+    TRAINING_CONFIG_FILE = os.path.join(PROJECT_ROOT, 'training_config.json')
     
     # SocketIO settings
     SOCKETIO_PING_TIMEOUT = 300
