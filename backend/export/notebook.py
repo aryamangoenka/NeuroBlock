@@ -26,18 +26,18 @@ def generate_notebook(model, training_config, x_train_shape):
     
     # Create notebook cells
     cells = [
-        {
-            "cell_type": "markdown",
-            "metadata": {},
+            {
+                "cell_type": "markdown",
+                "metadata": {},
             "source": [
                 "# Model Architecture and Training\n",
                 "This notebook recreates the model architecture and training process from the DND-Neural-Network application."
             ]
-        },
-        {
-            "cell_type": "code",
-            "execution_count": None,
-            "metadata": {},
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
             "source": [
                 "import tensorflow as tf\n",
                 "import numpy as np\n",
@@ -53,7 +53,7 @@ def generate_notebook(model, training_config, x_train_shape):
         "cell_type": "markdown",
         "metadata": {},
         "source": ["## Load and Preprocess Dataset"]
-    }
+            }
     cells.append(dataset_cell)
     
     dataset_code = []
@@ -186,8 +186,8 @@ def generate_notebook(model, training_config, x_train_shape):
                 "# model.add(Dense(10, activation='softmax'))"
             ],
             "outputs": []
-        }
-    ])
+            }
+        ])
     
     # Add model compilation and training cells
     cells.extend([
@@ -273,23 +273,23 @@ def generate_notebook(model, training_config, x_train_shape):
     notebook = {
         "cells": cells,
         "metadata": {
-            "kernelspec": {
-                "display_name": "Python 3",
-                "language": "python",
-                "name": "python3"
+        "kernelspec": {
+            "display_name": "Python 3",
+            "language": "python",
+            "name": "python3"
+        },
+        "language_info": {
+            "codemirror_mode": {
+                "name": "ipython",
+                "version": 3
             },
-            "language_info": {
-                "codemirror_mode": {
-                    "name": "ipython",
-                    "version": 3
-                },
-                "file_extension": ".py",
-                "mimetype": "text/x-python",
-                "name": "python",
-                "nbconvert_exporter": "python",
-                "pygments_lexer": "ipython3",
+            "file_extension": ".py",
+            "mimetype": "text/x-python",
+            "name": "python",
+            "nbconvert_exporter": "python",
+            "pygments_lexer": "ipython3",
                 "version": "3.8.0"
-            }
+        }
         },
         "nbformat": 4,
         "nbformat_minor": 4

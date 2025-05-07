@@ -52,19 +52,90 @@ def save_model_api():
         model_architecture_file = current_app.config.get('MODEL_ARCHITECTURE_FILE')
         training_config_file = current_app.config.get('TRAINING_CONFIG_FILE')
 
+        # Process and validate the architecture
+        architecture = data.get('architecture', {})
+        nodes = architecture.get('nodes', [])
+        edges = architecture.get('edges', [])
+
+        # Create a graph representation for topological sort
+        graph = {}
+        in_degree = {}
+        for node in nodes:
+            graph[node["id"]] = []
+            in_degree[node["id"]] = 0
+        
+        for edge in edges:
+            source = edge["source"]
+            target = edge["target"]
+            if source in graph:
+                graph[source].append(target)
+                in_degree[target] = in_degree.get(target, 0) + 1
+
+        # Perform topological sort
+        queue = []
+        for node_id, degree in in_degree.items():
+            if degree == 0:
+                queue.append(node_id)
+        
+        topo_order = []
+        while queue:
+            node_id = queue.pop(0)
+            topo_order.append(node_id)
+            
+            for neighbor in graph[node_id]:
+                in_degree[neighbor] -= 1
+                if in_degree[neighbor] == 0:
+                    queue.append(neighbor)
+
+        if len(topo_order) != len(nodes):
+            error_msg = "Graph contains cycles or disconnected components"
+            logger.error(error_msg)
+            return jsonify({"error": error_msg}), 400
+
+        # Create a mapping of node IDs to their data
+        node_map = {node["id"]: node for node in nodes}
+
+        # Reorder nodes based on topological sort
+        ordered_nodes = [node_map[node_id] for node_id in topo_order]
+
+        # Create the final architecture with ordered nodes and their connections
+        final_architecture = {
+            "nodes": ordered_nodes,
+            "edges": edges,
+            "dataset": architecture.get("dataset", ""),
+            "topological_order": topo_order,  # Include the topological order for reference
+            "layer_connections": {  # Add explicit layer connections
+                node_id: {
+                    "inputs": [edge["source"] for edge in edges if edge["target"] == node_id],
+                    "outputs": [edge["target"] for edge in edges if edge["source"] == node_id]
+                }
+                for node_id in topo_order
+            }
+        }
+
         # Save model architecture to a file
         with open(model_architecture_file, "w") as f:
-            json.dump(data.get('architecture', {}), f)
+            json.dump(final_architecture, f, indent=2)
         
         # Save training configuration to a file
-        with open(training_config_file, "w") as f:
-            json.dump(data.get('training_config', {}), f)
-        
-        logger.info("Model architecture and training configuration saved successfully")
+        training_config = data.get('training_config', {})
+        if training_config:
+            # Use the exact values from the frontend without defaults
+            config = {
+                "epochs": int(training_config["epochs"]),
+                "batchSize": int(training_config["batchSize"]),
+                "optimizer": str(training_config["optimizer"]),
+                "lossFunction": str(training_config["lossFunction"]),
+                "learningRate": float(training_config["learningRate"]),
+                "validationSplit": float(training_config["validationSplit"])
+            }
             
+            # Write the configuration with proper formatting
+            with open(training_config_file, "w") as f:
+                json.dump(config, f, indent=2)
+            logger.info("Training configuration saved successfully")
+        
         # Print ResNet model structure if ResNet blocks are present
-        nodes = data.get('architecture', {}).get("nodes", [])
-        edges = data.get('architecture', {}).get("edges", [])
         resnet_blocks = [node for node in nodes if node.get("type") == "resnetblock"]
         
         return jsonify({

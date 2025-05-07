@@ -68,375 +68,270 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
         logger.error(error_msg)
         raise ValueError(error_msg)
 
-    # Check if we need to use a functional API (for models with skip connections like ResNet)
-    has_resnet_blocks = any(node["type"] == "resnetblock" for node in nodes)
+    # Create a graph representation for topological sort
+    graph = {}
+    in_degree = {}
+    for node in nodes:
+        graph[node["id"]] = []
+        in_degree[node["id"]] = 0
     
-    if has_resnet_blocks:
-        logger.info("Using functional API for model with ResNet blocks")
-        # Use Functional API for models with skip connections
+    for edge in edges:
+        source = edge["source"]
+        target = edge["target"]
+        if source in graph:
+            graph[source].append(target)
+            in_degree[target] = in_degree.get(target, 0) + 1
+
+    # Perform topological sort
+    queue = []
+    for node_id, degree in in_degree.items():
+        if degree == 0:
+            queue.append(node_id)
+    
+    topo_order = []
+    while queue:
+        node_id = queue.pop(0)
+        topo_order.append(node_id)
+        
+        for neighbor in graph[node_id]:
+            in_degree[neighbor] -= 1
+            if in_degree[neighbor] == 0:
+                queue.append(neighbor)
+
+    if len(topo_order) != len(nodes):
+        error_msg = "Graph contains cycles or disconnected components"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+
+    # Create a mapping of node IDs to their data
+    node_map = {node["id"]: node for node in nodes}
+
+    # Check if we need to use functional API
+    has_resnet_blocks = any(node["type"] == "resnetblock" for node in nodes)
+    has_skip_connections = any(len([e for e in edges if e["target"] == node["id"]]) > 1 for node in nodes)
+    
+    if has_resnet_blocks or has_skip_connections:
+        logger.info("Using functional API for model with complex connections")
+        # Use Functional API
         inputs = Input(shape=input_shape)
-        
-        # Create a dictionary of layers by node ID
-        layers_by_id = {}
-        layers_by_id[input_layer["id"]] = inputs
-        
-        # Create a dictionary to track which nodes have been processed
-        processed_nodes = {input_layer["id"]: True}
+        layers_by_id = {input_layer["id"]: inputs}
         
         # Process nodes in topological order
-        nodes_to_process = [node for node in nodes if node["id"] != input_layer["id"]]
-        
-        while nodes_to_process:
-            for node in list(nodes_to_process):
-                # Find all incoming edges to this node
-                incoming_edges = [edge for edge in edges if edge["target"] == node["id"]]
+        for node_id in topo_order:
+            if node_id == input_layer["id"]:
+                continue
                 
-                # Check if all source nodes of incoming edges have been processed
-                if all(edge["source"] in processed_nodes for edge in incoming_edges):
-                    # Get the input layer(s) for this node
-                    if len(incoming_edges) == 1:
-                        # Single input
-                        input_layer = layers_by_id[incoming_edges[0]["source"]]
-                    else:
-                        # Multiple inputs (not typical in sequential models, but handle it)
-                        input_layer = [layers_by_id[edge["source"]] for edge in incoming_edges]
-                    
-                    # Process the node based on its type
-                    layer_type = node["type"]
-                    layer_data = node["data"]
-                    
-                    logger.debug(f"Processing {layer_type} layer (id: {node['id']})")
-                    
-                    if layer_type == "resnetblock":
-                        # Create ResNet block
-                        x = create_resnet_block(
-                            input_layer, 
-                            block_type=layer_data.get("blockType", "Basic"),
-                            in_channels=64,  # Default input channels
-                            out_channels=layer_data.get("filters", 64),
-                            stride=layer_data.get("stride", [1, 1]),
-                            activation=layer_data.get("activation", "ReLU").lower(),
-                            use_skip_connection=True,
-                            downsample_type="Conv1x1"
-                        )
-                    elif layer_type == "dense":
-                        x = Dense(
-                            units=layer_data["neurons"],
-                            activation=None if layer_data["activation"].lower() == "none" else layer_data["activation"].lower()
-                        )(input_layer)
-                    elif layer_type == "convolution":
-                        x = Conv2D(
-                            filters=layer_data["filters"],
-                            kernel_size=tuple(layer_data["kernelSize"]),
-                            strides=tuple(layer_data["stride"]),
-                            padding=layer_data.get("padding", "same").lower(),
-                            activation=None if layer_data["activation"].lower() == "none" else layer_data["activation"].lower()
-                        )(input_layer)
-                    elif layer_type == "maxpooling":
-                        # Check for potential size issues with MaxPooling
-                        pool_size = tuple(layer_data["poolSize"])
-                        
-                        # For ResNet models, handle large pool sizes that might cause issues
-                        if has_resnet_blocks and (pool_size[0] > 3 or pool_size[1] > 3):
-                            # Use safer pooling parameters
-                            logger.warning(f"Large pool size {pool_size} detected in ResNet model, using safer parameters")
-                            safe_pool_size = (min(pool_size[0], 3), min(pool_size[1], 3))
-                            x = MaxPooling2D(
-                                pool_size=safe_pool_size,
-                                strides=tuple(layer_data["stride"]),
-                                padding=layer_data.get("padding", "same").lower()
-                            )(input_layer)
-                        else:
-                            # Use regular pooling
-                            x = MaxPooling2D(
-                                pool_size=pool_size,
-                                strides=tuple(layer_data["stride"]),
-                                padding=layer_data.get("padding", "same").lower()
-                            )(input_layer)
-                    elif layer_type == "globalaveragepool":
-                        # Add support for Global Average Pooling
-                        x = GlobalAveragePooling2D()(input_layer)
-                    elif layer_type == "flatten":
-                        x = Flatten()(input_layer)
-                    elif layer_type == "dropout":
-                        x = Dropout(rate=layer_data["rate"])(input_layer)
-                    elif layer_type == "batchnormalization":
-                        x = BatchNormalization(
-                            momentum=layer_data["momentum"],
-                            epsilon=layer_data["epsilon"]
-                        )(input_layer)
-                    elif layer_type == "activation":
-                        # Handle standalone activation layers
-                        activation_func = layer_data.get("function", "relu").lower()
-                        logger.info(f"Adding activation layer with function: {activation_func}", 
-                                   extra={"context": {
-                                       "layer_id": node["id"],
-                                       "activation_function": activation_func,
-                                       "layer_data": layer_data
-                                   }})
-                        
-                        # Map frontend activation names to TensorFlow activation functions
-                        activation_map = {
-                            "relu": "relu",
-                            "sigmoid": "sigmoid",
-                            "tanh": "tanh",
-                            "softmax": "softmax",
-                            "leaky relu": "leaky_relu",
-                            "leakyrelu": "leaky_relu"
-                        }
-                        
-                        # Use the mapped activation function or default to relu if not found
-                        mapped_activation = activation_map.get(activation_func.lower(), "relu")
-                        logger.debug(f"Mapped activation function: {mapped_activation}")
-                        
-                        # Special handling for Leaky ReLU which needs the alpha parameter
-                        if mapped_activation == "leaky_relu":
-                            alpha = layer_data.get("alpha", 0.3)  # Default alpha is 0.3
-                            x = tf.keras.layers.LeakyReLU(alpha=alpha)(input_layer)
-                        else:
-                            x = tf.keras.layers.Activation(mapped_activation)(input_layer)
-                    elif layer_type == "attention":
-                        # Get the attention parameters
-                        num_heads = layer_data.get("heads", 8)
-                        key_dim = layer_data.get("keyDim", 64)
-                        dropout_rate = layer_data.get("dropout", 0.0)
-                        
-                        # For MNIST data, we need to reshape the input for attention
-                        if dataset_name == "MNIST" or dataset_name == "CIFAR-10":
-                            logger.debug(f"Applying attention layer with reshaping for {dataset_name} data")
-                            # For image data, we need to reshape before applying attention
-                            # First, add a reshape layer to convert 2D image data to sequence data
-                            reshaped = Reshape((-1, input_shape[0]))(input_layer)  # Reshape to (sequence_length, features)
-                            
-                            # Use our custom attention layer
-                            attention_output = CustomAttentionLayer(
-                                num_heads=num_heads,
-                                key_dim=key_dim,
-                                dropout=dropout_rate,
-                                name=f"attention_{node['id']}"
-                            )(reshaped)
-                            
-                            # Reshape back to original shape for subsequent layers if needed
-                            x = Reshape(input_shape)(attention_output)
-                        else:
-                            logger.debug("Applying attention layer directly")
-                            # For non-image data, apply attention directly
-                            x = CustomAttentionLayer(
-                                num_heads=num_heads,
-                                key_dim=key_dim,
-                                dropout=dropout_rate,
-                                name=f"attention_{node['id']}"
-                            )(input_layer)
-                    elif layer_type == "addlayer":
-                        # For Add layer, we need to handle multiple inputs
-                        # First, check that there are at least 2 incoming edges
-                        if len(incoming_edges) < 2:
-                            logger.warning(f"Add layer (id: {node['id']}) has fewer than 2 inputs, using identity function")
-                            x = input_layer  # Just pass through the input if no 2nd input
-                        else:
-                            # Get all input layers
-                            input_layers = [layers_by_id[edge["source"]] for edge in incoming_edges]
-                            
-                            try:
-                                # Use Add layer to combine inputs
-                                logger.debug(f"Adding {len(input_layers)} tensors in Add layer (id: {node['id']})")
-                                x = Add()(input_layers)
-                            except ValueError as e:
-                                # Handle shape mismatch errors
-                                logger.error(f"Error in Add layer (id: {node['id']}): {str(e)}")
-                                # Print shapes of inputs for debugging
-                                shapes = [K.int_shape(layer) for layer in input_layers]
-                                logger.error(f"Input shapes: {shapes}")
-                                raise ValueError(f"Cannot add tensors with different shapes: {shapes}")
-                    elif layer_type == "output":
-                        # For ResNet models, check if we should add a GlobalAveragePooling layer
-                        # before the output layer if there's a feature map
-                        if has_resnet_blocks and len(K.int_shape(input_layer)) > 2:
-                            # Get the shape of the input tensor
-                            input_shape = K.int_shape(input_layer)
-                            
-                            # If the input has spatial dimensions (height and width), add GlobalAveragePooling
-                            if len(input_shape) == 4 and input_shape[1] is not None and input_shape[2] is not None:
-                                logger.info(f"Adding automatic GlobalAveragePooling2D before output for ResNet (input shape: {input_shape})")
-                                pooled = GlobalAveragePooling2D()(input_layer)
-                                input_layer = pooled
-                                
-                        # Configure the output layer dynamically based on the dataset
-                        output_units = determine_output_units(dataset_name)
-                        activation = layer_data["activation"].lower()
-                        if activation == "none":
-                            activation = None
-                        x = Dense(
-                            units=output_units,
-                            activation=activation
-                        )(input_layer)
-                    
-                    # Store the output layer in the dictionary
-                    layers_by_id[node["id"]] = x
-                    
-                    # Mark this node as processed
-                    processed_nodes[node["id"]] = True
-                    
-                    # Remove this node from the list of nodes to process
-                    nodes_to_process.remove(node)
+            node = node_map[node_id]
+            incoming_edges = [edge for edge in edges if edge["target"] == node_id]
+            
+            # Get input layers
+            if len(incoming_edges) == 1:
+                input_layer = layers_by_id[incoming_edges[0]["source"]]
+            else:
+                input_layer = [layers_by_id[edge["source"]] for edge in incoming_edges]
+            
+            # Process the node based on its type
+            layer_type = node["type"]
+            layer_data = node["data"]
+            
+            logger.debug(f"Processing {layer_type} layer (id: {node_id})")
+            
+            # Create the appropriate layer
+            if layer_type == "resnetblock":
+                x = create_resnet_block(
+                    input_layer,
+                    block_type=layer_data.get("blockType", "Basic"),
+                    in_channels=64,
+                    out_channels=layer_data.get("filters", 64),
+                    stride=layer_data.get("stride", [1, 1]),
+                    activation=layer_data.get("activation", "ReLU").lower(),
+                    use_skip_connection=True,
+                    downsample_type="Conv1x1"
+                )
+            elif layer_type == "dense":
+                x = Dense(
+                    units=layer_data["neurons"],
+                    activation=None if layer_data["activation"].lower() == "none" else layer_data["activation"].lower()
+                )(input_layer)
+            elif layer_type == "convolution":
+                x = Conv2D(
+                    filters=layer_data["filters"],
+                    kernel_size=tuple(layer_data["kernelSize"]),
+                    strides=tuple(layer_data["stride"]),
+                    padding=layer_data.get("padding", "same").lower(),
+                    activation=None if layer_data["activation"].lower() == "none" else layer_data["activation"].lower()
+                )(input_layer)
+            elif layer_type == "maxpooling":
+                x = MaxPooling2D(
+                    pool_size=tuple(layer_data["poolSize"]),
+                    strides=tuple(layer_data["stride"]),
+                    padding=layer_data.get("padding", "same").lower()
+                )(input_layer)
+            elif layer_type == "globalaveragepool":
+                x = GlobalAveragePooling2D()(input_layer)
+            elif layer_type == "flatten":
+                x = Flatten()(input_layer)
+            elif layer_type == "dropout":
+                x = Dropout(rate=layer_data["rate"])(input_layer)
+            elif layer_type == "batchnormalization":
+                x = BatchNormalization(
+                    momentum=layer_data["momentum"],
+                    epsilon=layer_data["epsilon"]
+                )(input_layer)
+            elif layer_type == "activation":
+                activation_func = layer_data.get("function", "relu").lower()
+                activation_map = {
+                    "relu": "relu",
+                    "sigmoid": "sigmoid",
+                    "tanh": "tanh",
+                    "softmax": "softmax",
+                    "leaky relu": "leaky_relu",
+                    "leakyrelu": "leaky_relu"
+                }
+                mapped_activation = activation_map.get(activation_func, "relu")
+                
+                if mapped_activation == "leaky_relu":
+                    alpha = layer_data.get("alpha", 0.3)
+                    x = tf.keras.layers.LeakyReLU(alpha=alpha)(input_layer)
+                else:
+                    x = tf.keras.layers.Activation(mapped_activation)(input_layer)
+            elif layer_type == "attention":
+                num_heads = layer_data.get("heads", 8)
+                key_dim = layer_data.get("keyDim", 64)
+                dropout_rate = layer_data.get("dropout", 0.0)
+                
+                if dataset_name in ["MNIST", "CIFAR-10"]:
+                    reshaped = Reshape((-1, input_shape[0]))(input_layer)
+                    attention_output = CustomAttentionLayer(
+                        num_heads=num_heads,
+                        key_dim=key_dim,
+                        dropout=dropout_rate,
+                        name=f"attention_{node_id}"
+                    )(reshaped)
+                    x = Reshape(input_shape)(attention_output)
+                else:
+                    x = CustomAttentionLayer(
+                        num_heads=num_heads,
+                        key_dim=key_dim,
+                        dropout=dropout_rate,
+                        name=f"attention_{node_id}"
+                    )(input_layer)
+            elif layer_type == "addlayer":
+                if len(incoming_edges) < 2:
+                    logger.warning(f"Add layer (id: {node_id}) has fewer than 2 inputs, using identity function")
+                    x = input_layer
+                else:
+                    x = Add()(input_layer)
+            elif layer_type == "output":
+                output_units = determine_output_units(dataset_name)
+                activation = layer_data["activation"].lower()
+                if activation == "none":
+                    activation = None
+                x = Dense(
+                    units=output_units,
+                    activation=activation
+                )(input_layer)
+            
+            # Store the output layer
+            layers_by_id[node_id] = x
         
         # Build and return the model
         model = Model(inputs=inputs, outputs=layers_by_id[output_layer["id"]])
         
     else:
-        logger.info("Using Sequential API for model without skip connections")
-        # Start building the model using Sequential API (for models without skip connections)
+        logger.info("Using Sequential API for simple model")
+        # Use Sequential API for simple models
         model = Sequential()
-        model.add(Input(shape=input_shape))  # Always start with an input layer
-
-        # Add layers based on the nodes and edges
-        # First, create a dictionary of nodes by ID for easy lookup
-        nodes_by_id = {node["id"]: node for node in nodes}
+        model.add(Input(shape=input_shape))
         
-        # Create a dictionary to track which nodes have been processed
-        processed_nodes = {input_layer["id"]: True}
-        
-        # Start with the input layer and follow the edges
-        current_layer_ids = [input_layer["id"]]
-        
-        while current_layer_ids:
-            next_layer_ids = []
-            
-            for layer_id in current_layer_ids:
-                # Find all edges that start from this layer
-                outgoing_edges = [edge for edge in edges if edge["source"] == layer_id]
+        # Process nodes in topological order
+        for node_id in topo_order:
+            if node_id == input_layer["id"]:
+                continue
                 
-                for edge in outgoing_edges:
-                    target_id = edge["target"]
-                    
-                    # Skip if already processed
-                    if target_id in processed_nodes:
-                        continue
-                    
-                    target_node = nodes_by_id[target_id]
-                    layer_type = target_node["type"]
-                    layer_data = target_node["data"]
-                    
-                    logger.debug(f"Adding {layer_type} layer to sequential model (id: {target_id})")
-                    
-                    # Add the appropriate layer based on type
-                    if layer_type == "dense":
-                        model.add(Dense(
-                            units=layer_data["neurons"],
-                            activation=None if layer_data["activation"].lower() == "none" else layer_data["activation"].lower()
-                        ))
-                    elif layer_type == "convolution":
-                        model.add(Conv2D(
-                            filters=layer_data["filters"],
-                            kernel_size=tuple(layer_data["kernelSize"]),
-                            strides=tuple(layer_data["stride"]),
-                            activation=None if layer_data["activation"].lower() == "none" else layer_data["activation"].lower()
-                        ))
-                    elif layer_type == "maxpooling":
-                        model.add(MaxPooling2D(
-                            pool_size=tuple(layer_data["poolSize"]),
-                            strides=tuple(layer_data["stride"]),
-                            padding=layer_data.get("padding", "same").lower()
-                        ))
-                    elif layer_type == "globalaveragepool":
-                        model.add(GlobalAveragePooling2D())
-                    elif layer_type == "flatten":
-                        model.add(Flatten())
-                    elif layer_type == "dropout":
-                        model.add(Dropout(rate=layer_data["rate"]))
-                    elif layer_type == "batchnormalization":
-                        model.add(BatchNormalization(
-                            momentum=layer_data["momentum"],
-                            epsilon=layer_data["epsilon"]
-                        ))
-                    elif layer_type == "activation":
-                        # Handle standalone activation layers
-                        activation_func = layer_data.get("function", "relu").lower()
-                        logger.info(f"Adding activation layer with function: {activation_func}", 
-                                   extra={"context": {
-                                       "layer_id": target_id,
-                                       "activation_function": activation_func,
-                                       "layer_data": layer_data
-                                   }})
-                        
-                        # Map frontend activation names to TensorFlow activation functions
-                        activation_map = {
-                            "relu": "relu",
-                            "sigmoid": "sigmoid",
-                            "tanh": "tanh",
-                            "softmax": "softmax",
-                            "leaky relu": "leaky_relu",
-                            "leakyrelu": "leaky_relu"
-                        }
-                        
-                        # Use the mapped activation function or default to relu if not found
-                        mapped_activation = activation_map.get(activation_func.lower(), "relu")
-                        logger.debug(f"Mapped activation function: {mapped_activation}")
-                        
-                        # Special handling for Leaky ReLU which needs the alpha parameter
-                        if mapped_activation == "leaky_relu":
-                            alpha = layer_data.get("alpha", 0.3)  # Default alpha is 0.3
-                            model.add(tf.keras.layers.LeakyReLU(alpha=alpha))
-                        else:
-                            model.add(tf.keras.layers.Activation(mapped_activation))
-                    elif layer_type == "attention":
-                        # Get the attention parameters
-                        num_heads = layer_data.get("heads", 8)
-                        key_dim = layer_data.get("keyDim", 64)
-                        dropout_rate = layer_data.get("dropout", 0.0)
-                        
-                        # For MNIST or CIFAR-10, we need special handling with reshaping
-                        if dataset_name == "MNIST" or dataset_name == "CIFAR-10":
-                            logger.debug(f"Adding attention layer with reshaping for {dataset_name} data")
-                            # For image data, we need to reshape before applying attention
-                            # First, add a reshape layer to convert 2D image data to sequence data
-                            model.add(tf.keras.layers.Reshape((-1, input_shape[0])))  # Reshape to (sequence_length, features)
-                            
-                            # Use our custom attention layer instead of Lambda
-                            model.add(CustomAttentionLayer(
-                                num_heads=num_heads,
-                                key_dim=key_dim,
-                                dropout=dropout_rate,
-                                name=f"attention_{target_id}"
-                            ))
-                            
-                            # Reshape back to original shape for subsequent layers if needed
-                            model.add(tf.keras.layers.Reshape(input_shape))
-                        else:
-                            logger.debug("Adding attention layer directly")
-                            # For non-image data, apply attention directly using our custom attention layer
-                            model.add(CustomAttentionLayer(
-                                num_heads=num_heads,
-                                key_dim=key_dim,
-                                dropout=dropout_rate,
-                                name=f"attention_{target_id}"
-                            ))
-                    elif layer_type == "addlayer":
-                        # Add layer requires multiple inputs, so it's not directly compatible with Sequential API
-                        logger.warning(f"Add layer (id: {target_id}) detected in Sequential model. Add layers require Functional API. Treating as pass-through.")
-                        # We don't add any layer here, just continue with the next layer in the sequence
-                        # This effectively makes the Add layer a no-op in Sequential models
-                    elif layer_type == "output":
-                        # Configure the output layer dynamically based on the dataset
-                        output_units = determine_output_units(dataset_name)
-                        activation = layer_data["activation"].lower()
-                        if activation == "none":
-                            activation = None
-                        model.add(Dense(
-                            units=output_units,
-                            activation=activation
-                        ))
-                    
-                    # Mark this node as processed
-                    processed_nodes[target_id] = True
-                    
-                    # Add to the next layer IDs to process
-                    if layer_type != "output":  # Don't process beyond output layer
-                        next_layer_ids.append(target_id)
+            node = node_map[node_id]
+            layer_type = node["type"]
+            layer_data = node["data"]
             
-            # Update current layer IDs for the next iteration
-            current_layer_ids = next_layer_ids
-    
-    logger.info("Model building completed")
+            logger.debug(f"Adding {layer_type} layer to sequential model (id: {node_id})")
+            
+            # Add the appropriate layer
+            if layer_type == "dense":
+                model.add(Dense(
+                    units=layer_data["neurons"],
+                    activation=None if layer_data["activation"].lower() == "none" else layer_data["activation"].lower()
+                ))
+            elif layer_type == "convolution":
+                model.add(Conv2D(
+                    filters=layer_data["filters"],
+                    kernel_size=tuple(layer_data["kernelSize"]),
+                    strides=tuple(layer_data["stride"]),
+                    padding=layer_data.get("padding", "same").lower(),
+                    activation=None if layer_data["activation"].lower() == "none" else layer_data["activation"].lower()
+                ))
+            elif layer_type == "maxpooling":
+                model.add(MaxPooling2D(
+                    pool_size=tuple(layer_data["poolSize"]),
+                    strides=tuple(layer_data["stride"]),
+                    padding=layer_data.get("padding", "same").lower()
+                ))
+            elif layer_type == "globalaveragepool":
+                model.add(GlobalAveragePooling2D())
+            elif layer_type == "flatten":
+                model.add(Flatten())
+            elif layer_type == "dropout":
+                model.add(Dropout(rate=layer_data["rate"]))
+            elif layer_type == "batchnormalization":
+                model.add(BatchNormalization(
+                    momentum=layer_data["momentum"],
+                    epsilon=layer_data["epsilon"]
+                ))
+            elif layer_type == "activation":
+                activation_func = layer_data.get("function", "relu").lower()
+                activation_map = {
+                    "relu": "relu",
+                    "sigmoid": "sigmoid",
+                    "tanh": "tanh",
+                    "softmax": "softmax",
+                    "leaky relu": "leaky_relu",
+                    "leakyrelu": "leaky_relu"
+                }
+                mapped_activation = activation_map.get(activation_func, "relu")
+                
+                if mapped_activation == "leaky_relu":
+                    alpha = layer_data.get("alpha", 0.3)
+                    model.add(tf.keras.layers.LeakyReLU(alpha=alpha))
+                else:
+                    model.add(tf.keras.layers.Activation(mapped_activation))
+            elif layer_type == "attention":
+                num_heads = layer_data.get("heads", 8)
+                key_dim = layer_data.get("keyDim", 64)
+                dropout_rate = layer_data.get("dropout", 0.0)
+                
+                if dataset_name in ["MNIST", "CIFAR-10"]:
+                    model.add(Reshape((-1, input_shape[0])))
+                    model.add(CustomAttentionLayer(
+                        num_heads=num_heads,
+                        key_dim=key_dim,
+                        dropout=dropout_rate,
+                        name=f"attention_{node_id}"
+                    ))
+                    model.add(Reshape(input_shape))
+                else:
+                    model.add(CustomAttentionLayer(
+                        num_heads=num_heads,
+                        key_dim=key_dim,
+                        dropout=dropout_rate,
+                        name=f"attention_{node_id}"
+                    ))
+            elif layer_type == "output":
+                output_units = determine_output_units(dataset_name)
+                activation = layer_data["activation"].lower()
+                if activation == "none":
+                    activation = None
+                model.add(Dense(
+                    units=output_units,
+                    activation=activation
+                ))
     
     return model 
