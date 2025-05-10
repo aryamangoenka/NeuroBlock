@@ -136,6 +136,10 @@ const NavBar: React.FC = () => {
       return;
     }
 
+    // Dispatch getTrainingConfig event to ensure latest config is saved to localStorage
+    const getConfigEvent = new CustomEvent("getTrainingConfig");
+    window.dispatchEvent(getConfigEvent);
+
     // At this point we're confident the model has a dataset selected
     console.log("Dataset is selected, triggering save model event");
 

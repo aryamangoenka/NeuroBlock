@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { Node, Edge } from "reactflow";
 
 // Define the structure of data for each Node
@@ -100,9 +100,33 @@ export const NewBuildPageProvider: React.FC<{ children: React.ReactNode }> = ({
     []
   );
   const [selectedDataset, setSelectedDataset] = useState<string>("");
-  const [trainingConfig, setTrainingConfig] = useState<TrainingConfig>(
-    defaultTrainingConfig
-  );
+  // Initialize trainingConfig from localStorage if available
+  const getInitialTrainingConfig = () => {
+    const stored = localStorage.getItem("trainingConfig");
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        return defaultTrainingConfig;
+      }
+    }
+    return defaultTrainingConfig;
+  };
+  const [trainingConfig, setTrainingConfig] = useState<TrainingConfig>({
+    epochs: 10,
+    batchSize: 32,
+    optimizer: "adam",
+    lossFunction: "categorical_crossentropy",
+    learningRate: 0.001,
+    validationSplit: 0.2,
+  });
+
+  // Save training config to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("trainingConfig", JSON.stringify(trainingConfig));
+    console.log("Training config saved to localStorage:", trainingConfig);
+  }, [trainingConfig]);
+
   const [isTraining, setIsTraining] = useState<boolean>(false);
   const [trainingProgress, setTrainingProgress] = useState<TrainingProgress>(
     defaultTrainingProgress

@@ -890,10 +890,38 @@ const NewBuildPage = (): JSX.Element => {
 
   // Function to handle saving the model
   const handleSaveModel = async (): Promise<void> => {
-    console.log(
-      "handleSaveModel called. Current selectedDataset:",
-      selectedDataset
-    );
+    if (!selectedDataset) {
+      setValidationErrors(["Please select a dataset first"]);
+      return;
+    }
+
+    // Get the latest training config from localStorage
+    const storedConfig = localStorage.getItem("trainingConfig");
+    const latestTrainingConfig = storedConfig
+      ? JSON.parse(storedConfig)
+      : trainingConfig;
+
+    console.log("Saving model with training config:", latestTrainingConfig);
+
+    const modelData = {
+      architecture: {
+        nodes: nodes.map((node) => ({
+          id: node.id,
+          type: node.type,
+          data: node.data,
+          position: node.position,
+        })),
+        edges: edges.map((edge) => ({
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          type: edge.type,
+        })),
+      },
+      training_config: latestTrainingConfig,
+    };
+
+    console.log("Sending model data:", modelData);
 
     // Double check if dataset is selected
     if (!selectedDataset || selectedDataset.trim() === "") {
@@ -956,17 +984,20 @@ const NewBuildPage = (): JSX.Element => {
             source: edge.source,
             target: edge.target,
           })),
-          dataset: normalizeDatasetName(selectedDataset),
         },
         training_config: {
-          epochs: trainingConfig.epochs,
-          batchSize: trainingConfig.batchSize,
-          optimizer: trainingConfig.optimizer,
-          lossFunction: trainingConfig.lossFunction,
-          learningRate: trainingConfig.learningRate,
-          validationSplit: trainingConfig.validationSplit,
+          epochs: latestTrainingConfig.epochs,
+          batchSize: latestTrainingConfig.batchSize,
+          optimizer: latestTrainingConfig.optimizer,
+          lossFunction: latestTrainingConfig.lossFunction,
+          learningRate: latestTrainingConfig.learningRate,
+          validationSplit: latestTrainingConfig.validationSplit,
+          dataset: normalizeDatasetName(selectedDataset), // Move dataset here
         },
       };
+
+      console.log("Current trainingConfig state:", latestTrainingConfig);
+      console.log("Model data being sent to backend:", modelData);
 
       // Make a POST request to the backend
       const response = await fetch("http://127.0.0.1:5000/api/save_model", {
@@ -1084,8 +1115,8 @@ const NewBuildPage = (): JSX.Element => {
       dataset: normalizeDatasetName(selectedDataset),
       lossFunction: trainingConfig.lossFunction,
       optimizer: trainingConfig.optimizer.toLowerCase(),
-      batchSize: parseInt(trainingConfig.batchSize.toString(), 10),
-      epochs: parseInt(trainingConfig.epochs.toString(), 10),
+      batchSize: parseInt(trainingConfig.batchSize.toString()),
+      epochs: parseInt(trainingConfig.epochs.toString()),
       learningRate: parseFloat(trainingConfig.learningRate.toString()),
     };
 
@@ -5898,6 +5929,29 @@ const NewBuildPage = (): JSX.Element => {
     r2,
   ]);
 
+  // Add this after the other useEffect hooks
+  useEffect(() => {
+    console.log("trainingConfig changed:", trainingConfig);
+  }, [trainingConfig]);
+
+  // Listen for getTrainingConfig event from NavBar
+  useEffect(() => {
+    const getTrainingConfigHandler = (event: CustomEvent) => {
+      localStorage.setItem("trainingConfig", JSON.stringify(trainingConfig));
+      console.log("Saved trainingConfig to localStorage:", trainingConfig);
+    };
+    window.addEventListener(
+      "getTrainingConfig",
+      getTrainingConfigHandler as EventListener
+    );
+    return () => {
+      window.removeEventListener(
+        "getTrainingConfig",
+        getTrainingConfigHandler as EventListener
+      );
+    };
+  }, [trainingConfig]);
+
   return (
     <div className="new-build-page">
       <div className="new-build-container">
@@ -6830,12 +6884,27 @@ const NewBuildPage = (): JSX.Element => {
                         type="number"
                         min="1"
                         value={trainingConfig.epochs}
-                        onChange={(e) =>
-                          setTrainingConfig({
-                            ...trainingConfig,
-                            epochs: parseInt(e.target.value) || 10,
-                          })
-                        }
+                        onChange={(e) => {
+                          const newValue = parseInt(e.target.value) || 10;
+                          console.log(
+                            "Current trainingConfig:",
+                            trainingConfig
+                          );
+                          console.log(
+                            "Updating epochs from",
+                            trainingConfig.epochs,
+                            "to",
+                            newValue
+                          );
+                          setTrainingConfig((prevConfig) => {
+                            const updatedConfig = {
+                              ...prevConfig,
+                              epochs: newValue,
+                            };
+                            console.log("New trainingConfig:", updatedConfig);
+                            return updatedConfig;
+                          });
+                        }}
                         className="param-input"
                       />
                       <div className="param-controls">

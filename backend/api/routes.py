@@ -120,6 +120,7 @@ def save_model_api():
         # Save training configuration to a file
         training_config = data.get('training_config', {})
         if training_config:
+            logger.info(f"Received training config from frontend: {training_config}")
             # Use the exact values from the frontend without defaults
             config = {
                 "epochs": int(training_config["epochs"]),
@@ -130,10 +131,17 @@ def save_model_api():
                 "validationSplit": float(training_config["validationSplit"])
             }
             
+            logger.info(f"Processed training config to save: {config}")
+            
             # Write the configuration with proper formatting
             with open(training_config_file, "w") as f:
                 json.dump(config, f, indent=2)
-            logger.info("Training configuration saved successfully")
+            logger.info(f"Training configuration saved to {training_config_file}")
+            
+            # Verify the saved configuration
+            with open(training_config_file, "r") as f:
+                saved_config = json.load(f)
+            logger.info(f"Verified saved training config: {saved_config}")
         
         # Print ResNet model structure if ResNet blocks are present
         resnet_blocks = [node for node in nodes if node.get("type") == "resnetblock"]
