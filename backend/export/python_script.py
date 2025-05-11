@@ -1,4 +1,4 @@
-def generate_python_script(model, training_config, x_train_shape):
+def generate_python_script(model, training_config, x_train_shape, dataset_name):
     """
     Generate a Python script that recreates the model architecture and training process.
     
@@ -6,6 +6,7 @@ def generate_python_script(model, training_config, x_train_shape):
         model: The trained Keras model
         training_config: Dictionary with training configuration
         x_train_shape: Shape of the training data
+        dataset_name: Name of the dataset being used
         
     Returns:
         str: Generated Python script content
@@ -23,6 +24,7 @@ def generate_python_script(model, training_config, x_train_shape):
     script = [
         "import tensorflow as tf",
         "import numpy as np",
+        "import json",
         "from tensorflow.keras.models import Sequential",
         "from tensorflow.keras.layers import Dense, Conv2D, Flatten, Dropout, MaxPooling2D, BatchNormalization, Input, Reshape, Activation"
     ]
@@ -59,21 +61,19 @@ def generate_python_script(model, training_config, x_train_shape):
             ""
         ])
     
-    # Get dataset name from training config
-    dataset_name = training_config.get("dataset", "Unknown")
-    
     # Get the actual input shape from the model
     input_shape = model.input_shape[1:] if model.input_shape else x_train_shape[1:]
     input_shape_str = str(input_shape)
     
-    # Extract model parameters from training config
+    # Extract training parameters from the passed config
     epochs = training_config.get("epochs", 10)
     batch_size = training_config.get("batchSize", 32)
     validation_split = training_config.get("validationSplit", 0.2)
     learning_rate = training_config.get("learningRate", 0.001)
+    optimizer_name = training_config.get("optimizer", "Adam")
+    loss_function = training_config.get("lossFunction", "Categorical Cross-Entropy")
     
     # Start building the script
-    script.append("")
     script.append("# Load and preprocess the dataset")
     
     # Add dataset-specific code

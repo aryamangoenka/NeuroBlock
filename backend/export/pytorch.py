@@ -1,4 +1,4 @@
-def generate_pytorch_script(model, training_config, x_train_shape):
+def generate_pytorch_script(model, training_config, x_train_shape, dataset_name):
     """
     Generates a PyTorch script equivalent to the trained Keras model.
     
@@ -6,6 +6,7 @@ def generate_pytorch_script(model, training_config, x_train_shape):
         model: The trained Keras model
         training_config: Dictionary with training configuration
         x_train_shape: Shape of the training data
+        dataset_name: Name of the dataset being used
         
     Returns:
         str: Generated PyTorch script content
@@ -20,6 +21,17 @@ def generate_pytorch_script(model, training_config, x_train_shape):
             has_attention_layer = True
             break
     
+    # Extract training parameters from the passed config
+    epochs = training_config.get("epochs", 10)
+    batch_size = training_config.get("batchSize", 32)
+    validation_split = training_config.get("validationSplit", 0.2)
+    learning_rate = training_config.get("learningRate", 0.001)
+    optimizer_name = training_config.get("optimizer", "Adam")
+    loss_function = training_config.get("lossFunction", "Categorical Cross-Entropy")
+    
+    # Use the passed dataset_name parameter instead of getting it from training_config
+    dataset_name = dataset_name.lower() if dataset_name else ""
+    
     # Map loss function names
     LOSS_FUNCTION_MAPPING = {
         "Categorical Cross-Entropy": "nn.CrossEntropyLoss()",
@@ -29,14 +41,8 @@ def generate_pytorch_script(model, training_config, x_train_shape):
         "Huber Loss": "nn.SmoothL1Loss()"
     }
     
-    loss_function = training_config.get("lossFunction", "categorical_crossentropy")
     loss_value = LOSS_FUNCTION_MAPPING.get(loss_function, "nn.CrossEntropyLoss()")
     
-    optimizer = training_config.get("optimizer", "adam").lower()
-    epochs = training_config.get("epochs", 10)
-    batch_size = training_config.get("batchSize", 32)
-    dataset_name = training_config.get("dataset", "").lower()
-
     # Base imports
     pytorch_code = """
 import torch
@@ -45,27 +51,10 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
-import wandb
 """
 
     # Add the dataset name as a variable for the evaluation logic
     pytorch_code += f"\n# Define the dataset name for evaluation logic\ndataset_name = \"{dataset_name}\"\n"
-
-    # Add W&B initialization
-    pytorch_code += f"""
-# Initialize Weights & Biases for experiment tracking
-wandb.init(
-    project="dnd-neural-network",
-    name="{dataset_name}-model-pytorch",
-    config={{
-        "dataset": "{dataset_name}",
-        "optimizer": "{optimizer}",
-        "loss_function": "{loss_function}",
-        "batch_size": {batch_size},
-        "epochs": {epochs}
-    }}
-)
-"""
 
     # Add attention-specific imports if needed
     if has_attention_layer:
@@ -268,7 +257,7 @@ class NeuralNetwork(nn.Module):
 
     # Training code
     opt_map = {"adam": "Adam", "sgd": "SGD", "rmsprop": "RMSprop", "adagrad": "Adagrad"}
-    opt_name = opt_map.get(optimizer, "Adam")
+    opt_name = opt_map.get(optimizer_name, "Adam")
     
     # Adjust criterion based on dataset type for better compatibility
     if dataset_name == "iris" or dataset_name == "mnist" or dataset_name == "cifar-10":
@@ -284,12 +273,9 @@ class NeuralNetwork(nn.Module):
 # Initialize the model
 model = NeuralNetwork()
 
-# Log model architecture to W&B
-wandb.watch(model, log="all")
-
 # Define loss function and optimizer
 criterion = {adjusted_loss}
-optimizer = optim.{opt_name}(model.parameters(), lr=0.001)
+optimizer = optim.{opt_name}(model.parameters(), lr={learning_rate})
 
 # Training loop
 for epoch in range({epochs}):
@@ -317,10 +303,6 @@ for epoch in range({epochs}):
         optimizer.step()
         
         running_loss += loss.item()
-        
-        # Log batch loss to W&B (every 10 batches)
-        if batch_idx % 10 == 0:
-            wandb.log({{"batch_loss": loss.item()}})
     
     # Evaluation
     model.eval()
@@ -382,18 +364,6 @@ for epoch in range({epochs}):
         print(f"Accuracy: {{accuracy:.2f}}%")
     elif dataset_name == "california housing":
         print(f"Regression task - accuracy metric not applicable")
-        
-    # Log metrics to W&B
-    metrics = {{
-        "epoch": epoch + 1,
-        "train_loss": epoch_loss,
-        "val_loss": epoch_test_loss,
-    }}
-    
-    if dataset_name != "california housing":
-        metrics["accuracy"] = accuracy / 100  # Convert percentage to decimal
-        
-    wandb.log(metrics)
 
 # Final evaluation
 model.eval()
@@ -422,7 +392,7 @@ with torch.no_grad():
                 predictions.extend(preds.cpu().numpy())
                 actual_labels.extend(targets.cpu().numpy())
 
-# Log confusion matrix for classification tasks
+# Plot confusion matrix for classification tasks
 if dataset_name != "california housing":
     import matplotlib.pyplot as plt
     import seaborn as sns
@@ -435,16 +405,11 @@ if dataset_name != "california housing":
     plt.ylabel('True Label')
     plt.xlabel('Predicted Label')
     plt.tight_layout()
-    
-    # Log to W&B
-    wandb.log({{"confusion_matrix": wandb.Image(plt)}})
+    plt.show()
 
 # Save the model
 torch.save(model.state_dict(), "pytorch_model.pth")
-wandb.save("pytorch_model.pth")  # Also save to W&B
-
 print("Training completed!")
-wandb.finish()  # Close the W&B run
 """
 
     return pytorch_code 

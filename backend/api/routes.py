@@ -180,11 +180,26 @@ def export_model(format):
         model_architecture = {}
         training_config = {}
         
-        # Load the training configuration
-        if os.path.exists(training_config_file):
+        # First try to get dataset name from model architecture
+        if os.path.exists(model_architecture_file):
+            try:
+                with open(model_architecture_file, "r") as f:
+                    model_arch = json.load(f)
+                    dataset_name = model_arch.get("dataset", "")
+                    logger.debug(f"Got dataset name from model architecture: {dataset_name}")
+            except Exception as e:
+                logger.warning(f"Could not load dataset name from model architecture: {str(e)}")
+        
+        # Only if dataset name is not found in model architecture, try training config
+        if not dataset_name and os.path.exists(training_config_file):
             with open(training_config_file, "r") as f:
                 training_config = json.load(f)
-            logger.debug(f"Loaded training configuration: {training_config}")
+                config_dataset = training_config.get("dataset", "")
+                if config_dataset:
+                    dataset_name = config_dataset
+                    logger.debug(f"Got dataset name from training config: {dataset_name}")
+        
+        logger.debug(f"Final dataset name for export: {dataset_name}")
         
         # Check if the saved model exists
         trained_model_exists = os.path.exists(trained_model_path)
@@ -272,9 +287,15 @@ def export_model(format):
             logger.debug(f"EXPORT_FOLDER: {export_folder}")
             logger.debug(f"Current working directory: {os.getcwd()}")
             
+            # Load the latest training configuration
+            if os.path.exists(training_config_file):
+                with open(training_config_file, 'r') as f:
+                    training_config = json.load(f)
+                    logger.debug(f"Loaded training config from file: {training_config}")
+            
             # Make sure the file exists
             with open(file_path, "w") as f:
-                f.write(generate_python_script(model, training_config, model_input_shape))
+                f.write(generate_python_script(model, training_config, model_input_shape, dataset_name))
             logger.info(f"Python script saved to {file_path}")
             
             # Check if file exists after writing
@@ -289,8 +310,15 @@ def export_model(format):
         elif format == "ipynb":
             logger.info("Generating Jupyter notebook")
             file_path = os.path.join(export_folder, "trained_model.ipynb")
+            
+            # Load the latest training configuration
+            if os.path.exists(training_config_file):
+                with open(training_config_file, 'r') as f:
+                    training_config = json.load(f)
+                    logger.debug(f"Loaded training config from file: {training_config}")
+            
             with open(file_path, "w") as f:
-                f.write(generate_notebook(model, training_config, model_input_shape))
+                f.write(generate_notebook(model, training_config, model_input_shape, dataset_name))
             logger.info(f"Jupyter notebook saved to {file_path}")
             # Use absolute path for send_file
             return send_file(os.path.abspath(file_path), as_attachment=True)
@@ -369,11 +397,12 @@ def apply_attention(x, num_heads=8, key_dim=64, dropout=0.0):
     )
     return attention_layer(x, x)
 
-# Load model architecture from JSON
-with open('model_config.json', 'r') as f:
-    model_json = json.load(f)
+# Load model architecture from saved_model.json
+with open('saved_model.json', 'r') as f:
+    model_arch = json.load(f)
     
-# Convert back to string for model_from_json
+# Convert architecture to model JSON format
+model_json = model_arch.get('model_json', {})
 model_json_str = json.dumps(model_json)
 
 # Create model with custom objects
@@ -403,7 +432,7 @@ This SavedModel contains custom attention layers that required special handling.
 1. Use the provided `load_model.py` script which contains all necessary custom layer definitions.
 2. Or manually load using the following steps:
    a. Define the CustomAttentionLayer class (see load_model.py)
-   b. Load the model architecture from model_config.json
+   b. Load the model architecture from saved_model.json
    c. Load the weights from weights.h5
 
 Example:
@@ -417,10 +446,10 @@ import json
 class CustomAttentionLayer(tf.keras.layers.Layer):
     # ... (copy from load_model.py)
 
-# Load model from JSON
-with open('model_config.json', 'r') as f:
-    model_json = json.load(f)
-model = model_from_json(json.dumps(model_json), custom_objects={'CustomAttentionLayer': CustomAttentionLayer})
+# Load model from saved_model.json
+with open('saved_model.json', 'r') as f:
+    model_arch = json.load(f)
+model = model_from_json(json.dumps(model_arch.get('model_json', {})), custom_objects={'CustomAttentionLayer': CustomAttentionLayer})
 
 # Load weights
 model.load_weights('weights.h5')
@@ -635,8 +664,14 @@ Please use the 'load_model.py' script in the 'weights_only' directory to load th
         
         elif format == "pytorch":
             logger.info("Exporting to PyTorch format")
+            # Load the latest training configuration
+            if os.path.exists(training_config_file):
+                with open(training_config_file, 'r') as f:
+                    training_config = json.load(f)
+                    logger.debug(f"Loaded training config from file: {training_config}")
+            
             # Convert Keras model to PyTorch manually
-            pytorch_script = generate_pytorch_script(model, training_config, model_input_shape)
+            pytorch_script = generate_pytorch_script(model, training_config, model_input_shape, dataset_name)
 
             # Save to a file
             file_path = os.path.join(export_folder, "trained_model_pytorch.py")
