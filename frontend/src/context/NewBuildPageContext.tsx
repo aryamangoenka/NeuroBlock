@@ -36,6 +36,7 @@ interface TrainingConfig {
   lossFunction: string;
   learningRate: number;
   validationSplit: number;
+  dataset: string;
 }
 
 // Training progress interface
@@ -73,6 +74,7 @@ const defaultTrainingConfig: TrainingConfig = {
   lossFunction: "Categorical Cross-Entropy",
   learningRate: 0.001,
   validationSplit: 0.2,
+  dataset: "",
 };
 
 // Default training progress
@@ -115,10 +117,11 @@ export const NewBuildPageProvider: React.FC<{ children: React.ReactNode }> = ({
   const [trainingConfig, setTrainingConfig] = useState<TrainingConfig>({
     epochs: 10,
     batchSize: 32,
-    optimizer: "adam",
-    lossFunction: "categorical_crossentropy",
+    optimizer: "Adam",
+    lossFunction: "Categorical Cross-Entropy",
     learningRate: 0.001,
     validationSplit: 0.2,
+    dataset: "",
   });
 
   // Save training config to localStorage whenever it changes

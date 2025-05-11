@@ -984,6 +984,7 @@ const NewBuildPage = (): JSX.Element => {
             source: edge.source,
             target: edge.target,
           })),
+          dataset: normalizeDatasetName(selectedDataset),
         },
         training_config: {
           epochs: latestTrainingConfig.epochs,
@@ -992,7 +993,6 @@ const NewBuildPage = (): JSX.Element => {
           lossFunction: latestTrainingConfig.lossFunction,
           learningRate: latestTrainingConfig.learningRate,
           validationSplit: latestTrainingConfig.validationSplit,
-          dataset: normalizeDatasetName(selectedDataset), // Move dataset here
         },
       };
 
