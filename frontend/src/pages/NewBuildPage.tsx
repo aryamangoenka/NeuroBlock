@@ -381,40 +381,21 @@ const NewBuildPage = (): JSX.Element => {
           data.metrics.confusion_matrix
         );
         setConfusionMatrix(data.metrics.confusion_matrix);
-        setChartKey((prev) => prev + 1); // Force chart re-render
-      } else {
-        console.log("No Confusion Matrix in metrics");
       }
 
       // California Housing specific metrics
       if (selectedDataset === "California Housing") {
         console.log("Processing California Housing specific metrics");
 
-        // Debug California Housing visualizations specifically
-        console.log("California Housing DEBUG:", {
-          hasRMSE: !!data.metrics?.rmse,
-          hasR2: !!data.metrics?.r2,
-          hasResidualsPlot: !!data.metrics?.residuals_plot,
-          residualsLength: data.metrics?.residuals_plot?.residuals?.length || 0,
-          predictedValuesLength:
-            data.metrics?.residuals_plot?.predicted_values?.length || 0,
-          hasHeatmap: !!data.metrics?.multicollinearity_heatmap,
-          heatmapLength: data.metrics?.multicollinearity_heatmap?.length || 0,
-        });
-
         // Set RMSE and R2 score if available
         if (data.metrics?.rmse) {
           console.log("RMSE received:", data.metrics.rmse);
           setRmse(data.metrics.rmse);
-        } else {
-          console.log("No RMSE in metrics");
         }
 
         if (data.metrics?.r2) {
           console.log("R² Score received:", data.metrics.r2);
           setR2(data.metrics.r2);
-        } else {
-          console.log("No R² Score in metrics");
         }
 
         // Set residuals and predicted values for residual plot
@@ -431,32 +412,6 @@ const NewBuildPage = (): JSX.Element => {
 
           setPredictedValues(predictedValues);
           setResiduals(residualsData);
-
-          // If no heatmap is present, show residual plot automatically
-          if (!data.metrics?.multicollinearity_heatmap) {
-            console.log(
-              "No heatmap received, checking if we should switch to residual plot"
-            );
-
-            const shouldSwitchToResidualPlot =
-              selectedDataset === "California Housing" &&
-              !["heatmap", "residual_plot"].includes(selectedVisualization);
-
-            if (shouldSwitchToResidualPlot) {
-              console.log(
-                "Switching to residual plot (user didn't select a specific view yet)"
-              );
-              setSelectedVisualization("residual_plot");
-              // Force re-render
-              setChartKey((prev) => prev + 1);
-            } else {
-              console.log(
-                `Keeping current visualization: ${selectedVisualization} (user selection preserved)`
-              );
-            }
-          }
-        } else {
-          console.log("No residual plot data in metrics");
         }
 
         // Set heatmap image if available
@@ -468,28 +423,17 @@ const NewBuildPage = (): JSX.Element => {
 
           const heatmapData = `data:image/png;base64,${data.metrics.multicollinearity_heatmap}`;
           setHeatmapImage(heatmapData);
-
-          // Only switch to heatmap if California Housing dataset is selected AND user hasn't already chosen a visualization
-          const shouldSwitchToHeatmap =
-            selectedDataset === "California Housing" &&
-            !["heatmap", "residual_plot"].includes(selectedVisualization);
-
-          if (shouldSwitchToHeatmap) {
-            console.log(
-              "Switching to heatmap visualization (user didn't select a specific view yet)"
-            );
-            setSelectedVisualization("heatmap");
-          } else {
-            console.log(
-              `Keeping current visualization: ${selectedVisualization} (user selection preserved)`
-            );
-          }
-
-          // Force re-render
-          setChartKey((prev) => prev + 1);
-        } else {
-          console.log("No multicollinearity heatmap in metrics");
         }
+
+        // Force visualization update
+        if (data.metrics?.multicollinearity_heatmap) {
+          setSelectedVisualization("heatmap");
+        } else if (data.metrics?.residuals_plot) {
+          setSelectedVisualization("residual_plot");
+        }
+
+        // Force re-render
+        setChartKey((prev) => prev + 1);
       }
     });
 
@@ -697,10 +641,6 @@ const NewBuildPage = (): JSX.Element => {
         (node) => node.type === "activation" && node.data.function === "Softmax"
       );
 
-      if (softmaxLayers.length === 0) {
-        return "Classification tasks should use Softmax activation in the output layer";
-      }
-
       // Build a connectivity graph to check for both direct and indirect connections
       const graph = new Map<string, Set<string>>();
 
@@ -777,10 +717,6 @@ const NewBuildPage = (): JSX.Element => {
             dfs(layer.id);
           }
         }
-      }
-
-      if (!isSoftmaxConnected) {
-        return "Classification tasks should use Softmax activation in the output layer";
       }
     }
 
@@ -1078,13 +1014,19 @@ const NewBuildPage = (): JSX.Element => {
       return;
     }
 
+    // Get the latest training config from localStorage
+    const storedConfig = localStorage.getItem("trainingConfig");
+    const latestTrainingConfig = storedConfig
+      ? JSON.parse(storedConfig)
+      : trainingConfig;
+
     // Set training state
     setIsTraining(true);
 
     // Reset training progress and chart data
     setTrainingProgress({
       currentEpoch: 0,
-      totalEpochs: parseInt(trainingConfig.epochs.toString()),
+      totalEpochs: parseInt(latestTrainingConfig.epochs.toString()),
       accuracy: 0,
       loss: 0,
       valAccuracy: 0,
@@ -1113,11 +1055,11 @@ const NewBuildPage = (): JSX.Element => {
     // Prepare training payload with proper type conversions
     const trainingPayload = {
       dataset: normalizeDatasetName(selectedDataset),
-      lossFunction: trainingConfig.lossFunction,
-      optimizer: trainingConfig.optimizer.toLowerCase(),
-      batchSize: parseInt(trainingConfig.batchSize.toString()),
-      epochs: parseInt(trainingConfig.epochs.toString()),
-      learningRate: parseFloat(trainingConfig.learningRate.toString()),
+      lossFunction: latestTrainingConfig.lossFunction,
+      optimizer: latestTrainingConfig.optimizer.toLowerCase(),
+      batchSize: parseInt(latestTrainingConfig.batchSize.toString()),
+      epochs: parseInt(latestTrainingConfig.epochs.toString()),
+      learningRate: parseFloat(latestTrainingConfig.learningRate.toString()),
     };
 
     console.log("Training payload sent:", trainingPayload);
