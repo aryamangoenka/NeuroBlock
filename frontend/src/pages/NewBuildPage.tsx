@@ -44,9 +44,8 @@ import {
   AddLayerNode,
   ActivationNode,
 } from "../components/CustomNodes";
-import NavBar from "../components/NavBar";
+
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 
 // Register Chart.js components
 ChartJS.register(
@@ -83,26 +82,7 @@ type SidebarOption = "layers" | "templates" | "activations";
 // Add these near the top of the file with other type definitions
 type ValidationErrors = string[];
 
-// Update the TrainingProgress type to match the context
-type TrainingProgress = {
-  currentEpoch: number;
-  totalEpochs: number;
-  accuracy: number;
-  loss: number;
-  valAccuracy: number;
-  valLoss: number;
-};
-
-// Define a custom event for saving the model
-const triggerSaveModel = () => {
-  const event = new CustomEvent("saveModel");
-  window.dispatchEvent(event);
-};
-
 const NewBuildPage = (): JSX.Element => {
-  // Add navigate hook at the top with other hooks
-  const navigate = useNavigate();
-
   const {
     nodes,
     setNodes,
@@ -876,7 +856,6 @@ const NewBuildPage = (): JSX.Element => {
     );
 
     // Filter warnings and suggestions
-    const warnings = errors.filter((error) => !error.includes("[Critical]"));
 
     if (criticalErrors.length > 0) {
       console.warn("Critical validation errors found:", criticalErrors);
@@ -2774,23 +2753,7 @@ const NewBuildPage = (): JSX.Element => {
   };
 
   const onConnect = (connection: Connection): void => {
-    console.log("Connection attempted:", connection);
-
-    // Check if the target node already has 5 incoming connections
-    const targetNodeId = connection.target;
-    const incomingConnectionsCount = edges.filter(
-      (edge) => edge.target === targetNodeId
-    ).length;
-
-    if (incomingConnectionsCount >= 5) {
-      // Display a warning to the user
-      alert(
-        `Node limit reached: Maximum of 5 incoming connections allowed per node.`
-      );
-      return; // Don't add the new connection
-    }
-
-    // If below the limit, add the connection
+    console.log("Connecting nodes:", connection);
     setEdges((eds) => addEdge(connection, eds));
   };
 
@@ -3574,9 +3537,6 @@ const NewBuildPage = (): JSX.Element => {
 
       // Check if there's a path from ResNet blocks to a Flatten or GlobalAveragePooling layer
       let pathToFlattenOrGlobalPoolFound = false;
-      const flattenOrGlobalPoolLayers = allNodes.filter(
-        (node) => node.type === "flatten" || node.type === "globalaveragepool"
-      );
 
       if (flattenExists || globalAvgPoolExists) {
         // Build adjacency list for graph traversal
@@ -5088,6 +5048,9 @@ const NewBuildPage = (): JSX.Element => {
     );
   };
 
+  // Prevent unused function warning
+  void renderNodeParameters;
+
   // Render visualization based on selected option
   const renderVisualization = () => {
     console.log("Rendering visualization:", selectedVisualization, {
@@ -5580,6 +5543,13 @@ const NewBuildPage = (): JSX.Element => {
     };
   }, [selectedDataset, isTraining, nodes, edges]); // Include relevant dependencies
 
+  // Display export status message if it exists
+  useEffect(() => {
+    if (exportStatusMessage) {
+      console.log("Export status:", exportStatusMessage);
+    }
+  }, [exportStatusMessage]);
+
   // Listen for stop training event from NavBar
   useEffect(() => {
     const stopTrainingHandler = () => {
@@ -5878,7 +5848,7 @@ const NewBuildPage = (): JSX.Element => {
 
   // Listen for getTrainingConfig event from NavBar
   useEffect(() => {
-    const getTrainingConfigHandler = (event: CustomEvent) => {
+    const getTrainingConfigHandler = () => {
       localStorage.setItem("trainingConfig", JSON.stringify(trainingConfig));
       console.log("Saved trainingConfig to localStorage:", trainingConfig);
     };
@@ -5967,6 +5937,7 @@ const NewBuildPage = (): JSX.Element => {
               nodeTypes={nodeTypes}
               isValidConnection={(connection) => {
                 // Allow connections from any node, including output nodes
+                void connection; // Prevent unused parameter warning
                 return true;
               }}
               connectionLineStyle={{ stroke: "#555", strokeWidth: 2 }}

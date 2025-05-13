@@ -7,7 +7,7 @@ const triggerSaveModel = () => {
   const event = new CustomEvent("saveModel");
   window.dispatchEvent(event);
 };
-
+void triggerSaveModel;
 // Define a custom event for training the model
 const triggerTrainModel = () => {
   const event = new CustomEvent("trainModel");

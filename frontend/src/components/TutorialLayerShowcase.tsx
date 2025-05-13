@@ -131,6 +131,7 @@ const TutorialLayerShowcase: React.FC = () => {
 
   // Helper function to darken/lighten a color
   const adjustColor = (color: string, amount: number): string => {
+    void amount; // Prevent unused parameter warning
     return color;
   };
 

@@ -2,7 +2,7 @@ from flask import Flask
 from flask_cors import CORS
 from flask_socketio import SocketIO
 import os
-import eventlet
+
 
 from backend.config import config
 from backend.utils.logging import get_logger
@@ -55,7 +55,8 @@ def create_socketio(app):
         app, 
         cors_allowed_origins="*", 
         ping_timeout=app.config.get("SOCKETIO_PING_TIMEOUT", 300),
-        ping_interval=app.config.get("SOCKETIO_PING_INTERVAL", 25)
+        ping_interval=app.config.get("SOCKETIO_PING_INTERVAL", 25),
+        async_mode="threading"
     )
     
     # Register socket events
@@ -68,8 +69,12 @@ def create_socketio(app):
 app = create_app(os.environ.get("FLASK_CONFIG", "default"))
 socketio = create_socketio(app)
 
+# For Cloud Run or WSGI
+# This line exposes the Flask application for Cloud Run and similar platforms
+wsgi_app = app
+
 if __name__ == "__main__":
-    host = os.environ.get("HOST", "0.0.0.0")
+    host = "0.0.0.0"  # Always bind to all interfaces for Cloud Run
     port = int(os.environ.get("PORT", 5000))
     debug = os.environ.get("DEBUG", "False").lower() == "true"
     

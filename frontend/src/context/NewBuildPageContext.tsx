@@ -114,6 +114,10 @@ export const NewBuildPageProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     return defaultTrainingConfig;
   };
+
+  // Prevent unused function warning
+  void getInitialTrainingConfig;
+
   const [trainingConfig, setTrainingConfig] = useState<TrainingConfig>({
     epochs: 10,
     batchSize: 32,

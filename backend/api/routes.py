@@ -705,6 +705,9 @@ def clear_saved_model():
     """
     logger.info("Clear model endpoint called")
     try:
+        # Get model_architecture_file path from app config
+        model_architecture_file = current_app.config.get('MODEL_ARCHITECTURE_FILE')
+        
         if os.path.exists(model_architecture_file):
             with open(model_architecture_file, "w") as file:
                 file.write('{}')  # Overwrite with empty JSON
