@@ -1,119 +1,88 @@
+import Link from "next/link";
+import { ArrowRightIcon } from "@heroicons/react/24/outline";
 
-import {
-  ArrowRightIcon,
-  SparklesIcon,
-  CubeIcon,
-  ArrowDownTrayIcon,
-} from "@heroicons/react/24/outline";
-import "./styles/landing.css";
-
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="min-h-screen gradient-bg">
-      {/* Hero Section */}
-      <div className="relative isolate">
-        {/* Background effects */}
-        <div className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80">
-          <div className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-indigo-200 to-purple-200 opacity-30 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]" />
-        </div>
+    <main className="relative min-h-screen overflow-x-hidden">
+      <div className="absolute inset-0 z-0 hexagon-grid"></div>
 
-        <div className="mx-auto max-w-7xl px-6 py-24 sm:py-32 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
-            <h1 className="text-4xl font-bold tracking-tight sm:text-6xl gradient-text animate-float">
-              NeuroBlock
-            </h1>
-            <p className="mt-6 text-lg leading-8 text-gray-600">
-              Your Visual AI Model Builder
-            </p>
-            <div className="mt-10 flex items-center justify-center gap-x-6">
-              <a
-                href="http://localhost:5173"
-                className="gradient-button group relative inline-flex items-center justify-center px-8 py-3 font-medium tracking-wide text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                Try Now
-                <span className="shine-effect absolute inset-0 rounded-lg" />
-              </a>
-              <a
-                href="http://localhost:5173/tutorial"
-                className="group inline-flex items-center text-sm font-semibold leading-6 text-gray-900 hover:text-indigo-600 transition-colors duration-200"
-              >
-                Tutorial
-                <ArrowRightIcon className="ml-2 h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
-              </a>
+      {/* Hero */}
+      <section className="relative z-10 flex flex-col items-center justify-center text-center px-4 pt-32 pb-24">
+        <h1 className="text-5xl md:text-7xl font-bold leading-tight neon-text-glow">
+          Build AI Visually with <span className="text-[#39ff14]">NeuroBlock</span>
+        </h1>
+        <p className="mt-6 max-w-2xl text-lg text-gray-300">
+          Drag-and-drop layers. Train live. Export anywhere.
+        </p>
+        <div className="mt-8 flex flex-wrap justify-center gap-4">
+          <a href="https://app.neuroblock.co/newbuild" className="primary-button btn-pulse">
+            Launch Builder
+          </a>
+          <a href="https://app.neuroblock.co/tutorial" className="secondary-button">
+            Watch Tutorial
+          </a>
+        </div>
+      </section>
+
+      {/* Neural Visualization */}
+      <section className="relative z-10 py-16">
+        <div className="container mx-auto px-4">
+          <div className="aspect-[16/9] bg-black/40 rounded-xl overflow-hidden relative border border-[#39ff14]/30">
+            <div className="neural-visualization w-full h-full">
+              <div className="node input-node" style={{ left: "10%", top: "50%" }}></div>
+              <div className="node hidden-node-1" style={{ left: "35%", top: "30%" }}></div>
+              <div className="node hidden-node-2" style={{ left: "35%", top: "70%" }}></div>
+              <div className="node output-node" style={{ left: "75%", top: "50%" }}></div>
+
+              <div className="connection connection-1" style={{ left: "14%", top: "50%", width: "21%" }}></div>
+              <div className="connection connection-2" style={{ left: "14%", top: "50%", width: "21%", transform: "rotate(-25deg)" }}></div>
+              <div className="connection connection-3" style={{ left: "14%", top: "50%", width: "21%", transform: "rotate(25deg)" }}></div>
+              <div className="connection connection-4" style={{ left: "39%", top: "30%", width: "28%" }}></div>
+              <div className="connection connection-5" style={{ left: "39%", top: "70%", width: "28%" }}></div>
             </div>
           </div>
         </div>
+      </section>
 
-        {/* Background effects */}
-        <div className="absolute inset-x-0 top-[calc(100%-13rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-30rem)]">
-          <div className="relative left-[calc(50%+3rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 bg-gradient-to-tr from-indigo-200 to-purple-200 opacity-30 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem]" />
-        </div>
-      </div>
-
-      {/* Features Section */}
-      <div className="py-24 sm:py-32">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl lg:text-center">
-            <h2 className="text-base font-semibold leading-7 text-indigo-600">
-              Features
-            </h2>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-              Everything you need to build AI models
-            </p>
-          </div>
-          <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
-            <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-16 lg:max-w-none lg:grid-cols-3">
-              {/* Feature 1 */}
-              <div className="feature-card glass-card group relative flex flex-col items-start rounded-2xl p-6 hover-glow">
-                <div className="mb-4 rounded-lg bg-indigo-600 p-2 ring-1 ring-indigo-600/10">
-                  <SparklesIcon className="feature-icon h-6 w-6 text-white" />
-                </div>
-                <dt className="text-lg font-semibold leading-7 text-gray-900">
-                  Drag-and-Drop Interface
-                </dt>
-                <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                  <p className="flex-auto">
-                    Build your AI models visually with our intuitive
-                    drag-and-drop interface. No coding required.
-                  </p>
-                </dd>
-              </div>
-
-              {/* Feature 2 */}
-              <div className="feature-card glass-card group relative flex flex-col items-start rounded-2xl p-6 hover-glow">
-                <div className="mb-4 rounded-lg bg-indigo-600 p-2 ring-1 ring-indigo-600/10">
-                  <CubeIcon className="feature-icon h-6 w-6 text-white" />
-                </div>
-                <dt className="text-lg font-semibold leading-7 text-gray-900">
-                  Prebuilt Templates
-                </dt>
-                <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                  <p className="flex-auto">
-                    Get started quickly with our collection of pre-built
-                    templates for common AI model architectures.
-                  </p>
-                </dd>
-              </div>
-
-              {/* Feature 3 */}
-              <div className="feature-card glass-card group relative flex flex-col items-start rounded-2xl p-6 hover-glow">
-                <div className="mb-4 rounded-lg bg-indigo-600 p-2 ring-1 ring-indigo-600/10">
-                  <ArrowDownTrayIcon className="feature-icon h-6 w-6 text-white" />
-                </div>
-                <dt className="text-lg font-semibold leading-7 text-gray-900">
-                  Export in Multiple Formats
-                </dt>
-                <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                  <p className="flex-auto">
-                    Export your models in various formats for deployment across
-                    different platforms and frameworks.
-                  </p>
-                </dd>
-              </div>
-            </dl>
+      {/* Terminal Simulation */}
+      <section className="relative z-10 py-16">
+        <div className="container mx-auto px-4">
+          <div className="terminal max-w-3xl mx-auto">
+            <div className="terminal-line">
+              <span className="terminal-prompt">$</span> neuroblock init
+            </div>
+            <div className="terminal-line text-[#39ff14]">
+              ✓ Initialized successfully
+            </div>
+            <div className="terminal-line">
+              <span className="terminal-prompt">$</span> neuroblock launch --visual
+            </div>
+            <div className="terminal-line text-[#39ff14]">
+              ✓ Visual Builder Ready
+            </div>
+            <div className="terminal-line">
+              <span className="terminal-prompt">$</span> start-training
+            </div>
+            <div className="terminal-line">
+              Training...
+              <span className="terminal-cursor"></span>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
+
+      {/* CTA */}
+      <section className="relative z-10 text-center py-24">
+        <h2 className="text-4xl md:text-5xl font-bold mb-6 neon-text-glow">
+          Ready to launch your model?
+        </h2>
+        <p className="text-lg text-gray-400 max-w-xl mx-auto mb-8">
+          Visualize. Build. Train. Deploy. All in one place.
+        </p>
+        <a href="https://app.neuroblock.co/newbuild" className="primary-button btn-pulse">
+          Get Started
+        </a>
+      </section>
+    </main>
   );
 }

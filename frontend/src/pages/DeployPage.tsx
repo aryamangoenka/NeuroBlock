@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import "../styles/components/DeployPage.scss";
+import API_BASE_URL from "../utils/apiConfig";
 
 import "bootstrap/dist/css/bootstrap.min.css";
 import { useTrainPageContext } from "../context/TrainPageContext";
@@ -20,12 +21,9 @@ const DeployPage = (): JSX.Element => {
     setStatusMessage(`Exporting model as ${format.toUpperCase()}...`);
 
     try {
-      const response = await axios.get(
-        `http://127.0.0.1:5000/export/${format}`,
-        {
-          responseType: "blob", // Important for file download
-        }
-      );
+      const response = await axios.get(`${API_BASE_URL}/export/${format}`, {
+        responseType: "blob", // Important for file download
+      });
       // 📝 If exporting as savedmodel, download as a .zip file
       // 📝 Set correct file extension for each format
       let fileExtension;

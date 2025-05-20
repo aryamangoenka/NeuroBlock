@@ -1,31 +1,45 @@
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
 
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PORT=5000
+
 # Install system dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends gcc && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    build-essential \
+    curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
-COPY test-requirements.txt ./
+# Copy requirements file
+COPY requirements.txt .
 
-# Install all dependencies + gunicorn
-RUN pip install --no-cache-dir -r test-requirements.txt
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install gunicorn==21.2.0
 
-# Copy app code
-COPY . .
+# Copy the backend directory
+COPY backend/ ./backend/
+COPY model_config.json saved_model.json training_config.json ./
 
-# Create directory for exports
-RUN mkdir -p exports
+# Create export directories
+RUN mkdir -p exports export
 
-# Expose Flask port
-EXPOSE 5000
+# Set the PYTHONPATH
+ENV PYTHONPATH=.
 
-# ✅ Fix 1: Tell Python where to find `backend/`
-ENV PYTHONPATH=/app
+# Expose the port the app runs on
+EXPOSE 8080
+EXPOSE $PORT
 
-# ✅ Fix 2: Correct entrypoint for gunicorn
-CMD ["gunicorn", "--bind", ":5000", "--workers", "1", "--threads", "8", "--timeout", "0", "backend.main:wsgi_app"]
+# Set health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/health || exit 1
+
+# Command to run the application
+CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 backend.main:app 

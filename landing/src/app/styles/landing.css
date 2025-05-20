@@ -1,138 +1,77 @@
-/* Custom animations */
 @keyframes float {
-  0% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-20px);
-  }
-  100% {
-    transform: translateY(0px);
-  }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
 
-@keyframes gradient {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-@keyframes shine {
-  from {
-    background-position: 200% center;
-  }
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
 }
 
-/* Custom classes */
-.animate-float {
-  animation: float 6s ease-in-out infinite;
+@keyframes connection-flow {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
 }
 
-.gradient-text {
-  background: linear-gradient(
-    to right,
-    #4f46e5,
-    #7c3aed,
-    #4f46e5
-  );
-  background-size: 200% auto;
-  color: transparent;
-  background-clip: text;
-  -webkit-background-clip: text;
-  animation: gradient 8s linear infinite;
+.neural-visualization .node {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 30% 30%, rgba(57, 255, 20, 0.9), rgba(0, 0, 0, 0.8));
+  box-shadow: 0 0 20px rgba(57, 255, 20, 0.7);
+  animation: pulse 3s ease-in-out infinite;
 }
 
-.shine-effect {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.2),
-    transparent
-  );
-  background-size: 200% 100%;
-  animation: shine 3s linear infinite;
+.neural-visualization .connection {
+  position: absolute;
+  height: 2px;
+  background: rgba(57, 255, 20, 0.2);
+  z-index: 0;
+  overflow: hidden;
 }
 
-.glass-card {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+.neural-visualization .connection::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 30%;
+  height: 100%;
+  background: rgba(57, 255, 20, 0.8);
+  animation: connection-flow 3s infinite linear;
 }
 
-.hover-glow {
-  transition: all 0.3s ease;
+.terminal {
+  background: rgba(10, 10, 10, 0.9);
+  border: 1px solid rgba(57, 255, 20, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  font-family: var(--font-mono);
+  color: rgba(255, 255, 255, 0.8);
+  overflow: hidden;
 }
 
-.hover-glow:hover {
-  box-shadow: 0 0 20px rgba(79, 70, 229, 0.4);
+.terminal-line {
+  margin-bottom: 0.5rem;
+  position: relative;
 }
 
-/* Custom button styles */
-.gradient-button {
-  background: linear-gradient(
-    45deg,
-    #4f46e5,
-    #7c3aed
-  );
-  background-size: 200% 200%;
-  animation: gradient 5s ease infinite;
-  transition: all 0.3s ease;
+.terminal-prompt {
+  color: #39ff14;
+  margin-right: 0.5rem;
 }
 
-.gradient-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(79, 70, 229, 0.2);
-}
-
-/* Feature card animations */
-.feature-card {
-  transition: all 0.3s ease;
-}
-
-.feature-card:hover {
-  transform: translateY(-5px);
-}
-
-.feature-icon {
-  transition: all 0.3s ease;
-}
-
-.feature-card:hover .feature-icon {
-  transform: scale(1.1) rotate(5deg);
-}
-
-/* Background effects */
-.gradient-bg {
-  background: linear-gradient(
-    135deg,
-    rgba(79, 70, 229, 0.1),
-    rgba(124, 58, 237, 0.1)
-  );
-  background-size: 400% 400%;
-  animation: gradient 15s ease infinite;
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
+.terminal-cursor {
+  display: inline-block;
   width: 8px;
+  height: 16px;
+  background: #39ff14;
+  vertical-align: middle;
+  animation: pulse 1s infinite;
 }
-
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #4f46e5;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #7c3aed;
-} 

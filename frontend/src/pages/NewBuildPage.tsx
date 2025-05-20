@@ -46,6 +46,7 @@ import {
 } from "../components/CustomNodes";
 
 import axios from "axios";
+import API_BASE_URL from "../utils/apiConfig";
 
 // Register Chart.js components
 ChartJS.register(
@@ -270,7 +271,7 @@ const NewBuildPage = (): JSX.Element => {
   // Update the socket.io event handling for training progress
   useEffect(() => {
     // Initialize Socket.IO client
-    const socket = io("http://127.0.0.1:5000");
+    const socket = io(API_BASE_URL);
     socketRef.current = socket;
 
     socket.on("connect", () => {
@@ -915,7 +916,7 @@ const NewBuildPage = (): JSX.Element => {
       console.log("Model data being sent to backend:", modelData);
 
       // Make a POST request to the backend
-      const response = await fetch("http://127.0.0.1:5000/api/save_model", {
+      const response = await fetch(`${API_BASE_URL}/api/save_model`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -5442,13 +5443,10 @@ const NewBuildPage = (): JSX.Element => {
     setExportStatusMessage(`Exporting model as ${formatDisplayName}...`);
 
     try {
-      const response = await axios.get(
-        `http://127.0.0.1:5000/api/export/${format}`,
-        {
-          responseType: "blob", // Important for file download
-          timeout: 30000, // 30 seconds timeout
-        }
-      );
+      const response = await axios.get(`${API_BASE_URL}/api/export/${format}`, {
+        responseType: "blob", // Important for file download
+        timeout: 30000, // 30 seconds timeout
+      });
 
       // Verify the response blob is valid
       if (!response.data || response.data.size === 0) {

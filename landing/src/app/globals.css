@@ -2,13 +2,62 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+@layer base {
+  :root {
+    --font-sans: 'Outfit';
+    --font-mono: 'JetBrains Mono';
+  }
+
+  html {
+    scroll-behavior: smooth;
+    height: 100%;
+  }
+
+  body {
+    @apply bg-[#0a0a0a] text-white antialiased min-h-screen;
+    background-image: 
+      radial-gradient(circle at 25% 25%, rgba(57, 255, 20, 0.03) 0%, transparent 50%),
+      radial-gradient(circle at 75% 75%, rgba(57, 255, 20, 0.03) 0%, transparent 50%);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
+  }
+
+  ::selection {
+    @apply bg-[#39ff14] text-black;
+  }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-end-rgb));
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-[#151515];
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-[#39ff14] rounded-full;
+}
+
+@layer utilities {
+  .neon-glow {
+    box-shadow: 0 0 15px rgba(57, 255, 20, 0.4), 0 0 30px rgba(57, 255, 20, 0.2);
+  }
+  .neon-text-glow {
+    text-shadow: 0 0 5px rgba(57, 255, 20, 0.4), 0 0 10px rgba(57, 255, 20, 0.2);
+  }
+  .btn-pulse {
+    animation: btn-pulse 2s infinite;
+  }
+
+  @keyframes btn-pulse {
+    0%, 100% {
+      box-shadow: 0 0 10px rgba(57, 255, 20, 0.4), 0 0 20px rgba(57, 255, 20, 0.2);
+    }
+    50% {
+      box-shadow: 0 0 15px rgba(57, 255, 20, 0.6), 0 0 30px rgba(57, 255, 20, 0.3);
+    }
+  }
 }

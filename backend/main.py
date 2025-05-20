@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, redirect
 from flask_cors import CORS
 from flask_socketio import SocketIO
 import os
@@ -38,6 +38,16 @@ def create_app(config_name="default"):
     # Register blueprints
     from backend.api.routes import api_blueprint
     app.register_blueprint(api_blueprint)
+    
+    # Add health check endpoint for Google Cloud
+    @app.route('/health')
+    def health():
+        return {'status': 'healthy'}, 200
+    
+    # Add root route handler
+    @app.route('/')
+    def root():
+        return {'message': 'DND Neural Network Backend API. Please use /api/ for endpoints.'}, 200
     
     return app
 

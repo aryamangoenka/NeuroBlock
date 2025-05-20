@@ -4,7 +4,8 @@ version = "0.1.0"
 description = "A drag-and-drop neural network builder"
 authors = ["Your Name <your.email@example.com>"]
 readme = "README.md"
-package-mode = false
+packages = [{ include = "backend" }]
+
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.13"
@@ -20,6 +21,7 @@ seaborn = "^0.13.2"
 python-socketio = {extras = ["client"], version = "^5.12.1"}
 torch = "^2.6.0"
 eventlet = "^0.39.1"
+gunicorn = "^21.2.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.5"
