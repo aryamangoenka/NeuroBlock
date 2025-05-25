@@ -111,6 +111,15 @@
   padding: 20px;
   overflow-y: auto;
   box-shadow: var(--shadow, inset 0 2px 4px rgba(0, 0, 0, 0.03));
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-content-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Prevent content from overflowing */
 }
 
 .sidebar-content-section h3 {
@@ -246,7 +255,32 @@
   flex-direction: column;
   gap: 12px;
   padding: 5px;
-  overflow: hidden;
+  overflow-y: auto;
+  max-height: calc(100vh - 300px); /* Dynamic height based on viewport */
+  padding-right: 8px; /* Space for scrollbar */
+  
+  /* Custom scrollbar styling */
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+    
+    &:hover {
+      background: #a8a8a8;
+    }
+  }
+  
+  /* Firefox scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
 }
 
 /* Base Layer Item Styling with Animation */
@@ -612,7 +646,32 @@
   flex-direction: column;
   gap: 12px;
   padding: 5px;
-  overflow: hidden;
+  overflow-y: auto;
+  max-height: calc(100vh - 300px); /* Dynamic height based on viewport */
+  padding-right: 8px; /* Space for scrollbar */
+  
+  /* Custom scrollbar styling */
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+    
+    &:hover {
+      background: #a8a8a8;
+    }
+  }
+  
+  /* Firefox scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
 }
 
 .template-item {
@@ -6317,6 +6376,32 @@
   gap: 10px;
   margin-top: 10px;
   animation: fadeIn 0.5s ease-in-out;
+  overflow-y: auto;
+  max-height: calc(100vh - 350px); /* Dynamic height based on viewport */
+  padding-right: 8px; /* Space for scrollbar */
+  
+  /* Custom scrollbar styling */
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.5);
+    }
+  }
+  
+  /* Firefox scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
 }
 
 .activation-item {
@@ -7128,4 +7213,199 @@
   position: relative !important;
   z-index: 10 !important;
 }
+
+/* Custom Layer Button */
+.custom-layer {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.custom-layer-button {
+  background-color: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  width: 100%;
+  justify-content: center;
+  
+  &:hover {
+    background-color: #4338ca;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  i {
+    font-size: 0.9rem;
+  }
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.modal-container {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.15);
+  width: 90%;
+  max-width: 550px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.custom-layer-modal {
+  animation: modal-appear 0.3s ease;
+}
+
+@keyframes modal-appear {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+  }
+  
+  .close-modal-btn {
+    background: none;
+    border: none;
+    color: #6b7280;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 4px;
+    transition: color 0.2s;
+    
+    &:hover {
+      color: #1f2937;
+    }
+  }
+}
+
+.modal-body {
+  padding: 20px;
+  flex-grow: 1;
+  
+  p {
+    color: #4b5563;
+    margin-bottom: 16px;
+  }
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid #e5e7eb;
+  
+  button {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .cancel-btn {
+    background-color: #f3f4f6;
+    color: #4b5563;
+    border: 1px solid #e5e7eb;
+    
+    &:hover {
+      background-color: #e5e7eb;
+    }
+  }
+  
+  .create-btn {
+    background-color: #4f46e5;
+    color: white;
+    border: none;
+    
+    &:hover {
+      background-color: #4338ca;
+    }
+  }
+}
+
+/* Custom Layer styles */
+.layer-item.custom-layer {
+  border-left-color: #6366f1;
+  
+  span i {
+    color: #6366f1;
+  }
+}
+
+/* Custom Layer Item styles */
+.layer-item.custom-layer-item {
+  background: linear-gradient(165deg, rgba(99, 102, 241, 0.15), rgba(99, 102, 241, 0.25));
+  border-left-color: #6366f1;
+  
+  span i {
+    color: #6366f1;
+  }
+  
+  .add-button {
+    color: #6366f1;
+    background-color: rgba(99, 102, 241, 0.1);
+    
+    &:hover {
+      background-color: rgba(99, 102, 241, 0.2);
+    }
+  }
+}
+
+/* Custom Layer Button */
+.custom-layer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 5px;
+}
+
+/* Modal Styles */
 

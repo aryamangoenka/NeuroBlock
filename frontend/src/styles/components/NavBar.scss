@@ -39,6 +39,18 @@
             color: white;
             font-weight: 700;
         }
+
+        .brand-link {
+            text-decoration: none;
+            color: white;
+            display: flex;
+            align-items: center;
+            
+            &:hover {
+                text-decoration: none;
+                color: #eae2b7;
+            }
+        }
     }
 
     .navbar-actions {

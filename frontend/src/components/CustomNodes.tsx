@@ -16,6 +16,7 @@ export {
   OutputNode,
   AddLayerNode,
   ActivationNode,
+  CustomBlockNode,
 };
 
 // Dense Node
@@ -320,6 +321,35 @@ const ActivationNode = ({ data }: { data: any }) => {
         style={{ background: "#555" }}
       />
       <div className="simple-activation-content">{data.function || "ReLU"}</div>
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{ background: "#555" }}
+      />
+    </div>
+  );
+};
+
+// Custom Block Node
+const CustomBlockNode = ({ data }: { data: any }) => {
+  const layers = data.layers || [];
+  const blockName = data.blockName || "Custom Block";
+
+  return (
+    <div className="custom-node custom-block-node">
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{ background: "#555" }}
+      />
+      <div className="custom-block-content">
+        <h4>{blockName}</h4>
+        <div className="custom-block-layers">
+          <p>
+            {layers.length} layer{layers.length !== 1 ? "s" : ""}
+          </p>
+        </div>
+      </div>
       <Handle
         type="source"
         position={Position.Right}

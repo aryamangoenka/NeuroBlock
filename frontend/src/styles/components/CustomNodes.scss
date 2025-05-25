@@ -342,3 +342,34 @@
   }
 }
 
+/* Custom Block Node */
+.custom-block-node {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border: 2px solid #6366f1;
+  
+  .custom-block-content {
+    h4 {
+      color: white;
+      text-align: center;
+      margin-bottom: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    
+    .custom-block-layers {
+      text-align: center;
+      
+      p {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 0.8rem;
+        margin: 4px 0;
+      }
+    }
+  }
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+  }
+}
+

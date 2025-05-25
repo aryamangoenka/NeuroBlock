@@ -43,10 +43,12 @@ import {
   ResNetBlockNode,
   AddLayerNode,
   ActivationNode,
+  CustomBlockNode,
 } from "../components/CustomNodes";
 
 import axios from "axios";
 import API_BASE_URL from "../utils/apiConfig";
+import CustomLayerModal from "../components/CustomLayerModal";
 
 // Register Chart.js components
 ChartJS.register(
@@ -75,6 +77,7 @@ const nodeTypes = {
   resnetblock: ResNetBlockNode,
   addlayer: AddLayerNode,
   activation: ActivationNode,
+  customblock: CustomBlockNode,
 };
 
 // Define the sidebar navigation options
@@ -117,6 +120,50 @@ const NewBuildPage = (): JSX.Element => {
   // State to track the selected visualization
   const [selectedVisualization, setSelectedVisualization] =
     useState<string>("loss"); // Default to loss view instead of accuracy
+
+  // State to control custom layer modal visibility
+  const [showCustomLayerModal, setShowCustomLayerModal] =
+    useState<boolean>(false);
+
+  // State for custom layers (session-only, not persisted)
+  const [customLayers, setCustomLayers] = useState<any[]>([]);
+
+  // Clear custom layers on component unmount (when user navigates away or closes tab)
+  useEffect(() => {
+    return () => {
+      // Cleanup function runs when component unmounts
+      setCustomLayers([]);
+    };
+  }, []);
+
+  // Clear custom layers on page refresh/reload/navigation
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Clear any stored custom layers if they exist
+      localStorage.removeItem("neuroblock-custom-layers");
+    };
+
+    const handleVisibilityChange = () => {
+      // Clear custom layers when page becomes hidden (user switches tabs, minimizes, etc.)
+      if (document.visibilityState === "hidden") {
+        localStorage.removeItem("neuroblock-custom-layers");
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("pagehide", handleBeforeUnload);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // Cleanup on component unmount
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("pagehide", handleBeforeUnload);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      // Final cleanup - remove any custom layers from localStorage
+      localStorage.removeItem("neuroblock-custom-layers");
+    };
+  }, []);
 
   // Add these state variables with the other useState declarations
   const [showValidationErrors, setShowValidationErrors] =
@@ -953,10 +1000,14 @@ const NewBuildPage = (): JSX.Element => {
         setIsModelSaved(true);
 
         // Display success message
-        alert(`Model saved successfully! ${data.message}`);
+        alert(
+          "Model architecture saved successfully! Note: This only saves the model structure."
+        );
       } else {
         // Display the exact message from the backend
-        alert(data.message || "Model saved successfully!");
+        alert(
+          "Model architecture saved successfully! Note: This only saves the model structure."
+        );
       }
     } catch (error) {
       console.error("Error saving model:", error);
@@ -1080,6 +1131,38 @@ const NewBuildPage = (): JSX.Element => {
     setWandbUrl(null); // Clear Weights & Biases URL to remove the dashboard section
   };
 
+  // Function to handle custom layer save
+  const handleCustomLayerSave = (blockName: string, layers: any[]) => {
+    // Create the custom layer object
+    const customLayer = {
+      id: `custom-${blockName
+        .toLowerCase()
+        .replace(/\s+/g, "-")}-${Date.now()}`,
+      name: blockName.trim(),
+      layers: layers,
+      icon: "fas fa-cube",
+      type: "CustomBlock",
+    };
+
+    // Add to custom layers list
+    setCustomLayers((prevLayers) => [...prevLayers, customLayer]);
+
+    // Create a new custom block node on the canvas
+    addLayer("customblock", {
+      blockName,
+      layers,
+      customBlock: true,
+    });
+
+    // Close the modal
+    setShowCustomLayerModal(false);
+
+    // Show success message
+    alert(
+      `Custom layer "${blockName}" created and added to available layers!\n\nNote: Custom layers are only available during this session and will be cleared when you refresh or close the page.`
+    );
+  };
+
   // Function to add a new layer
   const addLayer = (type: string, extraParams?: Record<string, any>): Node => {
     // Get count of existing layers of this type to create a unique name
@@ -1092,6 +1175,8 @@ const NewBuildPage = (): JSX.Element => {
     // Create a formatted layer name
     const getDefaultLayerName = (type: string): string => {
       switch (type.toLowerCase()) {
+        case "input":
+          return `Input Layer ${layerNumber}`;
         case "dense":
           return `Dense Layer ${layerNumber}`;
         case "convolution":
@@ -1116,12 +1201,16 @@ const NewBuildPage = (): JSX.Element => {
           return `Add Layer Node ${layerNumber}`;
         case "activation":
           return `Activation Layer ${layerNumber}`;
+        case "customblock":
+          return extraParams?.blockName || `Custom Block ${layerNumber}`;
         default:
           return `${type} Layer ${layerNumber}`;
       }
     };
 
     const defaultParams: Record<string, any> = {
+      input: {}, // Input layer has no parameters
+      output: { activation: "None" },
       dense: { neurons: 64, activation: "None" },
       convolution: { filters: 32, kernelSize: [3, 3], stride: [1, 1] },
       maxpooling: { poolSize: [2, 2], stride: [2, 2], padding: "none" },
@@ -1136,9 +1225,9 @@ const NewBuildPage = (): JSX.Element => {
         stride: [1, 1],
         activation: "ReLU",
       },
-      output: { activation: "None" },
       addlayer: {}, // Add Layer has no parameters
       activation: { function: "ReLU" }, // Default activation function
+      customblock: { blockName: "Custom Block", layers: [] }, // Default custom block
     };
 
     // Merge the default parameters with any extra parameters
@@ -3658,6 +3747,8 @@ const NewBuildPage = (): JSX.Element => {
         return "fa-plus-circle"; // Plus circle icon for Add Layer
       case "activation":
         return "fa-bolt"; // Bolt icon for Activation Layer
+      case "customblock":
+        return "fa-cogs"; // Cogs icon for Custom Block
       default:
         return "fa-cube";
     }
@@ -3671,6 +3762,29 @@ const NewBuildPage = (): JSX.Element => {
           <div className="sidebar-content-section">
             <h3>Available Layers</h3>
             <div className="layer-list">
+              {/* Input and Output Layers */}
+              <div className="layer-item input-layer">
+                <span>
+                  <i className="fas fa-sign-in-alt"></i> Input
+                </span>
+                <button
+                  className="add-button"
+                  onClick={() => addLayer("Input")}
+                >
+                  <i className="fas fa-plus"></i>
+                </button>
+              </div>
+              <div className="layer-item output-layer">
+                <span>
+                  <i className="fas fa-sign-out-alt"></i> Output
+                </span>
+                <button
+                  className="add-button"
+                  onClick={() => addLayer("Output")}
+                >
+                  <i className="fas fa-plus"></i>
+                </button>
+              </div>
               {/* Basic Layers */}
               <div className="layer-item dense-layer">
                 <span>
@@ -3769,6 +3883,43 @@ const NewBuildPage = (): JSX.Element => {
                 <button
                   className="add-button"
                   onClick={() => addLayer("AddLayer")}
+                >
+                  <i className="fas fa-plus"></i>
+                </button>
+              </div>
+
+              {/* Custom Layers */}
+              {customLayers.map((customLayer) => (
+                <div
+                  key={customLayer.id}
+                  className="layer-item custom-layer-item"
+                >
+                  <span>
+                    <i className={customLayer.icon}></i> {customLayer.name}
+                  </span>
+                  <button
+                    className="add-button"
+                    onClick={() =>
+                      addLayer("customblock", {
+                        blockName: customLayer.name,
+                        layers: customLayer.layers,
+                        customBlock: true,
+                      })
+                    }
+                  >
+                    <i className="fas fa-plus"></i>
+                  </button>
+                </div>
+              ))}
+
+              {/* Custom Layer Button */}
+              <div className="layer-item custom-layer">
+                <span>
+                  <i className="fas fa-cogs"></i> Custom Layer
+                </span>
+                <button
+                  className="add-button"
+                  onClick={() => setShowCustomLayerModal(true)}
                 >
                   <i className="fas fa-plus"></i>
                 </button>
@@ -5890,6 +6041,13 @@ const NewBuildPage = (): JSX.Element => {
           </div>
         )}
 
+        {/* Custom Layer Modal */}
+        <CustomLayerModal
+          isOpen={showCustomLayerModal}
+          onClose={() => setShowCustomLayerModal(false)}
+          onSave={handleCustomLayerSave}
+        />
+
         <div className="left-panel">
           <div className="sidebar-nav">
             <div
@@ -6656,23 +6814,7 @@ const NewBuildPage = (): JSX.Element => {
 
                     {/* Output Layer Parameters */}
                     {selectedNode.type === "output" && (
-                      <div className="param-group">
-                        <p className="param-info">
-                          Output layer has no configurable parameters. Add an
-                          activation layer and connect it to this output layer.
-                        </p>
-                        <div className="activation-tip">
-                          <i className="fas fa-info-circle"></i>
-                          <p>
-                            For classification tasks:
-                            <ul>
-                              <li>Multi-class: Use Softmax activation</li>
-                              <li>Binary: Use Sigmoid activation</li>
-                              <li>Regression: No activation (linear)</li>
-                            </ul>
-                          </p>
-                        </div>
-                      </div>
+                      <div className="param-group"></div>
                     )}
                   </div>
                 </div>

@@ -189,7 +189,9 @@ const NavBar: React.FC = () => {
       <div className="container d-flex justify-content-between align-items-center">
         <div className="navbar-brand">
           <i className="fas fa-brain brand-icon"></i>
-          <span className="brand-text">NeuroBlock</span>
+          <a href="http://neuroblock.co" className="brand-link">
+            <span className="brand-text">NeuroBlock</span>
+          </a>
         </div>
 
         <div className="navbar-actions">

@@ -1,88 +1,150 @@
 import Link from "next/link";
-import { ArrowRightIcon } from "@heroicons/react/24/outline";
+import { ArrowRight, Layers, Code, Download, Zap } from "lucide-react";
 
-export default function HomePage() {
+export default function LandingPage() {
   return (
-    <main className="relative min-h-screen overflow-x-hidden">
-      <div className="absolute inset-0 z-0 hexagon-grid"></div>
+    <div className="flex min-h-screen flex-col">
+      {/* Test Tailwind */}
 
-      {/* Hero */}
-      <section className="relative z-10 flex flex-col items-center justify-center text-center px-4 pt-32 pb-24">
-        <h1 className="text-5xl md:text-7xl font-bold leading-tight neon-text-glow">
-          Build AI Visually with <span className="text-[#39ff14]">NeuroBlock</span>
-        </h1>
-        <p className="mt-6 max-w-2xl text-lg text-gray-300">
-          Drag-and-drop layers. Train live. Export anywhere.
-        </p>
-        <div className="mt-8 flex flex-wrap justify-center gap-4">
-          <a href="https://app.neuroblock.co/newbuild" className="primary-button btn-pulse">
-            Launch Builder
-          </a>
-          <a href="https://app.neuroblock.co/tutorial" className="secondary-button">
-            Watch Tutorial
-          </a>
-        </div>
-      </section>
-
-      {/* Neural Visualization */}
-      <section className="relative z-10 py-16">
-        <div className="container mx-auto px-4">
-          <div className="aspect-[16/9] bg-black/40 rounded-xl overflow-hidden relative border border-[#39ff14]/30">
-            <div className="neural-visualization w-full h-full">
-              <div className="node input-node" style={{ left: "10%", top: "50%" }}></div>
-              <div className="node hidden-node-1" style={{ left: "35%", top: "30%" }}></div>
-              <div className="node hidden-node-2" style={{ left: "35%", top: "70%" }}></div>
-              <div className="node output-node" style={{ left: "75%", top: "50%" }}></div>
-
-              <div className="connection connection-1" style={{ left: "14%", top: "50%", width: "21%" }}></div>
-              <div className="connection connection-2" style={{ left: "14%", top: "50%", width: "21%", transform: "rotate(-25deg)" }}></div>
-              <div className="connection connection-3" style={{ left: "14%", top: "50%", width: "21%", transform: "rotate(25deg)" }}></div>
-              <div className="connection connection-4" style={{ left: "39%", top: "30%", width: "28%" }}></div>
-              <div className="connection connection-5" style={{ left: "39%", top: "70%", width: "28%" }}></div>
+      {/* Hero Section */}
+      <section className="bg-gradient-to-b from-purple-50 to-white py-20 px-4">
+        <div className="container mx-auto max-w-5xl">
+          <div className="flex flex-col items-center text-center space-y-8">
+            <h1 className="text-5xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-purple-400">
+              NeuroBlock
+            </h1>
+            <p className="text-xl md:text-2xl text-gray-700 max-w-2xl">
+              Your Visual AI Model Builder
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 mt-8">
+              <Link
+                href="https://app.neuroblock.co/newbuild"
+                className="px-8 py-3 rounded-lg bg-purple-600 text-white font-medium hover:bg-purple-700 transition-colors"
+              >
+                Try Now
+              </Link>
+              <Link
+                href="https://app.neuroblock.co/tutorial"
+                className="px-8 py-3 rounded-lg border border-purple-200 text-purple-600 font-medium hover:bg-purple-50 transition-colors"
+              >
+                Watch Tutorial
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Terminal Simulation */}
-      <section className="relative z-10 py-16">
-        <div className="container mx-auto px-4">
-          <div className="terminal max-w-3xl mx-auto">
-            <div className="terminal-line">
-              <span className="terminal-prompt">$</span> neuroblock init
+      {/* Features Section */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto max-w-5xl">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 text-gray-800">
+            Everything you need to build AI models
+          </h2>
+
+          <div className="grid md:grid-cols-2 gap-12">
+            <div className="bg-white p-8 rounded-xl shadow-sm border border-purple-100 hover:shadow-md transition-shadow">
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
+                <Layers className="text-purple-600 w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3 text-gray-800">
+                Drag-and-Drop Interface
+              </h3>
+              <p className="text-gray-600">
+                Build your AI models visually with our intuitive drag-and-drop
+                interface. No coding required.
+              </p>
             </div>
-            <div className="terminal-line text-[#39ff14]">
-              ✓ Initialized successfully
+
+            <div className="bg-white p-8 rounded-xl shadow-sm border border-purple-100 hover:shadow-md transition-shadow">
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
+                <Zap className="text-purple-600 w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3 text-gray-800">
+                Prebuilt Templates
+              </h3>
+              <p className="text-gray-600">
+                Get started quickly with our collection of pre-built templates
+                for common AI model architectures.
+              </p>
             </div>
-            <div className="terminal-line">
-              <span className="terminal-prompt">$</span> neuroblock launch --visual
+
+            <div className="bg-white p-8 rounded-xl shadow-sm border border-purple-100 hover:shadow-md transition-shadow">
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
+                <Download className="text-purple-600 w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3 text-gray-800">
+                Export in Multiple Formats
+              </h3>
+              <p className="text-gray-600">
+                Export your models in various formats for deployment across
+                different platforms and frameworks.
+              </p>
             </div>
-            <div className="terminal-line text-[#39ff14]">
-              ✓ Visual Builder Ready
-            </div>
-            <div className="terminal-line">
-              <span className="terminal-prompt">$</span> start-training
-            </div>
-            <div className="terminal-line">
-              Training...
-              <span className="terminal-cursor"></span>
+
+            <div className="bg-white p-8 rounded-xl shadow-sm border border-purple-100 hover:shadow-md transition-shadow">
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
+                <Code className="text-purple-600 w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3 text-gray-800">
+                Advanced Customization
+              </h3>
+              <p className="text-gray-600">
+                Fine-tune your models with advanced parameters while maintaining
+                the simplicity of visual design.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="relative z-10 text-center py-24">
-        <h2 className="text-4xl md:text-5xl font-bold mb-6 neon-text-glow">
-          Ready to launch your model?
-        </h2>
-        <p className="text-lg text-gray-400 max-w-xl mx-auto mb-8">
-          Visualize. Build. Train. Deploy. All in one place.
-        </p>
-        <a href="https://app.neuroblock.co/newbuild" className="primary-button btn-pulse">
-          Get Started
-        </a>
+      {/* CTA Section */}
+      <section className="bg-purple-50 py-16 px-4">
+        <div className="container mx-auto max-w-5xl text-center">
+          <h2 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800">
+            Ready to build your AI model?
+          </h2>
+          <Link
+            href="https://app.neuroblock.co/newbuild"
+            className="inline-flex items-center px-8 py-3 rounded-lg bg-purple-600 text-white font-medium hover:bg-purple-700 transition-colors"
+          >
+            Get Started <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </div>
       </section>
-    </main>
+
+      {/* Footer */}
+      <footer className="py-8 px-4 border-t border-gray-100">
+        <div className="container mx-auto max-w-5xl">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div className="text-purple-600 font-semibold text-lg mb-4 md:mb-0">
+              NeuroBlock
+            </div>
+            <div className="flex space-x-6">
+              <Link
+                href="#"
+                className="text-gray-600 hover:text-purple-600 transition-colors"
+              >
+                About
+              </Link>
+              <Link
+                href="#"
+                className="text-gray-600 hover:text-purple-600 transition-colors"
+              >
+                Documentation
+              </Link>
+              <Link
+                href="#"
+                className="text-gray-600 hover:text-purple-600 transition-colors"
+              >
+                Contact
+              </Link>
+            </div>
+          </div>
+          <div className="mt-8 text-center text-gray-500 text-sm">
+            © {new Date().getFullYear()} NeuroBlock. All rights reserved.
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }

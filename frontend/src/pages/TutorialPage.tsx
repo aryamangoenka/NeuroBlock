@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import "../styles/components/TutorialPage.scss";
 import { NavLink } from "react-router-dom";
-import TutorialLayerShowcase from "../components/TutorialLayerShowcase";
 
 // Define the tutorial sections
 interface TutorialSection {
@@ -20,25 +19,14 @@ const TutorialPage: React.FC = () => {
       title: "Introduction",
       content: (
         <div className="tutorial-content">
-          <h2>Welcome to DND Neural Network</h2>
+          <h2>Welcome to NeuroBlock</h2>
           <p>
-            DND Neural Network is a drag-and-drop interface for building,
-            training, and deploying neural networks without writing code. This
-            tutorial will guide you through the various features and components
-            of the application.
+            NeuroBlock is a drag-and-drop interface for building, training, and
+            deploying neural networks without writing code. This tutorial will
+            guide you through the various features and components of the
+            application.
           </p>
-          <div className="tutorial-image">
-            <img
-              src="/tutorial/intro.png"
-              alt="DND Neural Network Interface"
-              onError={(e) => {
-                e.currentTarget.src =
-                  "https://via.placeholder.com/800x450?text=DND+Neural+Network+Interface";
-              }}
-            />
-            <p className="image-caption">The DND Neural Network Interface</p>
-          </div>
-          <p>With DND Neural Network, you can:</p>
+          <p>With NeuroBlock, you can:</p>
           <ul>
             <li>
               Build neural network architectures by dragging and dropping layers
@@ -61,36 +49,8 @@ const TutorialPage: React.FC = () => {
       content: (
         <div className="tutorial-content">
           <h2>Interface Overview</h2>
-          <p>
-            The DND Neural Network interface is divided into three main panels:
-          </p>
-          <div className="tutorial-video">
-            <video
-              controls
-              width="100%"
-              playsInline
-              preload="metadata"
-              onError={(e) => {
-                const target = e.target as HTMLVideoElement;
-                target.style.display = "none";
-                const fallbackImg = document.createElement("img");
-                fallbackImg.src =
-                  "https://via.placeholder.com/800x450?text=Interface+Overview+Video";
-                fallbackImg.alt = "Interface Overview Video";
-                fallbackImg.style.width = "100%";
-                fallbackImg.style.borderRadius = "8px";
-                target.parentNode?.appendChild(fallbackImg);
-              }}
-            >
-              <source src="/tutorial/overview.mov" type="video/quicktime" />
-              <source src="/tutorial/overview.mp4" type="video/mp4" />
-              <source src="/tutorial/overview.webm" type="video/webm" />
-              Your browser does not support the video tag.
-            </video>
-            <p className="video-caption">
-              Overview of the DND Neural Network interface (video demonstration)
-            </p>
-          </div>
+          <p>The NeuroBlock interface is divided into three main panels:</p>
+
           <h3>Left Panel</h3>
           <p>
             The left panel contains the sidebar navigation and various tools for
@@ -153,46 +113,55 @@ const TutorialPage: React.FC = () => {
         <div className="tutorial-content">
           <h2>Building Neural Network Models</h2>
           <p>
-            Building a neural network in DND Neural Network is as simple as
-            dragging and dropping layers onto the canvas and connecting them.
+            Building a neural network in NeuroBlock is as simple as dragging and
+            dropping layers onto the canvas and connecting them.
           </p>
 
-          <TutorialLayerShowcase />
+          <h3>Layer Types</h3>
+          <p>NeuroBlock provides various layer types for different purposes:</p>
+          <ul>
+            <li>
+              <strong>Input Layer</strong>: The entry point for data into your
+              neural network. Defines the shape of your input data.
+            </li>
+            <li>
+              <strong>Dense Layer</strong>: Fully connected layer where each
+              neuron is connected to every neuron in the previous layer. Used
+              for learning complex patterns.
+            </li>
+            <li>
+              <strong>Convolution Layer</strong>: Applies filters to detect
+              spatial patterns in input data. Essential for image processing
+              tasks.
+            </li>
+            <li>
+              <strong>MaxPooling Layer</strong>: Reduces the spatial dimensions
+              of the data by taking the maximum value in each window.
+            </li>
+            <li>
+              <strong>Flatten Layer</strong>: Converts multi-dimensional input
+              into a 1D vector. Often used between convolutional and dense
+              layers.
+            </li>
+            <li>
+              <strong>Dropout Layer</strong>: Randomly sets a fraction of inputs
+              to zero during training to prevent overfitting.
+            </li>
+            <li>
+              <strong>Batch Normalization Layer</strong>: Normalizes the
+              activations of the previous layer for each batch.
+            </li>
+            <li>
+              <strong>Attention Layer</strong>: Allows the model to focus on
+              relevant parts of the input. Important for sequence data and NLP.
+            </li>
+            <li>
+              <strong>Output Layer</strong>: The final layer that produces the
+              model's predictions.
+            </li>
+          </ul>
 
           <h3>Connecting Layers</h3>
-          <div className="tutorial-video">
-            <video
-              controls
-              width="100%"
-              playsInline
-              preload="metadata"
-              onError={(e) => {
-                const target = e.target as HTMLVideoElement;
-                target.style.display = "none";
-                const fallbackImg = document.createElement("img");
-                fallbackImg.src =
-                  "https://via.placeholder.com/800x450?text=Connecting+Layers+Video";
-                fallbackImg.alt = "Connecting Layers Video";
-                fallbackImg.style.width = "100%";
-                fallbackImg.style.borderRadius = "8px";
-                target.parentNode?.appendChild(fallbackImg);
-              }}
-            >
-              <source
-                src="/tutorial/connecting-layers.mov"
-                type="video/quicktime"
-              />
-              <source src="/tutorial/connecting-layers.mp4" type="video/mp4" />
-              <source
-                src="/tutorial/connecting-layers.webm"
-                type="video/webm"
-              />
-              Your browser does not support the video tag.
-            </video>
-            <p className="video-caption">
-              Connecting layers on the canvas (video demonstration)
-            </p>
-          </div>
           <p>To connect layers:</p>
           <ol>
             <li>Click and drag from a layer's output handle (right side)</li>
@@ -201,39 +170,6 @@ const TutorialPage: React.FC = () => {
           </ol>
 
           <h3>Configuring Layer Parameters</h3>
-          <div className="tutorial-video">
-            <video
-              controls
-              width="100%"
-              playsInline
-              preload="metadata"
-              onError={(e) => {
-                const target = e.target as HTMLVideoElement;
-                target.style.display = "none";
-                const fallbackImg = document.createElement("img");
-                fallbackImg.src =
-                  "https://via.placeholder.com/800x450?text=Configuring+Layers+Video";
-                fallbackImg.alt = "Configuring Layers Video";
-                fallbackImg.style.width = "100%";
-                fallbackImg.style.borderRadius = "8px";
-                target.parentNode?.appendChild(fallbackImg);
-              }}
-            >
-              <source
-                src="/tutorial/configuring-layers.mov"
-                type="video/quicktime"
-              />
-              <source src="/tutorial/configuring-layers.mp4" type="video/mp4" />
-              <source
-                src="/tutorial/configuring-layers.webm"
-                type="video/webm"
-              />
-              Your browser does not support the video tag.
-            </video>
-            <p className="video-caption">
-              Configuring layer parameters (video demonstration)
-            </p>
-          </div>
           <p>To configure a layer's parameters:</p>
           <ol>
             <li>Click on a layer in the canvas to select it</li>
@@ -252,33 +188,6 @@ const TutorialPage: React.FC = () => {
           </p>
 
           <h3>Using Templates</h3>
-          <div className="tutorial-video">
-            <video
-              controls
-              width="100%"
-              playsInline
-              preload="metadata"
-              onError={(e) => {
-                const target = e.target as HTMLVideoElement;
-                target.style.display = "none";
-                const fallbackImg = document.createElement("img");
-                fallbackImg.src =
-                  "https://via.placeholder.com/800x450?text=Templates+Video";
-                fallbackImg.alt = "Templates Video";
-                fallbackImg.style.width = "100%";
-                fallbackImg.style.borderRadius = "8px";
-                target.parentNode?.appendChild(fallbackImg);
-              }}
-            >
-              <source src="/tutorial/templates.mov" type="video/quicktime" />
-              <source src="/tutorial/templates.mp4" type="video/mp4" />
-              <source src="/tutorial/templates.webm" type="video/webm" />
-              Your browser does not support the video tag.
-            </video>
-            <p className="video-caption">
-              Using pre-configured templates (video demonstration)
-            </p>
-          </div>
           <p>For quick starts, you can use pre-configured templates:</p>
           <ol>
             <li>Select the "Templates" tab in the left sidebar</li>
@@ -308,19 +217,6 @@ const TutorialPage: React.FC = () => {
           </p>
 
           <h3>Selecting a Dataset</h3>
-          <div className="tutorial-image">
-            <img
-              src="/tutorial/select-dataset.png"
-              alt="Selecting a Dataset"
-              onError={(e) => {
-                e.currentTarget.src =
-                  "https://via.placeholder.com/800x450?text=Selecting+a+Dataset";
-              }}
-            />
-            <p className="image-caption">
-              Selecting a dataset in the Settings tab
-            </p>
-          </div>
           <p>To select a dataset:</p>
           <ol>
             <li>Click the "Settings" tab in the left sidebar</li>
@@ -328,17 +224,6 @@ const TutorialPage: React.FC = () => {
           </ol>
 
           <h3>Configuring Training Parameters</h3>
-          <div className="tutorial-image">
-            <img
-              src="/tutorial/training-params.png"
-              alt="Training Parameters"
-              onError={(e) => {
-                e.currentTarget.src =
-                  "https://via.placeholder.com/800x450?text=Training+Parameters";
-              }}
-            />
-            <p className="image-caption">Setting training parameters</p>
-          </div>
           <p>To configure training parameters:</p>
           <ol>
             <li>Click the "Hyperparams" tab in the left sidebar</li>
@@ -349,21 +234,10 @@ const TutorialPage: React.FC = () => {
           </ol>
 
           <h3>Starting Training</h3>
-          <div className="tutorial-image">
-            <img
-              src="/tutorial/start-training.png"
-              alt="Starting Training"
-              onError={(e) => {
-                e.currentTarget.src =
-                  "https://via.placeholder.com/800x450?text=Starting+Training";
-              }}
-            />
-            <p className="image-caption">Starting the training process</p>
-          </div>
           <p>To start training:</p>
           <ol>
             <li>Make sure your model is properly connected and configured</li>
-            <li>Click the "Train Model" button in the right panel</li>
+            <li>Click the "Train" button in the navigation bar at the top</li>
             <li>
               The training process will begin, and you can monitor progress in
               real-time
@@ -371,17 +245,6 @@ const TutorialPage: React.FC = () => {
           </ol>
 
           <h3>Monitoring Training Progress</h3>
-          <div className="tutorial-image">
-            <img
-              src="/tutorial/training-progress.png"
-              alt="Training Progress"
-              onError={(e) => {
-                e.currentTarget.src =
-                  "https://via.placeholder.com/800x450?text=Training+Progress";
-              }}
-            />
-            <p className="image-caption">Monitoring training progress</p>
-          </div>
           <p>During training, you can monitor:</p>
           <ul>
             <li>Current epoch and progress</li>
@@ -392,7 +255,10 @@ const TutorialPage: React.FC = () => {
           <h3>Stopping Training</h3>
           <p>To stop training before completion:</p>
           <ol>
-            <li>Click the "Stop Training" button</li>
+            <li>
+              Click the "Stop" button in the navigation bar that appears during
+              training
+            </li>
             <li>The model will retain the training it has completed so far</li>
           </ol>
         </div>
@@ -405,24 +271,11 @@ const TutorialPage: React.FC = () => {
         <div className="tutorial-content">
           <h2>Visualizing Model Performance</h2>
           <p>
-            DND Neural Network provides various visualizations to help you
-            understand your model's performance.
+            NeuroBlock provides various visualizations to help you understand
+            your model's performance.
           </p>
 
           <h3>Accuracy and Loss Charts</h3>
-          <div className="tutorial-image">
-            <img
-              src="/tutorial/accuracy-loss.png"
-              alt="Accuracy and Loss Charts"
-              onError={(e) => {
-                e.currentTarget.src =
-                  "https://via.placeholder.com/800x450?text=Accuracy+and+Loss+Charts";
-              }}
-            />
-            <p className="image-caption">
-              Accuracy and loss charts during training
-            </p>
-          </div>
           <p>The accuracy and loss charts show:</p>
           <ul>
             <li>Training accuracy and validation accuracy over epochs</li>
@@ -430,19 +283,6 @@ const TutorialPage: React.FC = () => {
           </ul>
 
           <h3>Confusion Matrix</h3>
-          <div className="tutorial-image">
-            <img
-              src="/tutorial/confusion-matrix.png"
-              alt="Confusion Matrix"
-              onError={(e) => {
-                e.currentTarget.src =
-                  "https://via.placeholder.com/800x450?text=Confusion+Matrix";
-              }}
-            />
-            <p className="image-caption">
-              Confusion matrix for classification tasks
-            </p>
-          </div>
           <p>For classification tasks, the confusion matrix shows:</p>
           <ul>
             <li>
@@ -473,18 +313,7 @@ const TutorialPage: React.FC = () => {
           </p>
 
           <h3>Available Export Formats</h3>
-          <div className="tutorial-image">
-            <img
-              src="/tutorial/export-options.png"
-              alt="Export Options"
-              onError={(e) => {
-                e.currentTarget.src =
-                  "https://via.placeholder.com/800x450?text=Export+Options";
-              }}
-            />
-            <p className="image-caption">Model export options</p>
-          </div>
-          <p>DND Neural Network supports the following export formats:</p>
+          <p>NeuroBlock supports the following export formats:</p>
           <ul>
             <li>
               <strong>Python</strong>: A Python script with the model
@@ -509,9 +338,11 @@ const TutorialPage: React.FC = () => {
           <p>To export your model:</p>
           <ol>
             <li>
-              Make sure your model has been saved (click "Save Model" if needed)
+              Make sure your model has been saved (click "Save Model" in the
+              navbar if needed)
             </li>
-            <li>In the right panel, click on the export format you want</li>
+            <li>Click on the Export button in the navbar</li>
+            <li>Select the export format you want from the dropdown</li>
             <li>The model will be downloaded to your computer</li>
           </ol>
 
@@ -536,7 +367,7 @@ const TutorialPage: React.FC = () => {
           <h2>Tips and Best Practices</h2>
           <p>
             Here are some tips and best practices to help you get the most out
-            of DND Neural Network.
+            of NeuroBlock.
           </p>
 
           <h3>Model Architecture</h3>
