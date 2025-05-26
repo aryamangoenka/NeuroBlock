@@ -313,14 +313,14 @@ const ActivationNode = ({ data }: { data: any }) => {
   return (
     <div
       className={`custom-node activation-node ${functionClass}-node`}
-      data-activation-type={data.function || "ReLU"}
+      data-activation-type={data.function || "relu"}
     >
       <Handle
         type="target"
         position={Position.Left}
         style={{ background: "#555" }}
       />
-      <div className="simple-activation-content">{data.function || "ReLU"}</div>
+      <div className="simple-activation-content">{data.function || "relu"}</div>
       <Handle
         type="source"
         position={Position.Right}

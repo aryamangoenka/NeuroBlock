@@ -209,6 +209,18 @@
       }
     }
 
+    .activation-layer {
+      background: linear-gradient(165deg, rgba(255, 193, 7, 0.15), rgba(255, 193, 7, 0.25));
+      border-left-color: #ffc107;
+
+      span i { color: #ffc107; }
+      .add-button {
+        color: #ffc107;
+        background-color: rgba(255, 193, 7, 0.1);
+        &:hover { background-color: rgba(255, 193, 7, 0.2); }
+      }
+    }
+
     .addlayer-layer {
       background: linear-gradient(165deg, rgba(156, 39, 176, 0.15), rgba(156, 39, 176, 0.25));
       border-left-color: #9c27b0;

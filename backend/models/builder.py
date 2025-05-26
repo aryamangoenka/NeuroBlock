@@ -36,6 +36,173 @@ def determine_output_units(dataset_name):
         logger.error(error_msg)
         raise ValueError(error_msg)
 
+def expand_custom_blocks(nodes):
+    """
+    Expand custom blocks into their constituent layers.
+    
+    Args:
+        nodes (list): List of nodes from the architecture
+        
+    Returns:
+        list: Expanded list of nodes with custom blocks replaced by their internal layers
+    """
+    expanded_nodes = []
+    
+    for node in nodes:
+        if node["type"].lower() == "customblock":
+            logger.debug(f"Expanding custom block: {node.get('data', {}).get('blockName', 'Unnamed')}")
+            
+            # Get the internal layers from the custom block
+            custom_layers = node["data"].get("layers", [])
+            logger.debug(f"Custom block layers received: {custom_layers}")
+            
+            # Create individual nodes for each layer in the custom block
+            for i, layer in enumerate(custom_layers):
+                logger.debug(f"Processing layer {i}: {layer}")
+                # Create a new node ID for each expanded layer
+                expanded_node_id = f"{node['id']}_layer_{i}"
+                
+                # Map the layer type from the custom block format to the expected format
+                # Handle both 'type' and 'id' fields from frontend, normalize to lowercase
+                # Priority: id field (lowercase) > type field (capitalized) > fallback to empty string
+                layer_type = layer.get("id", layer.get("type", "")).lower()
+                logger.debug(f"Layer type extracted: '{layer_type}' from layer: {layer}")
+                
+                # Get parameters from the layer, with defaults as fallback
+                layer_parameters = layer.get("parameters", {})
+                
+                # Create layer data with user-configured parameters or defaults
+                layer_data = {}
+                if layer_type == "dense":
+                    layer_data = {
+                        "neurons": layer_parameters.get("neurons", 64),
+                        "activation": layer_parameters.get("activation", "relu")
+                    }
+                elif layer_type == "convolution":
+                    layer_data = {
+                        "filters": layer_parameters.get("filters", 32),
+                        "kernelSize": layer_parameters.get("kernelSize", [3, 3]),
+                        "stride": layer_parameters.get("stride", [1, 1]),
+                        "padding": layer_parameters.get("padding", "same"),
+                        "activation": layer_parameters.get("activation", "relu")
+                    }
+                elif layer_type == "maxpooling":
+                    layer_data = {
+                        "poolSize": layer_parameters.get("poolSize", [2, 2]),
+                        "stride": layer_parameters.get("stride", [2, 2]),
+                        "padding": layer_parameters.get("padding", "same")
+                    }
+                elif layer_type == "globalaveragepool":
+                    layer_data = {}
+                elif layer_type == "flatten":
+                    layer_data = {}
+                elif layer_type == "dropout":
+                    layer_data = {
+                        "rate": layer_parameters.get("rate", 0.25)
+                    }
+                elif layer_type == "batchnormalization":
+                    layer_data = {
+                        "momentum": layer_parameters.get("momentum", 0.99),
+                        "epsilon": layer_parameters.get("epsilon", 0.001)
+                    }
+                elif layer_type == "attention":
+                    layer_data = {
+                        "heads": layer_parameters.get("heads", 8),
+                        "keyDim": layer_parameters.get("keyDim", 64),
+                        "dropout": layer_parameters.get("dropout", 0.0)
+                    }
+                elif layer_type == "addlayer":
+                    layer_data = {}
+                elif layer_type == "activation":
+                    layer_data = {
+                        "function": layer_parameters.get("function", "relu")
+                    }
+                else:
+                    logger.warning(f"Unknown layer type in custom block: {layer_type}")
+                    continue  # Skip unknown layer types
+                
+                # Create the expanded node
+                expanded_node = {
+                    "id": expanded_node_id,
+                    "type": layer_type,
+                    "data": layer_data,
+                    "position": node.get("position", {"x": 0, "y": 0}),
+                    "original_custom_block_id": node["id"],  # Keep reference to original custom block
+                    "custom_block_layer_index": i  # Keep track of order within custom block
+                }
+                
+                expanded_nodes.append(expanded_node)
+                logger.debug(f"Expanded layer {i}: {layer_type} (ID: {expanded_node_id})")
+        else:
+            # Keep non-custom-block nodes as they are
+            expanded_nodes.append(node)
+    
+    return expanded_nodes
+
+def update_edges_for_expanded_blocks(edges, original_nodes, expanded_nodes):
+    """
+    Update edges to connect to expanded custom block layers.
+    
+    Args:
+        edges (list): Original edges
+        original_nodes (list): Original nodes before expansion
+        expanded_nodes (list): Nodes after custom block expansion
+        
+    Returns:
+        list: Updated edges that connect to expanded layers
+    """
+    updated_edges = []
+    
+    # Create mapping of original custom block IDs to their expanded layer IDs
+    custom_block_mapping = {}
+    for node in expanded_nodes:
+        if "original_custom_block_id" in node:
+            original_id = node["original_custom_block_id"]
+            if original_id not in custom_block_mapping:
+                custom_block_mapping[original_id] = []
+            custom_block_mapping[original_id].append(node["id"])
+    
+    for edge in edges:
+        source_id = edge["source"]
+        target_id = edge["target"]
+        
+        # Check if source is a custom block
+        if source_id in custom_block_mapping:
+            # Connect from the last layer of the custom block
+            expanded_layers = custom_block_mapping[source_id]
+            new_source_id = expanded_layers[-1]  # Last layer in the custom block
+        else:
+            new_source_id = source_id
+        
+        # Check if target is a custom block
+        if target_id in custom_block_mapping:
+            # Connect to the first layer of the custom block
+            expanded_layers = custom_block_mapping[target_id]
+            new_target_id = expanded_layers[0]  # First layer in the custom block
+        else:
+            new_target_id = target_id
+        
+        # Create the updated edge
+        updated_edge = {
+            "source": new_source_id,
+            "target": new_target_id,
+            "id": edge.get("id", f"{new_source_id}-{new_target_id}")
+        }
+        updated_edges.append(updated_edge)
+    
+    # Add internal connections within custom blocks
+    for original_id, expanded_layer_ids in custom_block_mapping.items():
+        # Connect consecutive layers within the custom block
+        for i in range(len(expanded_layer_ids) - 1):
+            internal_edge = {
+                "source": expanded_layer_ids[i],
+                "target": expanded_layer_ids[i + 1],
+                "id": f"{expanded_layer_ids[i]}-{expanded_layer_ids[i + 1]}"
+            }
+            updated_edges.append(internal_edge)
+    
+    return updated_edges
+
 def build_model_from_architecture(architecture, input_shape, dataset_name):
     """
     Build a Keras model based on the architecture provided.
@@ -56,8 +223,17 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
                     }
                 })
                 
-    nodes = architecture["nodes"]
-    edges = architecture["edges"]
+    original_nodes = architecture["nodes"]
+    original_edges = architecture["edges"]
+    
+    # Expand custom blocks into individual layers
+    nodes = expand_custom_blocks(original_nodes)
+    
+    # Update edges to connect to expanded layers
+    edges = update_edges_for_expanded_blocks(original_edges, original_nodes, nodes)
+    
+    logger.info(f"Expanded {len(original_nodes)} original nodes to {len(nodes)} nodes")
+    logger.info(f"Updated {len(original_edges)} original edges to {len(edges)} edges")
 
     # Validate input and output layers
     input_layer = next((node for node in nodes if node["type"] == "input"), None)
@@ -231,6 +407,9 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
                     units=output_units,
                     activation=activation
                 )(input_layer)
+            else:
+                logger.warning(f"Unknown layer type: {layer_type}, skipping layer {node_id}")
+                x = input_layer  # Pass through unchanged
             
             # Store the output layer
             layers_by_id[node_id] = x
@@ -333,5 +512,7 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
                     units=output_units,
                     activation=activation
                 ))
+            else:
+                logger.warning(f"Unknown layer type: {layer_type}, skipping layer {node_id}")
     
     return model 

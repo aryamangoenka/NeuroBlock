@@ -71,6 +71,12 @@ const CustomLayerModal: React.FC<CustomLayerModalProps> = ({
       type: "Attention",
     },
     {
+      id: "activation",
+      name: "Activation",
+      icon: "fas fa-bolt",
+      type: "Activation",
+    },
+    {
       id: "addlayer",
       name: "Add Layer",
       icon: "fas fa-plus-circle",

@@ -666,7 +666,7 @@ const NewBuildPage = (): JSX.Element => {
     ) {
       // Find all Softmax activation layers
       const softmaxLayers = nodes.filter(
-        (node) => node.type === "activation" && node.data.function === "Softmax"
+        (node) => node.type === "activation" && node.data.function === "softmax"
       );
 
       // Build a connectivity graph to check for both direct and indirect connections
@@ -752,7 +752,7 @@ const NewBuildPage = (): JSX.Element => {
     if (selectedDataset === "California Housing" && outputLayer) {
       // Find all Softmax activation layers
       const softmaxLayers = nodes.filter(
-        (node) => node.type === "activation" && node.data.function === "Softmax"
+        (node) => node.type === "activation" && node.data.function === "softmax"
       );
 
       if (softmaxLayers.length > 0) {
@@ -1133,13 +1133,43 @@ const NewBuildPage = (): JSX.Element => {
 
   // Function to handle custom layer save
   const handleCustomLayerSave = (blockName: string, layers: any[]) => {
+    // Initialize layers with default parameters to match backend expectations
+    const layersWithDefaults = layers.map((layer) => {
+      const layerType = layer.id.toLowerCase(); // Use id field for layer type
+
+      // Define default parameters for each layer type (matching backend expectations)
+      const defaultParameters: Record<string, any> = {
+        dense: { neurons: 64, activation: "relu" },
+        convolution: {
+          filters: 32,
+          kernelSize: [3, 3],
+          stride: [1, 1],
+          padding: "same",
+          activation: "relu",
+        },
+        maxpooling: { poolSize: [2, 2], stride: [2, 2], padding: "same" },
+        globalaveragepool: {},
+        flatten: {},
+        dropout: { rate: 0.25 },
+        batchnormalization: { momentum: 0.99, epsilon: 0.001 },
+        attention: { heads: 8, keyDim: 64, dropout: 0.0 },
+        addlayer: {},
+        activation: { function: "relu" },
+      };
+
+      return {
+        ...layer,
+        parameters: defaultParameters[layerType] || {},
+      };
+    });
+
     // Create the custom layer object
     const customLayer = {
       id: `custom-${blockName
         .toLowerCase()
         .replace(/\s+/g, "-")}-${Date.now()}`,
       name: blockName.trim(),
-      layers: layers,
+      layers: layersWithDefaults,
       icon: "fas fa-cube",
       type: "CustomBlock",
     };
@@ -1150,7 +1180,7 @@ const NewBuildPage = (): JSX.Element => {
     // Create a new custom block node on the canvas
     addLayer("customblock", {
       blockName,
-      layers,
+      layers: layersWithDefaults,
       customBlock: true,
     });
 
@@ -1226,7 +1256,7 @@ const NewBuildPage = (): JSX.Element => {
         activation: "ReLU",
       },
       addlayer: {}, // Add Layer has no parameters
-      activation: { function: "ReLU" }, // Default activation function
+      activation: { function: "relu" }, // Default activation function
       customblock: { blockName: "Custom Block", layers: [] }, // Default custom block
     };
 
@@ -1276,7 +1306,7 @@ const NewBuildPage = (): JSX.Element => {
           id: "Activation-1",
           data: {
             label: "Activation Layer 1",
-            function: "ReLU",
+            function: "relu",
           },
           position: { x: 300, y: 250 },
           type: "activation",
@@ -1291,7 +1321,7 @@ const NewBuildPage = (): JSX.Element => {
           id: "Activation-2",
           data: {
             label: "Activation Layer 2",
-            function: "Softmax",
+            function: "softmax",
           },
           position: { x: 500, y: 350 },
           type: "activation",
@@ -1320,7 +1350,7 @@ const NewBuildPage = (): JSX.Element => {
           id: "Activation-1",
           data: {
             label: "Activation Layer 1",
-            function: "ReLU",
+            function: "relu",
           },
           position: { x: 300, y: 250 },
           type: "activation",
@@ -1352,7 +1382,7 @@ const NewBuildPage = (): JSX.Element => {
           id: "Activation-2",
           data: {
             label: "Activation Layer 2",
-            function: "ReLU",
+            function: "relu",
           },
           position: { x: 900, y: 550 },
           type: "activation",
@@ -1367,7 +1397,7 @@ const NewBuildPage = (): JSX.Element => {
           id: "Activation-3",
           data: {
             label: "Activation Layer 3",
-            function: "Softmax",
+            function: "softmax",
           },
           position: { x: 1100, y: 650 },
           type: "activation",
@@ -1447,7 +1477,7 @@ const NewBuildPage = (): JSX.Element => {
           id: "Activation-1",
           data: {
             label: "FFN - Activation",
-            function: "ReLU",
+            function: "relu",
           },
           position: { x: 950, y: 300 },
           type: "activation",
@@ -1502,7 +1532,7 @@ const NewBuildPage = (): JSX.Element => {
           id: "Activation-2",
           data: {
             label: "Output Activation",
-            function: "Softmax",
+            function: "softmax",
           },
           position: { x: 350, y: 450 },
           type: "activation",
@@ -1525,7 +1555,7 @@ const NewBuildPage = (): JSX.Element => {
           id: "Activation-1",
           data: {
             label: "Activation Layer 1",
-            function: "ReLU",
+            function: "relu",
           },
           position: { x: 300, y: 250 },
           type: "activation",
@@ -1540,7 +1570,7 @@ const NewBuildPage = (): JSX.Element => {
           id: "Activation-2",
           data: {
             label: "Activation Layer 2",
-            function: "ReLU",
+            function: "relu",
           },
           position: { x: 500, y: 350 },
           type: "activation",
@@ -1589,7 +1619,7 @@ const NewBuildPage = (): JSX.Element => {
           id: "Activation-1",
           data: {
             label: "Activation Layer 1",
-            function: "ReLU",
+            function: "relu",
           },
           position: { x: 300, y: 250 },
           type: "activation",
@@ -1621,7 +1651,7 @@ const NewBuildPage = (): JSX.Element => {
           id: "Activation-2",
           data: {
             label: "Activation Layer 2",
-            function: "ReLU",
+            function: "relu",
           },
           position: { x: 900, y: 550 },
           type: "activation",
@@ -1636,7 +1666,7 @@ const NewBuildPage = (): JSX.Element => {
           id: "Activation-3",
           data: {
             label: "Activation Layer 3",
-            function: "Softmax",
+            function: "softmax",
           },
           position: { x: 1100, y: 650 },
           type: "activation",
@@ -2848,6 +2878,11 @@ const NewBuildPage = (): JSX.Element => {
   };
 
   const onNodeClick = (_: React.MouseEvent, node: Node): void => {
+    console.log("Node clicked:", {
+      id: node.id,
+      type: node.type,
+      data: node.data,
+    });
     setSelectedNode(node);
     setActiveSidebarOption("layers");
   };
@@ -3086,12 +3121,20 @@ const NewBuildPage = (): JSX.Element => {
           }
 
           // Validate activation
-          if (!["ReLU", "LeakyReLU"].includes(node.data.activation)) {
+          if (
+            !["relu", "leaky_relu"].includes(
+              node.data.activation?.toLowerCase()
+            )
+          ) {
             errors.push(`ResNet block ${node.id}: Invalid activation function`);
           }
           break;
         case "output":
-          if (!["None", "Sigmoid", "Softmax"].includes(node.data.activation)) {
+          if (
+            !["none", "sigmoid", "softmax"].includes(
+              node.data.activation?.toLowerCase()
+            )
+          ) {
             errors.push(
               `Output layer ${node.id}: Invalid activation function. Must be None, Sigmoid, or Softmax`
             );
@@ -3099,9 +3142,16 @@ const NewBuildPage = (): JSX.Element => {
           break;
         case "activation":
           if (
-            !["ReLU", "Sigmoid", "Tanh", "Softmax", "Leaky ReLU"].includes(
-              node.data.function
-            )
+            ![
+              "relu",
+              "sigmoid",
+              "tanh",
+              "softmax",
+              "leaky_relu",
+              "elu",
+              "swish",
+              "linear",
+            ].includes(node.data.function)
           ) {
             errors.push(
               `Activation layer ${node.id}: Invalid activation function`
@@ -3191,7 +3241,7 @@ const NewBuildPage = (): JSX.Element => {
           // Find all activation layers with Softmax
           const softmaxLayers = nodes.filter(
             (node) =>
-              node.type === "activation" && node.data.function === "Softmax"
+              node.type === "activation" && node.data.function === "softmax"
           );
 
           let needsActivationError = true;
@@ -3291,7 +3341,7 @@ const NewBuildPage = (): JSX.Element => {
             // Find all activation layers with Softmax
             const activationLayers = nodes.filter(
               (node) =>
-                node.type === "activation" && node.data.function === "Softmax"
+                node.type === "activation" && node.data.function === "softmax"
             );
 
             // Build a connectivity graph to check for both direct and indirect connections
@@ -3365,7 +3415,7 @@ const NewBuildPage = (): JSX.Element => {
             // Find all activation layers with Sigmoid
             const activationLayers = nodes.filter(
               (node) =>
-                node.type === "activation" && node.data.function === "Sigmoid"
+                node.type === "activation" && node.data.function === "sigmoid"
             );
 
             // Build a connectivity graph to check for both direct and indirect connections
@@ -4014,12 +4064,12 @@ const NewBuildPage = (): JSX.Element => {
                   className="add-button"
                   onClick={() =>
                     addLayer("Activation", {
-                      function: "ReLU",
+                      function: "relu",
                       label: `ReLU Activation ${
                         nodes.filter(
                           (n) =>
                             n.type === "activation" &&
-                            n.data.function === "ReLU"
+                            n.data.function === "relu"
                         ).length + 1
                       }`,
                     })
@@ -4038,12 +4088,12 @@ const NewBuildPage = (): JSX.Element => {
                   className="add-button"
                   onClick={() =>
                     addLayer("Activation", {
-                      function: "Sigmoid",
+                      function: "sigmoid",
                       label: `Sigmoid Activation ${
                         nodes.filter(
                           (n) =>
                             n.type === "activation" &&
-                            n.data.function === "Sigmoid"
+                            n.data.function === "sigmoid"
                         ).length + 1
                       }`,
                     })
@@ -4060,7 +4110,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
-                  onClick={() => addLayer("Activation", { function: "Tanh" })}
+                  onClick={() => addLayer("Activation", { function: "tanh" })}
                   title="Add Tanh activation layer"
                 >
                   <i className="fas fa-plus"></i>
@@ -4074,7 +4124,7 @@ const NewBuildPage = (): JSX.Element => {
                 <button
                   className="add-button"
                   onClick={() =>
-                    addLayer("Activation", { function: "Softmax" })
+                    addLayer("Activation", { function: "softmax" })
                   }
                   title="Add Softmax activation layer"
                 >
@@ -4089,7 +4139,7 @@ const NewBuildPage = (): JSX.Element => {
                 <button
                   className="add-button"
                   onClick={() =>
-                    addLayer("Activation", { function: "Leaky ReLU" })
+                    addLayer("Activation", { function: "leaky_relu" })
                   }
                   title="Add Leaky ReLU activation layer"
                 >
@@ -4108,1100 +4158,658 @@ const NewBuildPage = (): JSX.Element => {
     }
   };
 
-  // Render the node parameters panel
-  const renderNodeParameters = () => {
-    if (!selectedNode) return null;
+  // Render custom block parameters
+  const renderCustomBlockParameters = () => {
+    if (!selectedNode || selectedNode.type !== "customblock") {
+      return null;
+    }
 
-    const getParameterHint = (paramName: string): string => {
-      const hints: { [key: string]: string } = {
-        neurons:
-          "Number of neurons in this layer. More neurons can capture more complex patterns.",
-        activation:
-          "Activation function introduces non-linearity, allowing the network to learn complex patterns.",
-        rate: "Dropout rate (0-1). Higher values drop more connections, increasing regularization.",
-        filters:
-          "Number of filters in this layer. More filters can detect more features.",
-        kernelSize:
-          "Size of the convolutional kernel. Larger kernels capture broader patterns.",
-        stride:
-          "Step size for filter movement. Larger strides reduce output dimensions and add automatic skip projections.",
-        poolSize:
-          "Size of the pooling window. Larger pools reduce dimensions more aggressively.",
-        function:
-          "Determines how the input is transformed. Different functions have different properties and applications.",
-      };
+    const layers = selectedNode.data.layers || [];
+    console.log("Custom block layers:", layers);
+    console.log(
+      "Custom block layers structure:",
+      JSON.stringify(layers, null, 2)
+    );
 
-      return (
-        hints[paramName] ||
-        "Configure this parameter based on your model's needs"
+    // Helper functions for parameter management
+    const updateLayerParameter = (
+      layerIndex: number,
+      paramName: string,
+      value: any
+    ) => {
+      if (!selectedNode) return;
+
+      const updatedLayers = [...layers];
+      if (!updatedLayers[layerIndex].parameters) {
+        updatedLayers[layerIndex].parameters = {};
+      }
+      updatedLayers[layerIndex].parameters[paramName] = value;
+
+      setNodes((nds) =>
+        nds.map((node) =>
+          node.id === selectedNode.id
+            ? { ...node, data: { ...node.data, layers: updatedLayers } }
+            : node
+        )
+      );
+
+      setSelectedNode((prevNode) =>
+        prevNode
+          ? { ...prevNode, data: { ...prevNode.data, layers: updatedLayers } }
+          : null
       );
     };
 
+    const getLayerParameter = (
+      layerIndex: number,
+      paramName: string,
+      defaultValue: any
+    ) => {
+      return layers[layerIndex]?.parameters?.[paramName] ?? defaultValue;
+    };
+
     return (
-      <div className={`node-parameters ${selectedNode.type || ""}`}>
-        <div className="node-parameters-header">
-          <div className={`node-type ${selectedNode.type || ""}`}>
-            <i className={`fas ${getLayerIcon(selectedNode.type || "")}`}></i>
-            <span>
-              {selectedNode.type &&
-                selectedNode.type.charAt(0).toUpperCase() +
-                  selectedNode.type.slice(1)}{" "}
-              Parameters
-            </span>
-          </div>
-          <div className="node-id">{selectedNode.id}</div>
+      <>
+        {/* Block Name Input */}
+        <div className="param-group">
+          <input
+            type="text"
+            value={selectedNode.data.label || ""}
+            onChange={(e) => updateParameter("label", e.target.value)}
+            placeholder="Block Name"
+            className="param-input full-width"
+          />
         </div>
 
-        <div className="parameter-list">
-          {/* Common parameters for all nodes */}
-          <div className="parameter-section">
-            <div className="parameter-section-title">General</div>
-            <label>
-              Layer Name:
-              <div className="parameter-hint">
-                <i className="fas fa-info-circle"></i>
-                <span className="hint-text">
-                  A descriptive name helps identify this layer's purpose
-                </span>
-              </div>
-            </label>
-            <div className="name-input-container">
-              <input
-                type="text"
-                value={selectedNode.data.label || ""}
-                onChange={(e) => updateParameter("label", e.target.value)}
-                placeholder="Enter custom layer name"
-                className="layer-name-input"
-              />
-              <small className="name-hint">
-                This name will appear on the layer in the canvas
-              </small>
+        {/* Block Info */}
+        <div className="param-group">
+          <div className="block-info">
+            <div className="info-row">
+              <span className="info-label">Internal Layers:</span>
+              <span className="info-value">{layers.length}</span>
             </div>
           </div>
+        </div>
 
-          {/* Dense Layer */}
-          {selectedNode.type === "dense" && (
-            <div className="parameter-section">
-              <div className="parameter-section-title">
-                Dense Layer Settings
-              </div>
-              <label>
-                Neurons:
-                <div className="parameter-hint">
-                  <i className="fas fa-info-circle"></i>
-                  <span className="hint-text">
-                    {getParameterHint("neurons")}
-                  </span>
-                </div>
-              </label>
-              <div className="parameter-input-container">
-                <input
-                  type="number"
-                  min="1"
-                  value={selectedNode.data.neurons || ""}
-                  onChange={(e) => updateParameter("neurons", +e.target.value)}
-                  className="parameter-input"
-                />
-                <div className="parameter-controls">
-                  <button
-                    className="param-control-btn"
-                    onClick={() =>
-                      updateParameter(
-                        "neurons",
-                        Math.max(1, (selectedNode.data.neurons || 1) - 1)
-                      )
-                    }
-                  >
-                    <i className="fas fa-minus"></i>
-                  </button>
-                  <button
-                    className="param-control-btn"
-                    onClick={() =>
-                      updateParameter(
-                        "neurons",
-                        (selectedNode.data.neurons || 0) + 1
-                      )
-                    }
-                  >
-                    <i className="fas fa-plus"></i>
-                  </button>
-                </div>
-              </div>
+        {/* Layer Parameters */}
+        {layers.map((layer: any, index: number) => {
+          const layerType =
+            layer.id?.toLowerCase() || layer.type?.toLowerCase();
 
-              <label>
-                Activation:
-                <div className="parameter-hint">
-                  <i className="fas fa-info-circle"></i>
-                  <span className="hint-text">
-                    {getParameterHint("activation")}
-                  </span>
-                </div>
-              </label>
-              <select
-                value={selectedNode.data.activation || "None"}
-                onChange={(e) => updateParameter("activation", e.target.value)}
-                className="activation-select"
-              >
-                <option value="None">None</option>
-                <option value="ReLU">ReLU</option>
-                <option value="Sigmoid">Sigmoid</option>
-                <option value="Tanh">Tanh</option>
-                <option value="Softmax">Softmax</option>
-                <option value="Leaky ReLU">Leaky ReLU</option>
-              </select>
-              {selectedNode.data.activation &&
-                selectedNode.data.activation !== "None" && (
-                  <div className="activation-preview">
-                    <div className="activation-function-visual">
-                      <div
-                        className={`activation-graph ${selectedNode.data.activation
-                          .replace(" ", "-")
-                          .toLowerCase()}`}
-                      ></div>
-                    </div>
-                  </div>
-                )}
-            </div>
-          )}
-
-          {/* Dropout Layer */}
-          {selectedNode.type === "dropout" && (
-            <div className="parameter-section">
-              <div className="parameter-section-title">Dropout Settings</div>
-              <label>
-                Rate:
-                <div className="parameter-hint">
-                  <i className="fas fa-info-circle"></i>
-                  <span className="hint-text">{getParameterHint("rate")}</span>
-                </div>
-              </label>
-              <div className="parameter-slider-container">
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={selectedNode.data.rate || 0.2}
-                  onChange={(e) =>
-                    updateParameter("rate", parseFloat(e.target.value) || 0)
-                  }
-                  className="parameter-slider"
-                />
-                <input
-                  type="number"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={selectedNode.data.rate || 0.2}
-                  onChange={(e) =>
-                    updateParameter("rate", parseFloat(e.target.value) || 0)
-                  }
-                  className="parameter-input narrow"
-                />
-              </div>
-              <div className="dropout-preview">
-                <div className="dropout-visual">
-                  {[...Array(25)].map((_, i) => (
-                    <div
-                      key={i}
-                      className={`dropout-unit ${
-                        Math.random() > (selectedNode.data.rate || 0.2)
-                          ? "active"
-                          : "inactive"
-                      }`}
-                    ></div>
-                  ))}
-                </div>
-                <div className="dropout-info">
-                  <span>{`${Math.round(
-                    (selectedNode.data.rate || 0.2) * 100
-                  )}% Dropout`}</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Convolutional Layer */}
-          {selectedNode.type === "convolution" && (
-            <div className="parameter-section">
-              <div className="parameter-section-title">
-                Convolution Settings
-              </div>
-              <label>
-                Filters:
-                <div className="parameter-hint">
-                  <i className="fas fa-info-circle"></i>
-                  <span className="hint-text">
-                    {getParameterHint("filters")}
-                  </span>
-                </div>
-              </label>
-              <div className="parameter-input-container">
-                <input
-                  type="number"
-                  min="1"
-                  value={selectedNode.data.filters || ""}
-                  onChange={(e) => updateParameter("filters", +e.target.value)}
-                  className="parameter-input"
-                />
-                <div className="parameter-controls">
-                  <button
-                    className="param-control-btn"
-                    onClick={() =>
-                      updateParameter(
-                        "filters",
-                        Math.max(1, (selectedNode.data.filters || 1) - 1)
-                      )
-                    }
-                  >
-                    <i className="fas fa-minus"></i>
-                  </button>
-                  <button
-                    className="param-control-btn"
-                    onClick={() =>
-                      updateParameter(
-                        "filters",
-                        (selectedNode.data.filters || 0) + 1
-                      )
-                    }
-                  >
-                    <i className="fas fa-plus"></i>
-                  </button>
-                </div>
-              </div>
-
-              <label>
-                Kernel Size:
-                <div className="parameter-hint">
-                  <i className="fas fa-info-circle"></i>
-                  <span className="hint-text">
-                    {getParameterHint("kernelSize")}
-                  </span>
-                </div>
-              </label>
-              <div className="kernel-size-input">
-                <div className="input-group">
-                  <input
-                    type="number"
-                    min="1"
-                    value={selectedNode.data.kernelSize?.[0] || ""}
-                    onChange={(e) =>
-                      updateParameter("kernelSize", [
-                        parseInt(e.target.value) || 1,
-                        selectedNode.data.kernelSize?.[1] || 1,
-                      ])
-                    }
-                    className="parameter-input"
-                  />
-                  <span>×</span>
-                  <input
-                    type="number"
-                    min="1"
-                    value={selectedNode.data.kernelSize?.[1] || ""}
-                    onChange={(e) =>
-                      updateParameter("kernelSize", [
-                        selectedNode.data.kernelSize?.[0] || 1,
-                        parseInt(e.target.value) || 1,
-                      ])
-                    }
-                    className="parameter-input"
-                  />
-                </div>
-                <div className="kernel-visual">
-                  {[
-                    ...Array(
-                      Math.min(7, selectedNode.data.kernelSize?.[0] || 3)
-                    ),
-                  ].map((_, i) => (
-                    <div key={`row-${i}`} className="kernel-row">
-                      {[
-                        ...Array(
-                          Math.min(7, selectedNode.data.kernelSize?.[1] || 3)
-                        ),
-                      ].map((_, j) => (
-                        <div
-                          key={`cell-${i}-${j}`}
-                          className="kernel-cell"
-                        ></div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <label>
-                Stride:
-                <div className="parameter-hint">
-                  <i className="fas fa-info-circle"></i>
-                  <span className="hint-text">
-                    {getParameterHint("stride")}
-                  </span>
-                </div>
-              </label>
-              <div className="input-group stride-group">
-                <input
-                  type="number"
-                  min="1"
-                  value={selectedNode.data.stride?.[0] || 1}
-                  onChange={(e) =>
-                    updateParameter("stride", [
-                      parseInt(e.target.value) || 1,
-                      selectedNode.data.stride?.[1] || 1,
-                    ])
-                  }
-                  className="parameter-input"
-                />
-                <span>×</span>
-                <input
-                  type="number"
-                  min="1"
-                  value={selectedNode.data.stride?.[1] || 1}
-                  onChange={(e) =>
-                    updateParameter("stride", [
-                      selectedNode.data.stride?.[0] || 1,
-                      parseInt(e.target.value) || 1,
-                    ])
-                  }
-                  className="parameter-input"
-                />
-              </div>
-
-              <label>
-                Activation:
-                <div className="parameter-hint">
-                  <i className="fas fa-info-circle"></i>
-                  <span className="hint-text">
-                    {getParameterHint("activation")}
-                  </span>
-                </div>
-              </label>
-              <select
-                value={selectedNode.data.activation || "None"}
-                onChange={(e) => updateParameter("activation", e.target.value)}
-                className="activation-select"
-              >
-                <option value="None">None</option>
-                <option value="ReLU">ReLU</option>
-                <option value="Sigmoid">Sigmoid</option>
-                <option value="Tanh">Tanh</option>
-                <option value="Softmax">Softmax</option>
-                <option value="Leaky ReLU">Leaky ReLU</option>
-              </select>
-              {selectedNode.data.activation &&
-                selectedNode.data.activation !== "None" && (
-                  <div className="activation-preview">
-                    <div className="activation-function-visual">
-                      <div
-                        className={`activation-graph ${selectedNode.data.activation
-                          .replace(" ", "-")
-                          .toLowerCase()}`}
-                      ></div>
-                    </div>
-                  </div>
-                )}
-            </div>
-          )}
-
-          {/* MaxPooling Layer */}
-          {selectedNode.type === "maxpooling" && (
-            <div className="parameter-section">
-              <div className="parameter-section-title">
-                Max Pooling Settings
-              </div>
-              <label>
-                Pool Size:
-                <div className="parameter-hint">
-                  <i className="fas fa-info-circle"></i>
-                  <span className="hint-text">
-                    {getParameterHint("poolSize")}
-                  </span>
-                </div>
-              </label>
-              <div className="input-group pool-size-group">
-                <input
-                  type="number"
-                  min="1"
-                  value={selectedNode.data.poolSize?.[0] || ""}
-                  onChange={(e) =>
-                    updateParameter("poolSize", [
-                      parseInt(e.target.value) || 1,
-                      selectedNode.data.poolSize?.[1] || 1,
-                    ])
-                  }
-                  className="parameter-input"
-                />
-                <span>×</span>
-                <input
-                  type="number"
-                  min="1"
-                  value={selectedNode.data.poolSize?.[1] || ""}
-                  onChange={(e) =>
-                    updateParameter("poolSize", [
-                      selectedNode.data.poolSize?.[0] || 1,
-                      parseInt(e.target.value) || 1,
-                    ])
-                  }
-                  className="parameter-input"
-                />
-              </div>
-
-              <label>
-                Stride:
-                <div className="parameter-hint">
-                  <i className="fas fa-info-circle"></i>
-                  <span className="hint-text">
-                    {getParameterHint("stride")}
-                  </span>
-                </div>
-              </label>
-              <div className="input-group">
-                <input
-                  type="number"
-                  min="1"
-                  value={selectedNode.data.stride?.[0] || ""}
-                  onChange={(e) =>
-                    updateParameter("stride", [
-                      parseInt(e.target.value) || 1,
-                      selectedNode.data.stride?.[1] || 1,
-                    ])
-                  }
-                  className="parameter-input"
-                />
-                <span>×</span>
-                <input
-                  type="number"
-                  min="1"
-                  value={selectedNode.data.stride?.[1] || ""}
-                  onChange={(e) =>
-                    updateParameter("stride", [
-                      selectedNode.data.stride?.[0] || 1,
-                      parseInt(e.target.value) || 1,
-                    ])
-                  }
-                  className="parameter-input"
-                />
-              </div>
-
-              <label>
-                Padding:
-                <div className="parameter-hint">
-                  <i className="fas fa-info-circle"></i>
-                  <span className="hint-text">
-                    Defines how the input is padded around the edges
-                  </span>
-                </div>
-              </label>
-              <select
-                value={selectedNode.data.padding || "none"}
-                onChange={(e) => updateParameter("padding", e.target.value)}
-                className="parameter-input"
-              >
-                <option value="none">None</option>
-                <option value="valid">Valid</option>
-                <option value="same">Same</option>
-              </select>
-            </div>
-          )}
-
-          {/* Batch Normalization Layer */}
-          {selectedNode.type === "batchnormalization" && (
-            <div className="parameter-section">
-              <div className="parameter-section-title">
-                Batch Normalization Settings
-              </div>
-
-              <label>
-                Momentum:
-                <div className="parameter-hint">
-                  <i className="fas fa-info-circle"></i>
-                  <span className="hint-text">
-                    Momentum for the moving average. Higher values maintain more
-                    history.
-                  </span>
-                </div>
-              </label>
-              <div className="parameter-slider-container">
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={selectedNode.data.momentum || 0.99}
-                  onChange={(e) =>
-                    updateParameter("momentum", parseFloat(e.target.value))
-                  }
-                  className="parameter-slider"
-                />
-                <input
-                  type="number"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={selectedNode.data.momentum || 0.99}
-                  onChange={(e) =>
-                    updateParameter("momentum", parseFloat(e.target.value))
-                  }
-                  className="parameter-input narrow"
-                />
-              </div>
-
-              <label>
-                Epsilon:
-                <div className="parameter-hint">
-                  <i className="fas fa-info-circle"></i>
-                  <span className="hint-text">
-                    Small constant added to variance to prevent division by zero
-                  </span>
-                </div>
-              </label>
-              <div className="parameter-input-container">
-                <input
-                  type="number"
-                  min="0.00001"
-                  step="0.00001"
-                  value={selectedNode.data.epsilon || 0.001}
-                  onChange={(e) =>
-                    updateParameter("epsilon", parseFloat(e.target.value))
-                  }
-                  className="parameter-input"
-                />
-              </div>
-
-              <div className="batch-norm-info"></div>
-            </div>
-          )}
-
-          {/* Attention Layer */}
-          {selectedNode.type === "attention" && (
-            <div className="parameter-section">
-              <div className="parameter-section-title">
-                Attention Layer Settings
-              </div>
-
-              <label>
-                Number of Heads:
-                <div className="parameter-hint">
-                  <i className="fas fa-info-circle"></i>
-                  <span className="hint-text">
-                    Number of attention heads. More heads allow focus on
-                    different representation subspaces.
-                  </span>
-                </div>
-              </label>
-              <div className="parameter-input-container">
-                <input
-                  type="number"
-                  min="1"
-                  value={selectedNode.data.heads || 8}
-                  onChange={(e) =>
-                    updateParameter("heads", parseInt(e.target.value))
-                  }
-                  className="parameter-input"
-                />
-                <div className="parameter-controls">
-                  <button
-                    className="param-control-btn"
-                    onClick={() =>
-                      updateParameter(
-                        "heads",
-                        Math.max(1, (selectedNode.data.heads || 8) - 1)
-                      )
-                    }
-                  >
-                    <i className="fas fa-minus"></i>
-                  </button>
-                  <button
-                    className="param-control-btn"
-                    onClick={() =>
-                      updateParameter(
-                        "heads",
-                        (selectedNode.data.heads || 8) + 1
-                      )
-                    }
-                  >
-                    <i className="fas fa-plus"></i>
-                  </button>
-                </div>
-              </div>
-
-              <label>
-                Key Dimension:
-                <div className="parameter-hint">
-                  <i className="fas fa-info-circle"></i>
-                  <span className="hint-text">
-                    Dimensionality of the query, key projections. Affects
-                    representation capacity.
-                  </span>
-                </div>
-              </label>
-              <div className="parameter-input-container">
-                <input
-                  type="number"
-                  min="1"
-                  value={selectedNode.data.keyDim || 64}
-                  onChange={(e) =>
-                    updateParameter("keyDim", parseInt(e.target.value))
-                  }
-                  className="parameter-input"
-                />
-                <div className="parameter-controls">
-                  <button
-                    className="param-control-btn"
-                    onClick={() =>
-                      updateParameter(
-                        "keyDim",
-                        Math.max(1, (selectedNode.data.keyDim || 64) - 8)
-                      )
-                    }
-                  >
-                    <i className="fas fa-minus"></i>
-                  </button>
-                  <button
-                    className="param-control-btn"
-                    onClick={() =>
-                      updateParameter(
-                        "keyDim",
-                        (selectedNode.data.keyDim || 64) + 8
-                      )
-                    }
-                  >
-                    <i className="fas fa-plus"></i>
-                  </button>
-                </div>
-              </div>
-
-              <label>
-                Dropout Rate:
-                <div className="parameter-hint">
-                  <i className="fas fa-info-circle"></i>
-                  <span className="hint-text">
-                    Rate of dropout in the attention layer. Helps prevent
-                    overfitting.
-                  </span>
-                </div>
-              </label>
-              <div className="parameter-slider-container">
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={selectedNode.data.dropout || 0.0}
-                  onChange={(e) =>
-                    updateParameter("dropout", parseFloat(e.target.value))
-                  }
-                  className="parameter-slider"
-                />
-                <input
-                  type="number"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={selectedNode.data.dropout || 0.0}
-                  onChange={(e) =>
-                    updateParameter("dropout", parseFloat(e.target.value))
-                  }
-                  className="parameter-input narrow"
-                />
-              </div>
-
-              <div className="attention-visual">
-                <div className="attention-diagram">
-                  <div className="attention-heads">
-                    {[...Array(Math.min(8, selectedNode.data.heads || 8))].map(
-                      (_, i) => (
-                        <div key={`head-${i}`} className="attention-head"></div>
-                      )
-                    )}
-                  </div>
-                  <div className="attention-flow">
-                    <i className="fas fa-random"></i>
-                  </div>
-                  <div className="attention-output"></div>
-                </div>
-                <div className="diagram-label">
-                  Multi-head attention mechanism
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Output Layer */}
-          {selectedNode.type === "output" && (
-            <div className="parameter-section">
-              <div className="parameter-section-title">
-                Output Layer Settings
-              </div>
-
-              <label>
-                Activation:
-                <div className="parameter-hint">
-                  <i className="fas fa-info-circle"></i>
-                  <span className="hint-text">
-                    Output activation determines the type of prediction: Sigmoid
-                    for binary, Softmax for multi-class.
-                  </span>
-                </div>
-              </label>
-              <select
-                value={selectedNode.data.activation || "None"}
-                onChange={(e) => updateParameter("activation", e.target.value)}
-                className="activation-select"
-              >
-                <option value="None">None</option>
-                <option value="Sigmoid">Sigmoid</option>
-                <option value="Softmax">Softmax</option>
-              </select>
-              {selectedNode.data.activation &&
-                selectedNode.data.activation !== "None" && (
-                  <div className="activation-preview">
-                    <div className="activation-function-visual">
-                      <div
-                        className={`activation-graph ${selectedNode.data.activation
-                          .replace(" ", "-")
-                          .toLowerCase()}`}
-                      ></div>
-                    </div>
-                  </div>
-                )}
-
-              <div className="output-info">
-                <div className="output-explainer">
-                  <div className="explainer-content"></div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ResNetBlock Layer */}
-          {selectedNode.type === "resnetblock" && (
-            <>
-              <div className="parameter-section">
-                <div className="parameter-section-title">
-                  Block Configuration
-                </div>
+          return (
+            <div key={index} className="param-group">
+              <div className="layer-section-header">
+                <i className={`fas ${getLayerIcon(layerType)}`}></i>
                 <label>
-                  Block Type:
-                  <div className="parameter-hint">
-                    <i className="fas fa-info-circle"></i>
-                    <span className="hint-text">
-                      Basic blocks have 2 convolutions, while bottleneck blocks
-                      use a 3-layer pattern with dimensionality reduction
-                    </span>
-                  </div>
+                  {index + 1}. {layer.name || layer.type || "Unknown Layer"}
                 </label>
-                <select
-                  name="blockType"
-                  value={selectedNode.data.blockType || "Basic"}
-                  onChange={(e) => updateParameter("blockType", e.target.value)}
-                  className="parameter-input"
-                >
-                  <option value="Basic">Basic Block</option>
-                  <option value="Bottleneck">Bottleneck Block</option>
-                </select>
-
-                <label>
-                  Filters:
-                  <div className="parameter-hint">
-                    <i className="fas fa-info-circle"></i>
-                    <span className="hint-text">
-                      Number of filters in the block.
-                    </span>
-                  </div>
-                </label>
-                <div className="parameter-input-container">
-                  <input
-                    type="number"
-                    min="1"
-                    value={selectedNode.data.filters || 64}
-                    onChange={(e) =>
-                      updateParameter("filters", parseInt(e.target.value) || 64)
-                    }
-                    className="parameter-input"
-                  />
-                  <div className="parameter-controls">
-                    <button
-                      className="param-control-btn"
-                      onClick={() =>
-                        updateParameter(
-                          "filters",
-                          (selectedNode.data.filters || 64) + 1
-                        )
-                      }
-                    >
-                      <i className="fas fa-caret-up"></i>
-                    </button>
-                    <button
-                      className="param-control-btn"
-                      onClick={() =>
-                        updateParameter(
-                          "filters",
-                          Math.max(1, (selectedNode.data.filters || 64) - 1)
-                        )
-                      }
-                    >
-                      <i className="fas fa-caret-down"></i>
-                    </button>
-                  </div>
-                </div>
               </div>
 
-              <div className="parameter-section">
-                <div className="parameter-section-title">
-                  Stride Configuration
-                </div>
-                <label>
-                  Stride:
-                  <div className="parameter-hint">
-                    <i className="fas fa-info-circle"></i>
-                    <span className="hint-text">
-                      {getParameterHint("stride")}
-                    </span>
-                  </div>
-                </label>
-                <div className="slider-with-value">
-                  <select
-                    value={
-                      Array.isArray(selectedNode.data.stride)
-                        ? selectedNode.data.stride[0]
-                        : 1
-                    }
-                    onChange={(e) =>
-                      updateParameter("stride", [
-                        parseInt(e.target.value),
-                        parseInt(e.target.value),
-                      ])
-                    }
-                    className="param-select"
-                  >
-                    <option value="1">1x1</option>
-                    <option value="2">2x2</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="parameter-section">
-                <div className="parameter-section-title">Block Features</div>
-                <label>
-                  Activation:
-                  <div className="parameter-hint">
-                    <i className="fas fa-info-circle"></i>
-                    <span className="hint-text">
-                      {getParameterHint("activation")}
-                    </span>
-                  </div>
-                </label>
-                <select
-                  value={selectedNode.data.activation || "ReLU"}
-                  onChange={(e) =>
-                    updateParameter("activation", e.target.value)
-                  }
-                  className="activation-select"
-                >
-                  <option value="ReLU">ReLU</option>
-                  <option value="LeakyReLU">Leaky ReLU</option>
-                </select>
-                {selectedNode.data.activation &&
-                  selectedNode.data.activation !== "None" && (
-                    <div className="activation-preview">
-                      <div className="activation-function-visual">
-                        <div
-                          className={`activation-graph ${selectedNode.data.activation
-                            .replace(" ", "-")
-                            .toLowerCase()}`}
-                        ></div>
+              {/* Dense Layer Parameters */}
+              {layerType === "dense" && (
+                <>
+                  <div className="param-subgroup">
+                    <label>Neurons</label>
+                    <div className="number-input-with-controls">
+                      <input
+                        type="number"
+                        min="1"
+                        value={getLayerParameter(index, "neurons", 64)}
+                        onChange={(e) =>
+                          updateLayerParameter(
+                            index,
+                            "neurons",
+                            parseInt(e.target.value) || 64
+                          )
+                        }
+                        className="param-input"
+                      />
+                      <div className="param-controls">
+                        <button
+                          className="control-btn"
+                          onClick={() =>
+                            updateLayerParameter(
+                              index,
+                              "neurons",
+                              Math.max(
+                                1,
+                                getLayerParameter(index, "neurons", 64) - 1
+                              )
+                            )
+                          }
+                        >
+                          <i className="fas fa-minus"></i>
+                        </button>
+                        <button
+                          className="control-btn"
+                          onClick={() =>
+                            updateLayerParameter(
+                              index,
+                              "neurons",
+                              getLayerParameter(index, "neurons", 64) + 1
+                            )
+                          }
+                        >
+                          <i className="fas fa-plus"></i>
+                        </button>
                       </div>
                     </div>
-                  )}
-              </div>
-
-              <div className="parameter-section">
-                <div className="parameter-section-title">
-                  Block Visualization
-                </div>
-                <div className="resnet-visualization">
-                  <div className="resnet-flow">
-                    <div className="resnet-input block"></div>
-                    <div className="resnet-layers">
-                      {selectedNode.data.blockType === "Bottleneck" ? (
-                        <>
-                          <div className="resnet-layer">Conv 1x1</div>
-                          <div className="resnet-layer">Conv 3x3</div>
-                          <div className="resnet-layer">Conv 1x1</div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="resnet-layer">Conv 3x3</div>
-                          <div className="resnet-layer">Conv 3x3</div>
-                        </>
-                      )}
-                    </div>
-                    <div className="resnet-skip">
-                      <div className="skip-line"></div>
-                      {((selectedNode.data.stride?.[0] || 1) > 1 ||
-                        (selectedNode.data.stride?.[1] || 1) > 1) && (
-                        <div className="downsample">1×1 Conv</div>
-                      )}
-                    </div>
-                    <div className="resnet-output block"></div>
                   </div>
-                </div>
-              </div>
-            </>
-          )}
 
-          {/* MaxPooling Layer Parameters */}
-          {selectedNode.type === "maxpooling" && (
-            <>
-              <div className="param-group">
-                <label>Pool Size</label>
-                <div className="dimension-input">
-                  <input
-                    type="number"
-                    min="1"
-                    value={selectedNode.data.poolSize?.[0] || "2"}
-                    onChange={(e) =>
-                      updateParameter("poolSize", [
-                        parseInt(e.target.value) || 2,
-                        selectedNode.data.poolSize?.[1] || 2,
-                      ])
-                    }
-                    className="param-input"
-                  />
-                  <span>×</span>
-                  <input
-                    type="number"
-                    min="1"
-                    value={selectedNode.data.poolSize?.[1] || "2"}
-                    onChange={(e) =>
-                      updateParameter("poolSize", [
-                        selectedNode.data.poolSize?.[0] || 2,
-                        parseInt(e.target.value) || 2,
-                      ])
-                    }
-                    className="param-input"
-                  />
-                </div>
-              </div>
+                  <div className="param-subgroup">
+                    <label>Activation</label>
+                    <select
+                      value={getLayerParameter(index, "activation", "relu")}
+                      onChange={(e) =>
+                        updateLayerParameter(
+                          index,
+                          "activation",
+                          e.target.value
+                        )
+                      }
+                      className="param-select"
+                    >
+                      <option value="relu">ReLU</option>
+                      <option value="sigmoid">Sigmoid</option>
+                      <option value="tanh">Tanh</option>
+                      <option value="softmax">Softmax</option>
+                      <option value="linear">Linear</option>
+                    </select>
+                  </div>
+                </>
+              )}
 
-              <div className="param-group">
-                <label>Stride</label>
-                <div className="dimension-input">
-                  <input
-                    type="number"
-                    min="1"
-                    value={selectedNode.data.stride?.[0] || "2"}
-                    onChange={(e) =>
-                      updateParameter("stride", [
-                        parseInt(e.target.value) || 2,
-                        selectedNode.data.stride?.[1] || 2,
-                      ])
-                    }
-                    className="param-input"
-                  />
-                  <span>×</span>
-                  <input
-                    type="number"
-                    min="1"
-                    value={selectedNode.data.stride?.[1] || "2"}
-                    onChange={(e) =>
-                      updateParameter("stride", [
-                        selectedNode.data.stride?.[0] || 2,
-                        parseInt(e.target.value) || 2,
-                      ])
-                    }
-                    className="param-input"
-                  />
-                </div>
-              </div>
+              {/* Convolution Layer Parameters */}
+              {layerType === "convolution" && (
+                <>
+                  <div className="param-subgroup">
+                    <label>Filters</label>
+                    <div className="number-input-with-controls">
+                      <input
+                        type="number"
+                        min="1"
+                        value={getLayerParameter(index, "filters", 32)}
+                        onChange={(e) =>
+                          updateLayerParameter(
+                            index,
+                            "filters",
+                            parseInt(e.target.value) || 32
+                          )
+                        }
+                        className="param-input"
+                      />
+                      <div className="param-controls">
+                        <button
+                          className="control-btn"
+                          onClick={() =>
+                            updateLayerParameter(
+                              index,
+                              "filters",
+                              Math.max(
+                                1,
+                                getLayerParameter(index, "filters", 32) - 1
+                              )
+                            )
+                          }
+                        >
+                          <i className="fas fa-minus"></i>
+                        </button>
+                        <button
+                          className="control-btn"
+                          onClick={() =>
+                            updateLayerParameter(
+                              index,
+                              "filters",
+                              getLayerParameter(index, "filters", 32) + 1
+                            )
+                          }
+                        >
+                          <i className="fas fa-plus"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
 
-              <div className="param-group">
-                <label>Padding</label>
-                <select
-                  value={selectedNode.data.padding || "valid"}
-                  onChange={(e) => updateParameter("padding", e.target.value)}
-                  className="param-select"
-                >
-                  <option value="valid">Valid</option>
-                  <option value="same">Same</option>
-                </select>
-              </div>
-            </>
-          )}
+                  <div className="param-subgroup">
+                    <label>Kernel Size</label>
+                    <div className="dimension-input">
+                      <input
+                        type="number"
+                        min="1"
+                        value={
+                          getLayerParameter(index, "kernelSize", [3, 3])[0]
+                        }
+                        onChange={(e) =>
+                          updateLayerParameter(index, "kernelSize", [
+                            parseInt(e.target.value) || 3,
+                            getLayerParameter(index, "kernelSize", [3, 3])[1],
+                          ])
+                        }
+                        className="param-input"
+                      />
+                      <span>×</span>
+                      <input
+                        type="number"
+                        min="1"
+                        value={
+                          getLayerParameter(index, "kernelSize", [3, 3])[1]
+                        }
+                        onChange={(e) =>
+                          updateLayerParameter(index, "kernelSize", [
+                            getLayerParameter(index, "kernelSize", [3, 3])[0],
+                            parseInt(e.target.value) || 3,
+                          ])
+                        }
+                        className="param-input"
+                      />
+                    </div>
+                  </div>
 
-          {/* GlobalAveragePool Layer has no parameters */}
-          {selectedNode.type === "globalaveragepool" && (
-            <div className="param-group">
-              <p className="param-info">
-                This layer has no configurable parameters.
-              </p>
-            </div>
-          )}
+                  <div className="param-subgroup">
+                    <label>Stride</label>
+                    <div className="dimension-input">
+                      <input
+                        type="number"
+                        min="1"
+                        value={getLayerParameter(index, "stride", [1, 1])[0]}
+                        onChange={(e) =>
+                          updateLayerParameter(index, "stride", [
+                            parseInt(e.target.value) || 1,
+                            getLayerParameter(index, "stride", [1, 1])[1],
+                          ])
+                        }
+                        className="param-input"
+                      />
+                      <span>×</span>
+                      <input
+                        type="number"
+                        min="1"
+                        value={getLayerParameter(index, "stride", [1, 1])[1]}
+                        onChange={(e) =>
+                          updateLayerParameter(index, "stride", [
+                            getLayerParameter(index, "stride", [1, 1])[0],
+                            parseInt(e.target.value) || 1,
+                          ])
+                        }
+                        className="param-input"
+                      />
+                    </div>
+                  </div>
 
-          {/* Add Layer has no parameters */}
-          {selectedNode.type === "addlayer" && (
-            <div className="param-group">
-              <p className="param-info">
-                This layer has no configurable parameters.
-              </p>
-            </div>
-          )}
+                  <div className="param-subgroup">
+                    <label>Padding</label>
+                    <select
+                      value={getLayerParameter(index, "padding", "valid")}
+                      onChange={(e) =>
+                        updateLayerParameter(index, "padding", e.target.value)
+                      }
+                      className="param-select"
+                    >
+                      <option value="valid">Valid</option>
+                      <option value="same">Same</option>
+                    </select>
+                  </div>
+                </>
+              )}
 
-          {/* Flatten Layer has no parameters */}
-          {selectedNode.type === "flatten" && (
-            <div className="param-group">
-              <p className="param-info">
-                This layer has no configurable parameters.
-              </p>
-            </div>
-          )}
-
-          {/* Activation Layer */}
-          {selectedNode.type === "activation" && (
-            <div className="parameter-section">
-              <div className="parameter-section-title">
-                Activation Layer Settings
-              </div>
-              <label>
-                Function:
-                <div className="parameter-hint">
-                  <i className="fas fa-info-circle"></i>
-                  <span className="hint-text">
-                    {getParameterHint("function")}
-                  </span>
-                </div>
-              </label>
-              <select
-                value={selectedNode.data.function || "ReLU"}
-                onChange={(e) => updateParameter("function", e.target.value)}
-                className="activation-select"
-              >
-                <option value="ReLU">ReLU</option>
-                <option value="Sigmoid">Sigmoid</option>
-                <option value="Tanh">Tanh</option>
-                <option value="Softmax">Softmax</option>
-                <option value="Leaky ReLU">Leaky ReLU</option>
-              </select>
-              {selectedNode.data.function && (
-                <div className="activation-preview">
-                  <div className="activation-function-visual">
-                    <div
-                      className={`activation-graph ${selectedNode.data.function
-                        .replace(" ", "-")
-                        .toLowerCase()}`}
-                    ></div>
+              {/* Dropout Layer Parameters */}
+              {layerType === "dropout" && (
+                <div className="param-subgroup">
+                  <label>Rate</label>
+                  <div className="slider-with-value">
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={getLayerParameter(index, "rate", 0.2)}
+                      onChange={(e) =>
+                        updateLayerParameter(
+                          index,
+                          "rate",
+                          parseFloat(e.target.value) || 0.2
+                        )
+                      }
+                      className="param-slider"
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={getLayerParameter(index, "rate", 0.2)}
+                      onChange={(e) =>
+                        updateLayerParameter(
+                          index,
+                          "rate",
+                          parseFloat(e.target.value) || 0.2
+                        )
+                      }
+                      className="param-input small"
+                    />
                   </div>
                 </div>
               )}
+
+              {/* MaxPooling Layer Parameters */}
+              {layerType === "maxpooling" && (
+                <>
+                  <div className="param-subgroup">
+                    <label>Pool Size</label>
+                    <div className="dimension-input">
+                      <input
+                        type="number"
+                        min="1"
+                        value={getLayerParameter(index, "poolSize", [2, 2])[0]}
+                        onChange={(e) =>
+                          updateLayerParameter(index, "poolSize", [
+                            parseInt(e.target.value) || 2,
+                            getLayerParameter(index, "poolSize", [2, 2])[1],
+                          ])
+                        }
+                        className="param-input"
+                      />
+                      <span>×</span>
+                      <input
+                        type="number"
+                        min="1"
+                        value={getLayerParameter(index, "poolSize", [2, 2])[1]}
+                        onChange={(e) =>
+                          updateLayerParameter(index, "poolSize", [
+                            getLayerParameter(index, "poolSize", [2, 2])[0],
+                            parseInt(e.target.value) || 2,
+                          ])
+                        }
+                        className="param-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="param-subgroup">
+                    <label>Stride</label>
+                    <div className="dimension-input">
+                      <input
+                        type="number"
+                        min="1"
+                        value={getLayerParameter(index, "stride", [2, 2])[0]}
+                        onChange={(e) =>
+                          updateLayerParameter(index, "stride", [
+                            parseInt(e.target.value) || 2,
+                            getLayerParameter(index, "stride", [2, 2])[1],
+                          ])
+                        }
+                        className="param-input"
+                      />
+                      <span>×</span>
+                      <input
+                        type="number"
+                        min="1"
+                        value={getLayerParameter(index, "stride", [2, 2])[1]}
+                        onChange={(e) =>
+                          updateLayerParameter(index, "stride", [
+                            getLayerParameter(index, "stride", [2, 2])[0],
+                            parseInt(e.target.value) || 2,
+                          ])
+                        }
+                        className="param-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="param-subgroup">
+                    <label>Padding</label>
+                    <select
+                      value={getLayerParameter(index, "padding", "valid")}
+                      onChange={(e) =>
+                        updateLayerParameter(index, "padding", e.target.value)
+                      }
+                      className="param-select"
+                    >
+                      <option value="valid">Valid</option>
+                      <option value="same">Same</option>
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* BatchNormalization Layer Parameters */}
+              {layerType === "batchnormalization" && (
+                <>
+                  <div className="param-subgroup">
+                    <label>Momentum</label>
+                    <div className="slider-with-value">
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={getLayerParameter(index, "momentum", 0.99)}
+                        onChange={(e) =>
+                          updateLayerParameter(
+                            index,
+                            "momentum",
+                            parseFloat(e.target.value) || 0.99
+                          )
+                        }
+                        className="param-slider"
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={getLayerParameter(index, "momentum", 0.99)}
+                        onChange={(e) =>
+                          updateLayerParameter(
+                            index,
+                            "momentum",
+                            parseFloat(e.target.value) || 0.99
+                          )
+                        }
+                        className="param-input small"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="param-subgroup">
+                    <label>Epsilon</label>
+                    <input
+                      type="number"
+                      min="0.0001"
+                      max="0.1"
+                      step="0.0001"
+                      value={getLayerParameter(index, "epsilon", 0.001)}
+                      onChange={(e) =>
+                        updateLayerParameter(
+                          index,
+                          "epsilon",
+                          parseFloat(e.target.value) || 0.001
+                        )
+                      }
+                      className="param-input"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Attention Layer Parameters */}
+              {layerType === "attention" && (
+                <>
+                  <div className="param-subgroup">
+                    <label>Heads</label>
+                    <div className="number-input-with-controls">
+                      <input
+                        type="number"
+                        min="1"
+                        value={getLayerParameter(index, "heads", 8)}
+                        onChange={(e) =>
+                          updateLayerParameter(
+                            index,
+                            "heads",
+                            parseInt(e.target.value) || 8
+                          )
+                        }
+                        className="param-input"
+                      />
+                      <div className="param-controls">
+                        <button
+                          className="control-btn"
+                          onClick={() =>
+                            updateLayerParameter(
+                              index,
+                              "heads",
+                              Math.max(
+                                1,
+                                getLayerParameter(index, "heads", 8) - 1
+                              )
+                            )
+                          }
+                        >
+                          <i className="fas fa-minus"></i>
+                        </button>
+                        <button
+                          className="control-btn"
+                          onClick={() =>
+                            updateLayerParameter(
+                              index,
+                              "heads",
+                              getLayerParameter(index, "heads", 8) + 1
+                            )
+                          }
+                        >
+                          <i className="fas fa-plus"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="param-subgroup">
+                    <label>Key Dimension</label>
+                    <div className="number-input-with-controls">
+                      <input
+                        type="number"
+                        min="1"
+                        value={getLayerParameter(index, "keyDim", 64)}
+                        onChange={(e) =>
+                          updateLayerParameter(
+                            index,
+                            "keyDim",
+                            parseInt(e.target.value) || 64
+                          )
+                        }
+                        className="param-input"
+                      />
+                      <div className="param-controls">
+                        <button
+                          className="control-btn"
+                          onClick={() =>
+                            updateLayerParameter(
+                              index,
+                              "keyDim",
+                              Math.max(
+                                1,
+                                getLayerParameter(index, "keyDim", 64) - 1
+                              )
+                            )
+                          }
+                        >
+                          <i className="fas fa-minus"></i>
+                        </button>
+                        <button
+                          className="control-btn"
+                          onClick={() =>
+                            updateLayerParameter(
+                              index,
+                              "keyDim",
+                              getLayerParameter(index, "keyDim", 64) + 1
+                            )
+                          }
+                        >
+                          <i className="fas fa-plus"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="param-subgroup">
+                    <label>Dropout Rate</label>
+                    <div className="slider-with-value">
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={getLayerParameter(index, "dropout", 0.1)}
+                        onChange={(e) =>
+                          updateLayerParameter(
+                            index,
+                            "dropout",
+                            parseFloat(e.target.value) || 0.1
+                          )
+                        }
+                        className="param-slider"
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={getLayerParameter(index, "dropout", 0.1)}
+                        onChange={(e) =>
+                          updateLayerParameter(
+                            index,
+                            "dropout",
+                            parseFloat(e.target.value) || 0.1
+                          )
+                        }
+                        className="param-input small"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Activation Layer Parameters */}
+              {layerType === "activation" && (
+                <div className="param-subgroup">
+                  <label>Activation Function</label>
+                  <select
+                    value={getLayerParameter(index, "function", "relu")}
+                    onChange={(e) =>
+                      updateLayerParameter(index, "function", e.target.value)
+                    }
+                    className="param-select"
+                  >
+                    <option value="relu">ReLU</option>
+                    <option value="sigmoid">Sigmoid</option>
+                    <option value="tanh">Tanh</option>
+                    <option value="softmax">Softmax</option>
+                    <option value="linear">Linear</option>
+                    <option value="leaky_relu">Leaky ReLU</option>
+                    <option value="elu">ELU</option>
+                    <option value="swish">Swish</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Layers with no parameters */}
+              {(layerType === "flatten" ||
+                layerType === "globalaveragepool" ||
+                layerType === "addlayer") && (
+                <div className="param-subgroup">
+                  <p className="param-info">
+                    This layer has no configurable parameters.
+                  </p>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
+          );
+        })}
+      </>
     );
   };
 
-  // Prevent unused function warning
-  void renderNodeParameters;
+  // Render the node parameters panel
 
   // Render visualization based on selected option
   const renderVisualization = () => {
@@ -6219,18 +5827,20 @@ const NewBuildPage = (): JSX.Element => {
                   </div>
 
                   <div className="layer-params-content">
-                    {/* Layer Name */}
-                    <div className="param-group">
-                      <input
-                        type="text"
-                        value={selectedNode.data.label || ""}
-                        onChange={(e) =>
-                          updateParameter("label", e.target.value)
-                        }
-                        placeholder="Layer Name"
-                        className="param-input full-width"
-                      />
-                    </div>
+                    {/* Layer Name - Only for non-custom blocks */}
+                    {selectedNode.type !== "customblock" && (
+                      <div className="param-group">
+                        <input
+                          type="text"
+                          value={selectedNode.data.label || ""}
+                          onChange={(e) =>
+                            updateParameter("label", e.target.value)
+                          }
+                          placeholder="Layer Name"
+                          className="param-input full-width"
+                        />
+                      </div>
+                    )}
 
                     {/* Dense Layer Parameters */}
                     {selectedNode.type === "dense" && (
@@ -6799,18 +6409,22 @@ const NewBuildPage = (): JSX.Element => {
                         <div className="param-group">
                           <label>Activation</label>
                           <select
-                            value={selectedNode.data.activation || "ReLU"}
+                            value={selectedNode.data.activation || "relu"}
                             onChange={(e) =>
                               updateParameter("activation", e.target.value)
                             }
                             className="param-select"
                           >
-                            <option value="ReLU">ReLU</option>
-                            <option value="LeakyReLU">Leaky ReLU</option>
+                            <option value="relu">ReLU</option>
+                            <option value="leaky_relu">Leaky ReLU</option>
                           </select>
                         </div>
                       </>
                     )}
+
+                    {/* Custom Block Parameters */}
+                    {selectedNode.type === "customblock" &&
+                      renderCustomBlockParameters()}
 
                     {/* Output Layer Parameters */}
                     {selectedNode.type === "output" && (

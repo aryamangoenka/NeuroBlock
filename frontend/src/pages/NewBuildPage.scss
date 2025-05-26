@@ -608,4 +608,79 @@
       }
     }
   }
+}
+
+// Custom Block Parameters Styles
+.layer-section-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border-left: 3px solid #4a6ee0;
+  
+  i {
+    margin-right: 8px;
+    color: #4a6ee0;
+    font-size: 1rem;
+  }
+  
+  label {
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+    font-size: 0.95rem;
+  }
+}
+
+.param-subgroup {
+  margin-bottom: 16px;
+  padding-left: 16px;
+  
+  label {
+    display: block;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+  }
+}
+
+.block-info {
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  padding: 8px 12px;
+  
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    .info-label {
+      font-weight: 500;
+      color: #666;
+      font-size: 0.9rem;
+    }
+    
+    .info-value {
+      font-weight: 600;
+      color: #333;
+      background-color: #e9ecef;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+  }
+}
+
+.param-info {
+  color: #666;
+  font-style: italic;
+  font-size: 0.85rem;
+  margin: 0;
+  padding: 8px 12px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  text-align: center;
 } 
