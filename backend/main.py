@@ -3,6 +3,9 @@ from flask_cors import CORS
 from flask_socketio import SocketIO
 import os
 
+# Set matplotlib backend early to prevent GUI threading issues on macOS
+import matplotlib
+matplotlib.use('Agg')
 
 from backend.config import config
 from backend.utils.logging import get_logger

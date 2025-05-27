@@ -8,6 +8,8 @@ from backend.training.callbacks import RealTimeUpdateCallback
 from backend.dataset_loader import load_dataset
 import numpy as np
 from sklearn.metrics import confusion_matrix, mean_squared_error, r2_score
+import matplotlib
+matplotlib.use('Agg')  # Use non-GUI backend to prevent threading issues on macOS
 import matplotlib.pyplot as plt
 import seaborn as sns
 import io

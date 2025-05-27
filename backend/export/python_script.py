@@ -202,17 +202,62 @@ def generate_python_script(model, training_config, x_train_shape, dataset_name):
         expected_output_units = 1
     elif dataset_name == "MNIST" or dataset_name == "CIFAR-10":
         expected_output_units = 10
-        
-    for layer in model.layers[start_idx:]:
+    
+    # Process layers to merge standalone activation layers with their preceding layers
+    processed_layers = []
+    i = start_idx
+    while i < len(model.layers):
+        layer = model.layers[i]
         layer_class = layer.__class__.__name__
         layer_name = getattr(layer, 'name', '').lower()
         layer_type = getattr(layer, 'type', '').lower()
+        
+        # Check if the next layer is a standalone activation layer
+        merged_activation = None
+        if i + 1 < len(model.layers):
+            next_layer = model.layers[i + 1]
+            next_layer_class = next_layer.__class__.__name__
+            next_layer_name = getattr(next_layer, 'name', '').lower()
+            next_layer_type = getattr(next_layer, 'type', '').lower()
+            
+            # Check if next layer is a standalone activation layer
+            if ("activation" in next_layer_type or "activation" in next_layer_name or 
+                next_layer_class == "Activation"):
+                # Get the activation function
+                if hasattr(next_layer, 'activation') and hasattr(next_layer.activation, '__name__'):
+                    merged_activation = next_layer.activation.__name__
+                elif hasattr(next_layer, 'data') and 'function' in next_layer.data:
+                    merged_activation = next_layer.data['function'].lower()
+                else:
+                    merged_activation = 'relu'  # default
+                i += 1  # Skip the activation layer as we'll merge it
+        
+        processed_layers.append({
+            'layer': layer,
+            'layer_class': layer_class,
+            'layer_name': layer_name,
+            'layer_type': layer_type,
+            'merged_activation': merged_activation
+        })
+        i += 1
+        
+    for layer_info in processed_layers:
+        layer = layer_info['layer']
+        layer_class = layer_info['layer_class']
+        layer_name = layer_info['layer_name']
+        layer_type = layer_info['layer_type']
+        merged_activation = layer_info['merged_activation']
         
         # Handle different layer types
         if "dense" in layer_type or "dense" in layer_name or layer_class == "Dense":
             # Only get the values that were explicitly set
             units = layer.units
-            activation = layer.activation.__name__ if hasattr(layer.activation, '__name__') else 'None'
+            
+            # Use merged activation if available, otherwise use layer's activation
+            if merged_activation:
+                activation = merged_activation
+            else:
+                activation = layer.activation.__name__ if hasattr(layer.activation, '__name__') else 'None'
             
             # Check if this is potentially an output layer (last layer)
             if layer == model.layers[-1] and expected_output_units is not None:
@@ -234,7 +279,12 @@ def generate_python_script(model, training_config, x_train_shape, dataset_name):
         elif "convolution" in layer_type or "conv2d" in layer_name or layer_class == "Conv2D":
             # Only get the values that were explicitly set
             filters = layer.filters
-            activation = layer.activation.__name__ if hasattr(layer.activation, '__name__') else 'None'
+            
+            # Use merged activation if available, otherwise use layer's activation
+            if merged_activation:
+                activation = merged_activation
+            else:
+                activation = layer.activation.__name__ if hasattr(layer.activation, '__name__') else 'None'
             
             # Get kernel size from layer data if available
             kernel_size = getattr(layer, 'kernel_size', (3,3))
@@ -327,10 +377,13 @@ def generate_python_script(model, training_config, x_train_shape, dataset_name):
             else:
                 script.append(f"model.add(Reshape())")
             
-        elif "activation" in layer_type or "activation" in layer_name:
-            # Get activation function from layer data if available
+        elif "activation" in layer_type or "activation" in layer_name or layer_class == "Activation":
+            # Skip standalone activation layers as they should have been merged with preceding layers
+            # This should only happen if it's truly a standalone activation layer
             activation = 'relu'  # default
-            if hasattr(layer, 'data') and 'function' in layer.data:
+            if hasattr(layer, 'activation') and hasattr(layer.activation, '__name__'):
+                activation = layer.activation.__name__
+            elif hasattr(layer, 'data') and 'function' in layer.data:
                 activation = layer.data['function'].lower()
             script.append(f"model.add(Activation('{activation}'))")
             

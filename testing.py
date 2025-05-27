@@ -182,6 +182,8 @@ with torch.no_grad():
 
 # Plot confusion matrix for classification tasks
 if dataset_name != "california housing":
+    import matplotlib
+    matplotlib.use('Agg')  # Use non-GUI backend to prevent threading issues on macOS
     import matplotlib.pyplot as plt
     import seaborn as sns
     from sklearn.metrics import confusion_matrix

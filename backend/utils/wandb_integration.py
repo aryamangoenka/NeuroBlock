@@ -2,6 +2,8 @@ import os
 import wandb
 import numpy as np
 from sklearn.metrics import confusion_matrix
+import matplotlib
+matplotlib.use('Agg')  # Use non-GUI backend to prevent threading issues on macOS
 import matplotlib.pyplot as plt
 import io
 from PIL import Image

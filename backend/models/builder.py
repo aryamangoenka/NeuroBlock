@@ -292,30 +292,67 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
         inputs = Input(shape=input_shape)
         layers_by_id = {input_layer["id"]: inputs}
         
-        # Process nodes in topological order
-        for node_id in topo_order:
+        # First, we need to process the architecture to merge activation layers with their preceding layers
+        processed_nodes = []
+        i = 0
+        while i < len(topo_order):
+            node_id = topo_order[i]
             if node_id == input_layer["id"]:
+                i += 1
                 continue
                 
             node = node_map[node_id]
+            layer_type = node["type"]
+            layer_data = node["data"]
+            
+            # Check if the next node is an activation layer that should be merged
+            next_activation = None
+            if i + 1 < len(topo_order):
+                next_node_id = topo_order[i + 1]
+                next_node = node_map[next_node_id]
+                if next_node["type"] == "activation":
+                    # Check if this activation directly follows the current layer
+                    next_incoming_edges = [edge for edge in edges if edge["target"] == next_node_id]
+                    if len(next_incoming_edges) == 1 and next_incoming_edges[0]["source"] == node_id:
+                        next_activation = next_node["data"].get("function", "relu").lower()
+                        i += 1  # Skip the activation node as we'll merge it
+            
+            processed_nodes.append({
+                "id": node_id,
+                "type": layer_type,
+                "data": layer_data,
+                "merged_activation": next_activation
+            })
+            i += 1
+        
+        # Process nodes in topological order
+        for processed_node in processed_nodes:
+            node_id = processed_node["id"]
+            layer_type = processed_node["type"]
+            layer_data = processed_node["data"]
+            merged_activation = processed_node["merged_activation"]
+            
             incoming_edges = [edge for edge in edges if edge["target"] == node_id]
             
             # Get input layers
             if len(incoming_edges) == 1:
-                input_layer = layers_by_id[incoming_edges[0]["source"]]
+                input_layer_func = layers_by_id[incoming_edges[0]["source"]]
             else:
-                input_layer = [layers_by_id[edge["source"]] for edge in incoming_edges]
-            
-            # Process the node based on its type
-            layer_type = node["type"]
-            layer_data = node["data"]
+                input_layer_func = [layers_by_id[edge["source"]] for edge in incoming_edges]
             
             logger.debug(f"Processing {layer_type} layer (id: {node_id})")
+            
+            # Determine final activation - use merged activation if available, otherwise use layer's activation
+            final_activation = None
+            if merged_activation:
+                final_activation = merged_activation
+            elif layer_data.get("activation", "none").lower() != "none":
+                final_activation = layer_data["activation"].lower()
             
             # Create the appropriate layer
             if layer_type == "resnetblock":
                 x = create_resnet_block(
-                    input_layer,
+                    input_layer_func,
                     block_type=layer_data.get("blockType", "Basic"),
                     in_channels=64,
                     out_channels=layer_data.get("filters", 64),
@@ -327,34 +364,35 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
             elif layer_type == "dense":
                 x = Dense(
                     units=layer_data["neurons"],
-                    activation=None if layer_data["activation"].lower() == "none" else layer_data["activation"].lower()
-                )(input_layer)
+                    activation=final_activation
+                )(input_layer_func)
             elif layer_type == "convolution":
                 x = Conv2D(
                     filters=layer_data["filters"],
                     kernel_size=tuple(layer_data["kernelSize"]),
                     strides=tuple(layer_data["stride"]),
                     padding=layer_data.get("padding", "same").lower(),
-                    activation=None if layer_data["activation"].lower() == "none" else layer_data["activation"].lower()
-                )(input_layer)
+                    activation=final_activation
+                )(input_layer_func)
             elif layer_type == "maxpooling":
                 x = MaxPooling2D(
                     pool_size=tuple(layer_data["poolSize"]),
                     strides=tuple(layer_data["stride"]),
                     padding=layer_data.get("padding", "same").lower()
-                )(input_layer)
+                )(input_layer_func)
             elif layer_type == "globalaveragepool":
-                x = GlobalAveragePooling2D()(input_layer)
+                x = GlobalAveragePooling2D()(input_layer_func)
             elif layer_type == "flatten":
-                x = Flatten()(input_layer)
+                x = Flatten()(input_layer_func)
             elif layer_type == "dropout":
-                x = Dropout(rate=layer_data["rate"])(input_layer)
+                x = Dropout(rate=layer_data["rate"])(input_layer_func)
             elif layer_type == "batchnormalization":
                 x = BatchNormalization(
                     momentum=layer_data["momentum"],
                     epsilon=layer_data["epsilon"]
-                )(input_layer)
+                )(input_layer_func)
             elif layer_type == "activation":
+                # This should only happen if it's a standalone activation layer
                 activation_func = layer_data.get("function", "relu").lower()
                 activation_map = {
                     "relu": "relu",
@@ -368,16 +406,16 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
                 
                 if mapped_activation == "leaky_relu":
                     alpha = layer_data.get("alpha", 0.3)
-                    x = tf.keras.layers.LeakyReLU(alpha=alpha)(input_layer)
+                    x = tf.keras.layers.LeakyReLU(alpha=alpha)(input_layer_func)
                 else:
-                    x = tf.keras.layers.Activation(mapped_activation)(input_layer)
+                    x = tf.keras.layers.Activation(mapped_activation)(input_layer_func)
             elif layer_type == "attention":
                 num_heads = layer_data.get("heads", 8)
                 key_dim = layer_data.get("keyDim", 64)
                 dropout_rate = layer_data.get("dropout", 0.0)
                 
                 if dataset_name in ["MNIST", "CIFAR-10"]:
-                    reshaped = Reshape((-1, input_shape[0]))(input_layer)
+                    reshaped = Reshape((-1, input_shape[0]))(input_layer_func)
                     attention_output = CustomAttentionLayer(
                         num_heads=num_heads,
                         key_dim=key_dim,
@@ -391,25 +429,34 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
                         key_dim=key_dim,
                         dropout=dropout_rate,
                         name=f"attention_{node_id}"
-                    )(input_layer)
+                    )(input_layer_func)
             elif layer_type == "addlayer":
                 if len(incoming_edges) < 2:
                     logger.warning(f"Add layer (id: {node_id}) has fewer than 2 inputs, using identity function")
-                    x = input_layer
+                    x = input_layer_func
                 else:
-                    x = Add()(input_layer)
+                    x = Add()(input_layer_func)
             elif layer_type == "output":
                 output_units = determine_output_units(dataset_name)
-                activation = layer_data["activation"].lower()
-                if activation == "none":
-                    activation = None
+                # For output layer, use the merged activation if available, otherwise determine based on dataset
+                if final_activation:
+                    output_activation = final_activation
+                else:
+                    # Auto-determine output activation based on dataset if not specified
+                    if dataset_name in ["Iris", "MNIST", "CIFAR-10"]:
+                        output_activation = "softmax"  # Multi-class classification
+                    elif dataset_name == "Breast Cancer":
+                        output_activation = "sigmoid"  # Binary classification
+                    else:
+                        output_activation = None  # Regression
+                
                 x = Dense(
                     units=output_units,
-                    activation=activation
-                )(input_layer)
+                    activation=output_activation
+                )(input_layer_func)
             else:
                 logger.warning(f"Unknown layer type: {layer_type}, skipping layer {node_id}")
-                x = input_layer  # Pass through unchanged
+                x = input_layer_func  # Pass through unchanged
             
             # Store the output layer
             layers_by_id[node_id] = x
@@ -423,22 +470,60 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
         model = Sequential()
         model.add(Input(shape=input_shape))
         
-        # Process nodes in topological order
-        for node_id in topo_order:
+        # First, we need to process the architecture to merge activation layers with their preceding layers
+        processed_nodes = []
+        i = 0
+        while i < len(topo_order):
+            node_id = topo_order[i]
             if node_id == input_layer["id"]:
+                i += 1
                 continue
                 
             node = node_map[node_id]
             layer_type = node["type"]
             layer_data = node["data"]
             
+            # Check if the next node is an activation layer that should be merged
+            next_activation = None
+            if i + 1 < len(topo_order):
+                next_node_id = topo_order[i + 1]
+                next_node = node_map[next_node_id]
+                if next_node["type"] == "activation":
+                    # Check if this activation directly follows the current layer
+                    next_incoming_edges = [edge for edge in edges if edge["target"] == next_node_id]
+                    if len(next_incoming_edges) == 1 and next_incoming_edges[0]["source"] == node_id:
+                        next_activation = next_node["data"].get("function", "relu").lower()
+                        i += 1  # Skip the activation node as we'll merge it
+            
+            processed_nodes.append({
+                "id": node_id,
+                "type": layer_type,
+                "data": layer_data,
+                "merged_activation": next_activation
+            })
+            i += 1
+        
+        # Process the merged nodes
+        for processed_node in processed_nodes:
+            layer_type = processed_node["type"]
+            layer_data = processed_node["data"]
+            merged_activation = processed_node["merged_activation"]
+            node_id = processed_node["id"]
+            
             logger.debug(f"Adding {layer_type} layer to sequential model (id: {node_id})")
+            
+            # Determine final activation - use merged activation if available, otherwise use layer's activation
+            final_activation = None
+            if merged_activation:
+                final_activation = merged_activation
+            elif layer_data.get("activation", "none").lower() != "none":
+                final_activation = layer_data["activation"].lower()
             
             # Add the appropriate layer
             if layer_type == "dense":
                 model.add(Dense(
                     units=layer_data["neurons"],
-                    activation=None if layer_data["activation"].lower() == "none" else layer_data["activation"].lower()
+                    activation=final_activation
                 ))
             elif layer_type == "convolution":
                 model.add(Conv2D(
@@ -446,7 +531,7 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
                     kernel_size=tuple(layer_data["kernelSize"]),
                     strides=tuple(layer_data["stride"]),
                     padding=layer_data.get("padding", "same").lower(),
-                    activation=None if layer_data["activation"].lower() == "none" else layer_data["activation"].lower()
+                    activation=final_activation
                 ))
             elif layer_type == "maxpooling":
                 model.add(MaxPooling2D(
@@ -466,6 +551,7 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
                     epsilon=layer_data["epsilon"]
                 ))
             elif layer_type == "activation":
+                # This should only happen if it's a standalone activation layer
                 activation_func = layer_data.get("function", "relu").lower()
                 activation_map = {
                     "relu": "relu",
@@ -505,12 +591,21 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
                     ))
             elif layer_type == "output":
                 output_units = determine_output_units(dataset_name)
-                activation = layer_data["activation"].lower()
-                if activation == "none":
-                    activation = None
+                # For output layer, use the merged activation if available, otherwise determine based on dataset
+                if final_activation:
+                    output_activation = final_activation
+                else:
+                    # Auto-determine output activation based on dataset if not specified
+                    if dataset_name in ["Iris", "MNIST", "CIFAR-10"]:
+                        output_activation = "softmax"  # Multi-class classification
+                    elif dataset_name == "Breast Cancer":
+                        output_activation = "sigmoid"  # Binary classification
+                    else:
+                        output_activation = None  # Regression
+                
                 model.add(Dense(
                     units=output_units,
-                    activation=activation
+                    activation=output_activation
                 ))
             else:
                 logger.warning(f"Unknown layer type: {layer_type}, skipping layer {node_id}")

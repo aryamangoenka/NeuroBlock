@@ -468,8 +468,25 @@ const NewBuildPage = (): JSX.Element => {
     // Listen for training error
     socket.on("training_error", (data) => {
       console.error("Training error:", data.error);
+      console.error("Full error data:", data);
       setIsTraining(false);
-      alert(`Training error: ${data.error}`);
+
+      // Show more detailed error information
+      const errorMessage = data.error || "Unknown training error";
+      console.error("Detailed error for manual architecture:", {
+        error: errorMessage,
+        currentNodes: nodes.length,
+        currentEdges: edges.length,
+        activationLayers: nodes
+          .filter((n) => n.type === "activation")
+          .map((n) => ({
+            id: n.id,
+            function: n.data.function,
+            data: n.data,
+          })),
+      });
+
+      alert(`Training error: ${errorMessage}`);
     });
 
     // Cleanup Socket.IO connection on component unmount
@@ -852,7 +869,211 @@ const NewBuildPage = (): JSX.Element => {
     }
   };
 
-  // Function to handle saving the model
+  // Unified function to prepare architecture payload for backend
+  const prepareArchitecturePayload = (
+    currentNodes: Node[],
+    currentEdges: Edge[]
+  ) => {
+    console.log("🔄 Preparing unified architecture payload...");
+
+    // Step 1: Always analyze and sequence the architecture (for both template and manual)
+    const { sequencedNodes, sequencedEdges } = analyzeAndSequenceArchitecture(
+      currentNodes,
+      currentEdges
+    );
+
+    console.log("📋 Architecture Analysis:");
+    console.log(
+      "  Nodes:",
+      sequencedNodes.map((n) => `${n.id}(${n.type})`).join(" → ")
+    );
+    console.log(
+      "  Edges:",
+      sequencedEdges.map((e) => `${e.source}→${e.target}`).join(", ")
+    );
+
+    // Step 2: Validate and normalize all nodes
+    const validatedNodes = sequencedNodes.map((node) => {
+      const nodeType = node.type?.toLowerCase() || "unknown";
+
+      // Create clean node structure
+      let cleanNode = {
+        id: node.id,
+        type: node.type || "unknown",
+        position: node.position,
+        data: { ...node.data },
+      };
+
+      // Layer-specific validation and normalization
+      switch (nodeType) {
+        case "activation":
+          // Ensure activation layers have proper function
+          let activationFunction = node.data.function;
+          const validActivations = [
+            "relu",
+            "sigmoid",
+            "tanh",
+            "softmax",
+            "leaky_relu",
+            "elu",
+            "swish",
+            "linear",
+          ];
+
+          if (
+            !activationFunction ||
+            typeof activationFunction !== "string" ||
+            activationFunction === "activation" ||
+            !validActivations.includes(activationFunction.toLowerCase())
+          ) {
+            console.warn(
+              `⚠️ Invalid activation function "${activationFunction}" for ${node.id}, defaulting to "relu"`
+            );
+            activationFunction = "relu";
+          }
+
+          cleanNode.data = {
+            label: node.data.label || "Activation Layer",
+            function: activationFunction.toLowerCase(),
+          };
+          break;
+
+        case "dense":
+          cleanNode.data = {
+            label: node.data.label || "Dense Layer",
+            neurons: parseInt(node.data.neurons) || 64,
+            activation: node.data.activation || "None",
+          };
+          break;
+
+        case "convolution":
+          cleanNode.data = {
+            label: node.data.label || "Convolution Layer",
+            filters: parseInt(node.data.filters) || 32,
+            kernelSize: Array.isArray(node.data.kernelSize)
+              ? node.data.kernelSize
+              : [3, 3],
+            stride: Array.isArray(node.data.stride) ? node.data.stride : [1, 1],
+            padding: node.data.padding || "same",
+            activation: node.data.activation || "None",
+          };
+          break;
+
+        case "maxpooling":
+          cleanNode.data = {
+            label: node.data.label || "MaxPooling Layer",
+            poolSize: Array.isArray(node.data.poolSize)
+              ? node.data.poolSize
+              : [2, 2],
+            stride: Array.isArray(node.data.stride) ? node.data.stride : [2, 2],
+            padding: node.data.padding || "valid",
+          };
+          break;
+
+        case "dropout":
+          cleanNode.data = {
+            label: node.data.label || "Dropout Layer",
+            rate: parseFloat(node.data.rate) || 0.2,
+          };
+          break;
+
+        case "batchnormalization":
+          cleanNode.data = {
+            label: node.data.label || "BatchNorm Layer",
+            momentum: parseFloat(node.data.momentum) || 0.99,
+            epsilon: parseFloat(node.data.epsilon) || 0.001,
+          };
+          break;
+
+        case "attention":
+          cleanNode.data = {
+            label: node.data.label || "Attention Layer",
+            heads: parseInt(node.data.heads) || 8,
+            keyDim: parseInt(node.data.keyDim) || 64,
+            dropout: parseFloat(node.data.dropout) || 0.0,
+          };
+          break;
+
+        case "output":
+          cleanNode.data = {
+            label: node.data.label || "Output Layer",
+            activation: node.data.activation || "None",
+          };
+          break;
+
+        case "input":
+          cleanNode.data = {
+            label: node.data.label || "Input Layer",
+          };
+          break;
+
+        case "flatten":
+          cleanNode.data = {
+            label: node.data.label || "Flatten Layer",
+          };
+          break;
+
+        case "globalaveragepool":
+          cleanNode.data = {
+            label: node.data.label || "GlobalAvgPool Layer",
+          };
+          break;
+
+        case "addlayer":
+          cleanNode.data = {
+            label: node.data.label || "Add Layer",
+          };
+          break;
+
+        case "resnetblock":
+          cleanNode.data = {
+            label: node.data.label || "ResNet Block",
+            blockType: node.data.blockType || "Basic",
+            filters: parseInt(node.data.filters) || 64,
+            stride: Array.isArray(node.data.stride) ? node.data.stride : [1, 1],
+            activation: node.data.activation || "ReLU",
+          };
+          break;
+
+        case "customblock":
+          cleanNode.data = {
+            label: node.data.label || "Custom Block",
+            blockName: node.data.blockName || "Custom Block",
+            layers: node.data.layers || [],
+          };
+          break;
+
+        default:
+          // Keep original data for unknown types
+          console.warn(`⚠️ Unknown layer type: ${nodeType}`);
+          break;
+      }
+
+      return cleanNode;
+    });
+
+    // Step 3: Create clean edges structure
+    const cleanEdges = sequencedEdges.map((edge, index) => ({
+      id: edge.id || `e${index + 1}`,
+      source: edge.source,
+      target: edge.target,
+    }));
+
+    // Step 4: Log validation results
+    const activationLayers = validatedNodes.filter(
+      (n) => n.type === "activation"
+    );
+    console.log(
+      "✅ Validated activation layers:",
+      activationLayers.map((n) => ({ id: n.id, function: n.data.function }))
+    );
+
+    return {
+      nodes: validatedNodes,
+      edges: cleanEdges,
+    };
+  };
+
   const handleSaveModel = async (): Promise<void> => {
     if (!selectedDataset) {
       setValidationErrors(["Please select a dataset first"]);
@@ -865,27 +1086,7 @@ const NewBuildPage = (): JSX.Element => {
       ? JSON.parse(storedConfig)
       : trainingConfig;
 
-    console.log("Saving model with training config:", latestTrainingConfig);
-
-    const modelData = {
-      architecture: {
-        nodes: nodes.map((node) => ({
-          id: node.id,
-          type: node.type,
-          data: node.data,
-          position: node.position,
-        })),
-        edges: edges.map((edge) => ({
-          id: edge.id,
-          source: edge.source,
-          target: edge.target,
-          type: edge.type,
-        })),
-      },
-      training_config: latestTrainingConfig,
-    };
-
-    console.log("Sending model data:", modelData);
+    console.log("💾 Saving model with unified payload system...");
 
     // Double check if dataset is selected
     if (!selectedDataset || selectedDataset.trim() === "") {
@@ -902,8 +1103,6 @@ const NewBuildPage = (): JSX.Element => {
     const criticalErrors = errors.filter((error) =>
       error.includes("[Critical]")
     );
-
-    // Filter warnings and suggestions
 
     if (criticalErrors.length > 0) {
       console.warn("Critical validation errors found:", criticalErrors);
@@ -933,20 +1132,15 @@ const NewBuildPage = (): JSX.Element => {
         saveButton.disabled = true;
       }
 
+      // 🚀 Use unified payload preparation (works for both template and manual)
+      const { nodes: validatedNodes, edges: cleanEdges } =
+        prepareArchitecturePayload(nodes, edges);
+
       // Prepare model architecture and training configuration
       const modelData = {
         architecture: {
-          nodes: nodes.map((node) => ({
-            id: node.id,
-            type: node.type,
-            position: node.position,
-            data: node.data,
-          })),
-          edges: edges.map((edge) => ({
-            id: edge.id,
-            source: edge.source,
-            target: edge.target,
-          })),
+          nodes: validatedNodes,
+          edges: cleanEdges,
           dataset: normalizeDatasetName(selectedDataset),
         },
         training_config: {
@@ -959,8 +1153,9 @@ const NewBuildPage = (): JSX.Element => {
         },
       };
 
-      console.log("Current trainingConfig state:", latestTrainingConfig);
-      console.log("Model data being sent to backend:", modelData);
+      console.log("📦 Unified model payload:", modelData);
+
+      console.log("Sending model data:", modelData);
 
       // Make a POST request to the backend
       const response = await fetch(`${API_BASE_URL}/api/save_model`, {
@@ -2645,126 +2840,104 @@ const NewBuildPage = (): JSX.Element => {
       ],
     };
 
-    // Get the template and set it as our nodes
+    // Get the template and load it properly through the unified system
     const templateNodes = templates[templateKey];
     if (templateNodes) {
+      console.log(`🎯 Loading template: ${templateKey}`);
+
+      // Step 1: Set the template nodes
       setNodes(templateNodes);
 
-      // Clear existing edges
-      setEdges([]);
+      // Step 2: Define template edges (to be processed through unified system)
+      let templateEdges: Edge[] = [];
 
-      // Add specific edges for Transformer Encoder template
       if (templateKey === "Transformer Encoder") {
-        // Create the edges for the transformer architecture
-        const transformerEdges = [
+        templateEdges = [
           // Main path connections
           { id: "e1", source: "Input-1", target: "LayerNorm-1" },
           { id: "e2", source: "LayerNorm-1", target: "Attention-1" },
           { id: "e3", source: "Attention-1", target: "Add-1" },
           { id: "e4", source: "Add-1", target: "LayerNorm-2" },
           { id: "e5", source: "LayerNorm-2", target: "Dense-1" },
-          { id: "e6", source: "Dense-1", target: "Dropout-1" },
-          { id: "e7", source: "Dropout-1", target: "Dense-2" },
-          { id: "e8", source: "Dense-2", target: "Add-2" },
-          { id: "e9", source: "Add-2", target: "Output-1" },
-
+          { id: "e6", source: "Dense-1", target: "Activation-1" },
+          { id: "e7", source: "Activation-1", target: "Dropout-1" },
+          { id: "e8", source: "Dropout-1", target: "Dense-2" },
+          { id: "e9", source: "Dense-2", target: "Add-2" },
+          { id: "e10", source: "Add-2", target: "Output-1" },
+          { id: "e11", source: "Output-1", target: "Activation-2" },
           // Skip connections
-          { id: "skip1", source: "Input-1", target: "Add-1" }, // Skip connection around attention block
-          { id: "skip2", source: "Add-1", target: "Add-2" }, // Skip connection around FFN block
+          { id: "skip1", source: "Input-1", target: "Add-1" },
+          { id: "skip2", source: "Add-1", target: "Add-2" },
         ];
-
-        setEdges(transformerEdges);
-      }
-      // Add edges for ResNet-18
-      else if (templateKey === "ResNet-18") {
-        const resnetEdges = [
+      } else if (templateKey === "ResNet-18") {
+        templateEdges = [
           // Initial layers
           { id: "e1", source: "input-1", target: "conv-1" },
           { id: "e2", source: "conv-1", target: "batchnorm-1" },
           { id: "e3", source: "batchnorm-1", target: "maxpool-1" },
-
           // Layer 1-1: First ResNet Block main path
           { id: "e4", source: "maxpool-1", target: "conv-1-1-1" },
           { id: "e5", source: "conv-1-1-1", target: "batchnorm-1-1-1" },
           { id: "e6", source: "batchnorm-1-1-1", target: "conv-1-1-2" },
           { id: "e7", source: "conv-1-1-2", target: "batchnorm-1-1-2" },
           { id: "e8", source: "batchnorm-1-1-2", target: "add-1-1" },
-
           // Layer 1-1: Skip connection
           { id: "e9", source: "maxpool-1", target: "add-1-1" },
-
           // Layer 1-1: Post-addition activation
           { id: "e10", source: "add-1-1", target: "activation-1-1" },
-
           // Layer 1-2: Second ResNet Block main path
           { id: "e11", source: "activation-1-1", target: "conv-1-2-1" },
           { id: "e12", source: "conv-1-2-1", target: "batchnorm-1-2-1" },
           { id: "e13", source: "batchnorm-1-2-1", target: "conv-1-2-2" },
           { id: "e14", source: "conv-1-2-2", target: "batchnorm-1-2-2" },
           { id: "e15", source: "batchnorm-1-2-2", target: "add-1-2" },
-
           // Layer 1-2: Skip connection
           { id: "e16", source: "activation-1-1", target: "add-1-2" },
-
           // Layer 1-2: Post-addition activation
           { id: "e17", source: "add-1-2", target: "activation-1-2" },
-
           // Layer 2-1: First block of layer 2 with downsampling (main path)
           { id: "e18", source: "activation-1-2", target: "conv-2-1-1" },
           { id: "e19", source: "conv-2-1-1", target: "batchnorm-2-1-1" },
           { id: "e20", source: "batchnorm-2-1-1", target: "conv-2-1-2" },
           { id: "e21", source: "conv-2-1-2", target: "batchnorm-2-1-2" },
           { id: "e22", source: "batchnorm-2-1-2", target: "add-2-1" },
-
           // Layer 2-1: Skip connection with projection
           { id: "e23", source: "activation-1-2", target: "conv-2-1-skip" },
           { id: "e24", source: "conv-2-1-skip", target: "batchnorm-2-1-skip" },
           { id: "e25", source: "batchnorm-2-1-skip", target: "add-2-1" },
-
           // Layer 2-1: Post-addition activation
           { id: "e26", source: "add-2-1", target: "activation-2-1" },
-
           // Layer 2-2: Second block of layer 2 (main path)
           { id: "e27", source: "activation-2-1", target: "conv-2-2-1" },
           { id: "e28", source: "conv-2-2-1", target: "batchnorm-2-2-1" },
           { id: "e29", source: "batchnorm-2-2-1", target: "conv-2-2-2" },
           { id: "e30", source: "conv-2-2-2", target: "batchnorm-2-2-2" },
           { id: "e31", source: "batchnorm-2-2-2", target: "add-2-2" },
-
           // Layer 2-2: Skip connection
           { id: "e32", source: "activation-2-1", target: "add-2-2" },
-
           // Layer 2-2: Post-addition activation
           { id: "e33", source: "add-2-2", target: "activation-2-2" },
-
           // Final classification layers
           { id: "e34", source: "activation-2-2", target: "globalavgpool-1" },
           { id: "e35", source: "globalavgpool-1", target: "flatten-1" },
           { id: "e36", source: "flatten-1", target: "dense-1" },
           { id: "e37", source: "dense-1", target: "output-1" },
         ];
-
-        setEdges(resnetEdges);
-      }
-      // Add edges for ResNet-34
-      else if (templateKey === "ResNet-34") {
-        const resnet34Edges = [
+      } else if (templateKey === "ResNet-34") {
+        templateEdges = [
           // Initial layers
           { id: "e1", source: "input-1", target: "conv-1" },
           { id: "e2", source: "conv-1", target: "batchnorm-1" },
           { id: "e3", source: "batchnorm-1", target: "maxpool-1" },
-
           // Stage 1 - 3 blocks
           { id: "e4", source: "maxpool-1", target: "resblock-1-1" },
           { id: "e5", source: "resblock-1-1", target: "resblock-1-2" },
           { id: "e6", source: "resblock-1-2", target: "resblock-1-3" },
-
           // Stage 2 - 4 blocks
           { id: "e7", source: "resblock-1-3", target: "resblock-2-1" },
           { id: "e8", source: "resblock-2-1", target: "resblock-2-2" },
           { id: "e9", source: "resblock-2-2", target: "resblock-2-3" },
           { id: "e10", source: "resblock-2-3", target: "resblock-2-4" },
-
           // Stage 3 - 6 blocks
           { id: "e11", source: "resblock-2-4", target: "resblock-3-1" },
           { id: "e12", source: "resblock-3-1", target: "resblock-3-2" },
@@ -2772,40 +2945,31 @@ const NewBuildPage = (): JSX.Element => {
           { id: "e14", source: "resblock-3-3", target: "resblock-3-4" },
           { id: "e15", source: "resblock-3-4", target: "resblock-3-5" },
           { id: "e16", source: "resblock-3-5", target: "resblock-3-6" },
-
           // Stage 4 - 3 blocks
           { id: "e17", source: "resblock-3-6", target: "resblock-4-1" },
           { id: "e18", source: "resblock-4-1", target: "resblock-4-2" },
           { id: "e19", source: "resblock-4-2", target: "resblock-4-3" },
-
           // Final layers
           { id: "e20", source: "resblock-4-3", target: "globalavgpool-1" },
           { id: "e21", source: "globalavgpool-1", target: "flatten-1" },
           { id: "e22", source: "flatten-1", target: "dense-1" },
           { id: "e23", source: "dense-1", target: "output-1" },
         ];
-
-        setEdges(resnet34Edges);
-      }
-      // Add edges for ResNet-50
-      else if (templateKey === "ResNet-50") {
-        const resnet50Edges = [
+      } else if (templateKey === "ResNet-50") {
+        templateEdges = [
           // Initial layers
           { id: "e1", source: "input-1", target: "conv-1" },
           { id: "e2", source: "conv-1", target: "batchnorm-1" },
           { id: "e3", source: "batchnorm-1", target: "maxpool-1" },
-
           // Stage 1 - 3 Bottleneck blocks
           { id: "e4", source: "maxpool-1", target: "resblock-1-1" },
           { id: "e5", source: "resblock-1-1", target: "resblock-1-2" },
           { id: "e6", source: "resblock-1-2", target: "resblock-1-3" },
-
           // Stage 2 - 4 Bottleneck blocks
           { id: "e7", source: "resblock-1-3", target: "resblock-2-1" },
           { id: "e8", source: "resblock-2-1", target: "resblock-2-2" },
           { id: "e9", source: "resblock-2-2", target: "resblock-2-3" },
           { id: "e10", source: "resblock-2-3", target: "resblock-2-4" },
-
           // Stage 3 - 6 Bottleneck blocks
           { id: "e11", source: "resblock-2-4", target: "resblock-3-1" },
           { id: "e12", source: "resblock-3-1", target: "resblock-3-2" },
@@ -2813,34 +2977,44 @@ const NewBuildPage = (): JSX.Element => {
           { id: "e14", source: "resblock-3-3", target: "resblock-3-4" },
           { id: "e15", source: "resblock-3-4", target: "resblock-3-5" },
           { id: "e16", source: "resblock-3-5", target: "resblock-3-6" },
-
           // Stage 4 - 3 Bottleneck blocks
           { id: "e17", source: "resblock-3-6", target: "resblock-4-1" },
           { id: "e18", source: "resblock-4-1", target: "resblock-4-2" },
           { id: "e19", source: "resblock-4-2", target: "resblock-4-3" },
-
           // Final layers
           { id: "e20", source: "resblock-4-3", target: "globalavgpool-1" },
           { id: "e21", source: "globalavgpool-1", target: "flatten-1" },
           { id: "e22", source: "flatten-1", target: "dense-1" },
           { id: "e23", source: "dense-1", target: "output-1" },
         ];
-
-        setEdges(resnet50Edges);
-      }
-      // For other templates, create sequential connections automatically
-      else if (templateKey !== "Blank") {
-        // Auto-connect nodes in sequence for simpler templates
-        const edges = [];
+      } else if (templateKey !== "Blank") {
+        // For simpler templates, create sequential connections
         for (let i = 0; i < templateNodes.length - 1; i++) {
-          edges.push({
+          templateEdges.push({
             id: `e${i + 1}`,
             source: templateNodes[i].id,
             target: templateNodes[i + 1].id,
           });
         }
-        setEdges(edges);
       }
+
+      // Step 3: Use the unified system to process the template architecture
+      console.log(
+        `📋 Processing template with ${templateNodes.length} nodes and ${templateEdges.length} edges`
+      );
+
+      // Apply the unified payload processing to the template
+      const { nodes: processedNodes, edges: processedEdges } =
+        prepareArchitecturePayload(templateNodes, templateEdges);
+
+      // Step 4: Set the processed nodes and edges (making templates fully editable)
+      setNodes(processedNodes);
+      setEdges(processedEdges);
+
+      console.log(`✅ Template loaded and processed through unified system!`);
+      console.log(
+        `   Nodes: ${processedNodes.length} | Edges: ${processedEdges.length}`
+      );
     }
   };
 
@@ -2872,9 +3046,194 @@ const NewBuildPage = (): JSX.Element => {
     setEdges((eds) => applyEdgeChanges(changes, eds));
   };
 
+  // Function to analyze and sequence the manual architecture properly
+  const analyzeAndSequenceArchitecture = (
+    currentNodes: Node[],
+    currentEdges: Edge[]
+  ) => {
+    // Find the input node (starting point)
+    const inputNode = currentNodes.find((node) => node.type === "input");
+    if (!inputNode)
+      return { sequencedNodes: currentNodes, sequencedEdges: currentEdges };
+
+    // Keep all edges as they are - allow output->activation connections like templates
+    const correctedEdges = currentEdges;
+
+    // Build adjacency list for traversal
+    const adjacencyList = new Map<string, string[]>();
+    currentNodes.forEach((node) => adjacencyList.set(node.id, []));
+
+    correctedEdges.forEach((edge) => {
+      if (edge.source && edge.target) {
+        const neighbors = adjacencyList.get(edge.source) || [];
+        neighbors.push(edge.target);
+        adjacencyList.set(edge.source, neighbors);
+      }
+    });
+
+    // Perform topological sort starting from input
+    const visited = new Set<string>();
+    const sequencedNodeIds: string[] = [];
+
+    const dfs = (nodeId: string) => {
+      if (visited.has(nodeId)) return;
+      visited.add(nodeId);
+      sequencedNodeIds.push(nodeId);
+
+      const neighbors = adjacencyList.get(nodeId) || [];
+      neighbors.forEach((neighbor) => dfs(neighbor));
+    };
+
+    dfs(inputNode.id);
+
+    // Create clean, sequenced edges with proper IDs
+    const cleanEdges: Edge[] = [];
+    let edgeIndex = 1;
+
+    // Rebuild edges in the correct sequence
+    sequencedNodeIds.forEach((nodeId) => {
+      const neighbors = adjacencyList.get(nodeId) || [];
+      neighbors.forEach((targetId) => {
+        cleanEdges.push({
+          id: `e${edgeIndex}`,
+          source: nodeId,
+          target: targetId,
+        });
+        edgeIndex++;
+      });
+    });
+
+    // Check for completely disconnected nodes (optional warning)
+    const connectedNodeIds = new Set<string>();
+    cleanEdges.forEach((edge) => {
+      connectedNodeIds.add(edge.source);
+      connectedNodeIds.add(edge.target);
+    });
+
+    const disconnectedNodes = currentNodes.filter(
+      (node) => !connectedNodeIds.has(node.id)
+    );
+
+    if (disconnectedNodes.length > 0) {
+      console.info(
+        `Found disconnected nodes: ${disconnectedNodes
+          .map((n) => n.id)
+          .join(", ")}. These will be included at the end of the sequence.`
+      );
+    }
+
+    // Sequence the nodes in the same order as the flow
+    const sequencedNodes: Node[] = [];
+
+    // Add nodes in the order they appear in the flow
+    sequencedNodeIds.forEach((nodeId) => {
+      const node = currentNodes.find((n) => n.id === nodeId);
+      if (node) {
+        sequencedNodes.push(node);
+      }
+    });
+
+    // Add any remaining nodes that weren't in the flow (disconnected nodes)
+    currentNodes.forEach((node) => {
+      if (!sequencedNodeIds.includes(node.id)) {
+        sequencedNodes.push(node);
+      }
+    });
+
+    return { sequencedNodes, sequencedEdges: cleanEdges };
+  };
+
+  // Enhanced connection validation
+  const isValidConnection = (connection: Connection): boolean => {
+    if (!connection.source || !connection.target) return false;
+
+    const sourceNode = nodes.find((n) => n.id === connection.source);
+    const targetNode = nodes.find((n) => n.id === connection.target);
+
+    if (!sourceNode || !targetNode) return false;
+
+    // Rule 1: Input layers can only be sources, never targets
+    if (targetNode.type === "input") {
+      console.log("❌ Cannot connect TO input layer");
+      return false;
+    }
+
+    // Rule 2: Prevent self-connections
+    if (connection.source === connection.target) {
+      console.log("❌ Cannot connect layer to itself");
+      return false;
+    }
+
+    // Rule 3: Prevent duplicate connections
+    const existingConnection = edges.find(
+      (edge) =>
+        edge.source === connection.source && edge.target === connection.target
+    );
+    if (existingConnection) {
+      console.log("❌ Connection already exists");
+      return false;
+    }
+
+    // 🎯 FLEXIBLE CONNECTION POLICY: Allow all other connections!
+    // Templates and manual architectures should be fully editable
+    // - Allow skip connections (ResNet, Transformer, etc.)
+    // - Allow backward connections (activation layers, custom architectures)
+    // - Allow multiple inputs to any layer (Add layers, complex architectures)
+    // - Allow output→activation connections (final activation layers)
+    // - Allow any creative architecture the user wants to build!
+
+    console.log(
+      `✅ Allowing flexible connection: ${sourceNode.type} → ${targetNode.type}`
+    );
+    return true;
+  };
+
   const onConnect = (connection: Connection): void => {
-    console.log("Connecting nodes:", connection);
-    setEdges((eds) => addEdge(connection, eds));
+    console.log("🔗 Connecting nodes:", connection);
+
+    // Validate the connection first
+    if (!isValidConnection(connection)) {
+      console.warn("❌ Invalid connection attempted:", connection);
+      return;
+    }
+
+    // Log special connection types
+    const sourceNode = nodes.find((n) => n.id === connection.source);
+    const targetNode = nodes.find((n) => n.id === connection.target);
+    if (sourceNode?.type === "output" && targetNode?.type === "activation") {
+      console.log(
+        "✅ Creating output→activation connection (final activation layer)"
+      );
+    }
+
+    // Add the connection with a temporary ID
+    const tempConnection = {
+      ...connection,
+      id: `temp-${Date.now()}`,
+    };
+
+    // Create new edges and use the unified payload system for consistency
+    const newEdges = addEdge(tempConnection, edges);
+
+    console.log("🔄 Processing new connection through unified system...");
+    const { nodes: processedNodes, edges: processedEdges } =
+      prepareArchitecturePayload(nodes, newEdges);
+
+    console.log("✅ Manual connection created and processed:");
+    console.log(
+      "  Edge flow:",
+      processedEdges.map((edge) => `${edge.source} → ${edge.target}`).join(", ")
+    );
+    console.log(
+      "  Node sequence:",
+      processedNodes
+        .map((node: Node) => `${node.id} (${node.type})`)
+        .join(" → ")
+    );
+
+    // Update both nodes and edges with the processed versions (fully editable)
+    setNodes(processedNodes);
+    setEdges(processedEdges);
   };
 
   const onNodeClick = (_: React.MouseEvent, node: Node): void => {
@@ -5699,11 +6058,7 @@ const NewBuildPage = (): JSX.Element => {
               onConnect={onConnect}
               onNodeClick={onNodeClick}
               nodeTypes={nodeTypes}
-              isValidConnection={(connection) => {
-                // Allow connections from any node, including output nodes
-                void connection; // Prevent unused parameter warning
-                return true;
-              }}
+              isValidConnection={isValidConnection}
               connectionLineStyle={{ stroke: "#555", strokeWidth: 2 }}
               defaultEdgeOptions={{
                 animated: true,
@@ -6425,6 +6780,31 @@ const NewBuildPage = (): JSX.Element => {
                     {/* Custom Block Parameters */}
                     {selectedNode.type === "customblock" &&
                       renderCustomBlockParameters()}
+
+                    {/* Activation Layer Parameters */}
+                    {selectedNode.type === "activation" && (
+                      <div className="param-group">
+                        <label>
+                          <i className="fas fa-bolt"></i> Activation Function
+                        </label>
+                        <select
+                          value={selectedNode.data.function || "relu"}
+                          onChange={(e) =>
+                            updateParameter("function", e.target.value)
+                          }
+                          className="param-select"
+                        >
+                          <option value="relu">ReLU</option>
+                          <option value="sigmoid">Sigmoid</option>
+                          <option value="tanh">Tanh</option>
+                          <option value="softmax">Softmax</option>
+                          <option value="leaky_relu">Leaky ReLU</option>
+                          <option value="elu">ELU</option>
+                          <option value="swish">Swish</option>
+                          <option value="linear">Linear</option>
+                        </select>
+                      </div>
+                    )}
 
                     {/* Output Layer Parameters */}
                     {selectedNode.type === "output" && (
