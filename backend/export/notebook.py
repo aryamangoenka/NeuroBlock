@@ -11,6 +11,9 @@ def generate_notebook(model, training_config, x_train_shape, dataset_name):
     Returns:
         str: Generated notebook content as JSON string
     """
+    # Import helper functions from python_script module
+    from .python_script import _is_custom_dataset, _generate_custom_dataset_code, _generate_builtin_dataset_code, _load_custom_dataset_metadata
+    
     # Check if the model contains attention layers
     has_attention_layer = False
     for layer in model.layers:
@@ -98,107 +101,15 @@ def generate_notebook(model, training_config, x_train_shape, dataset_name):
 
     cells.append({"cell_type": "markdown", "metadata": {}, "source": ["## Load and Preprocess Dataset"]})
 
-    dataset_code = []
-    if dataset_name == "MNIST":
-        dataset_code.extend([
-            "# Load MNIST dataset",
-            "(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()",
-            "# Normalize pixel values to be between 0 and 1",
-            "x_train, x_test = x_train / 255.0, x_test / 255.0",
-            f"# Reshape for model input {input_shape}",
-            f"x_train = x_train.reshape(x_train.shape[0], {', '.join(str(dim) for dim in input_shape)})",
-            f"x_test = x_test.reshape(x_test.shape[0], {', '.join(str(dim) for dim in input_shape)})",
-            "# Convert class vectors to binary class matrices (one-hot encoding)",
-            "y_train = tf.keras.utils.to_categorical(y_train, 10)",
-            "y_test = tf.keras.utils.to_categorical(y_test, 10)"
-        ])
-    elif dataset_name == "CIFAR-10":
-        dataset_code.extend([
-            "# Load CIFAR-10 dataset",
-            "(x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()",
-            "# Normalize pixel values to be between 0 and 1",
-            "x_train, x_test = x_train / 255.0, x_test / 255.0",
-            f"# Reshape for model input {input_shape}",
-            f"x_train = x_train.reshape(x_train.shape[0], {', '.join(str(dim) for dim in input_shape)})",
-            f"x_test = x_test.reshape(x_test.shape[0], {', '.join(str(dim) for dim in input_shape)})",
-            "# Convert class vectors to binary class matrices (one-hot encoding)",
-            "y_train = tf.keras.utils.to_categorical(y_train, 10)",
-            "y_test = tf.keras.utils.to_categorical(y_test, 10)"
-        ])
-    elif dataset_name == "Iris":
-        dataset_code.extend([
-            "# Load Iris dataset",
-            "from sklearn.datasets import load_iris",
-            "from sklearn.model_selection import train_test_split",
-            "from sklearn.preprocessing import StandardScaler, OneHotEncoder",
-            "",
-            "iris = load_iris()",
-            "X = iris.data",
-            "y = iris.target.reshape(-1, 1)",
-            "",
-            "# Scale features",
-            "scaler = StandardScaler()",
-            "X_scaled = scaler.fit_transform(X)",
-            "",
-            "# One-hot encode the labels",
-            "encoder = OneHotEncoder(sparse_output=False)",
-            "y_encoded = encoder.fit_transform(y)",
-            "",
-            "# Split the data",
-            "x_train, x_test, y_train, y_test = train_test_split(X_scaled, y_encoded, test_size=0.2, random_state=42)",
-            f"# Reshape for model input {input_shape}",
-            f"x_train = x_train.reshape(x_train.shape[0], {', '.join(str(dim) for dim in input_shape)})",
-            f"x_test = x_test.reshape(x_test.shape[0], {', '.join(str(dim) for dim in input_shape)})"
-        ])
-    elif dataset_name == "Breast Cancer":
-        dataset_code.extend([
-            "# Load Breast Cancer dataset",
-            "from sklearn.datasets import load_breast_cancer",
-            "from sklearn.model_selection import train_test_split",
-            "from sklearn.preprocessing import StandardScaler",
-            "",
-            "cancer = load_breast_cancer()",
-            "X = cancer.data",
-            "y = cancer.target",
-            "",
-            "# Scale features",
-            "scaler = StandardScaler()",
-            "X_scaled = scaler.fit_transform(X)",
-            "",
-            "# Split the data",
-            "x_train, x_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)",
-            f"# Reshape for model input {input_shape}",
-            f"x_train = x_train.reshape(x_train.shape[0], {', '.join(str(dim) for dim in input_shape)})",
-            f"x_test = x_test.reshape(x_test.shape[0], {', '.join(str(dim) for dim in input_shape)})"
-        ])
-    elif dataset_name == "California Housing":
-        dataset_code.extend([
-            "# Load California Housing dataset",
-            "from sklearn.datasets import fetch_california_housing",
-            "from sklearn.model_selection import train_test_split",
-            "from sklearn.preprocessing import StandardScaler",
-            "",
-            "housing = fetch_california_housing()",
-            "X = housing.data",
-            "y = housing.target",
-            "",
-            "# Scale features",
-            "scaler = StandardScaler()",
-            "X_scaled = scaler.fit_transform(X)",
-            "",
-            "# Split the data",
-            "x_train, x_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)",
-            f"# Reshape for model input {input_shape}",
-            f"x_train = x_train.reshape(x_train.shape[0], {', '.join(str(dim) for dim in input_shape)})",
-            f"x_test = x_test.reshape(x_test.shape[0], {', '.join(str(dim) for dim in input_shape)})"
-        ])
+    # Check if this is a custom dataset and generate appropriate code
+    is_custom_dataset = _is_custom_dataset(dataset_name)
+    
+    if is_custom_dataset:
+        # Handle custom dataset
+        dataset_code = _generate_custom_dataset_code(dataset_name, input_shape)
     else:
-        dataset_code.extend([
-            "# Replace with your own dataset loading code",
-            "# x_train, y_train = ...",
-            "# x_test, y_test = ...",
-            f"# Make sure to reshape your data to match the model input shape: {input_shape}"
-        ])
+        # Handle built-in datasets
+        dataset_code = _generate_builtin_dataset_code(dataset_name, input_shape)
 
     cells.append({
         "cell_type": "code",

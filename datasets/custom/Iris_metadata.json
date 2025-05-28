@@ -1,0 +1,21 @@
+{
+  "name": "Iris",
+  "task_type": "classification",
+  "target_column": "Id",
+  "feature_columns": [
+    "SepalLengthCm",
+    "SepalWidthCm"
+  ],
+  "original_filename": "Iris.csv",
+  "shape": [
+    150,
+    6
+  ],
+  "created_at": "2025-05-28T21:55:31.135882",
+  "class_labels": null,
+  "file_path": "/Users/aryamangoenka/Desktop/DND-neural/DND-Neural-Network/datasets/custom/Iris.npz",
+  "processed_shape": [
+    150,
+    2
+  ]
+}

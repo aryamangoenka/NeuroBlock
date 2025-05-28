@@ -40,7 +40,9 @@ def create_app(config_name="default"):
     
     # Register blueprints
     from backend.api.routes import api_blueprint
+    from backend.api.dataset_routes import dataset_blueprint
     app.register_blueprint(api_blueprint)
+    app.register_blueprint(dataset_blueprint)
     
     # Add health check endpoint for Google Cloud
     @app.route('/health')

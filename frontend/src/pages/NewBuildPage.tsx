@@ -49,6 +49,8 @@ import {
 import axios from "axios";
 import API_BASE_URL from "../utils/apiConfig";
 import CustomLayerModal from "../components/CustomLayerModal";
+import CustomDatasetModal from "../components/CustomDatasetModal";
+import { getCustomDatasets } from "../utils/customDatasetApi";
 
 // Register Chart.js components
 ChartJS.register(
@@ -127,6 +129,12 @@ const NewBuildPage = (): JSX.Element => {
 
   // State for custom layers (session-only, not persisted)
   const [customLayers, setCustomLayers] = useState<any[]>([]);
+
+  // State to control custom dataset modal visibility
+  const [showCustomDatasetModal, setShowCustomDatasetModal] = useState(false);
+
+  // State for custom datasets
+  const [customDatasets, setCustomDatasets] = useState<string[]>([]);
 
   // Clear custom layers on component unmount (when user navigates away or closes tab)
   useEffect(() => {
@@ -260,6 +268,33 @@ const NewBuildPage = (): JSX.Element => {
   useEffect(() => {
     setIsModelSaved(false);
   }, [nodes, edges]);
+
+  // Fetch custom datasets on component mount
+  useEffect(() => {
+    const fetchCustomDatasets = async () => {
+      try {
+        const datasets = await getCustomDatasets();
+        const datasetNames = datasets.map((dataset) => dataset.name);
+        setCustomDatasets(datasetNames);
+      } catch (error) {
+        console.error("Failed to fetch custom datasets:", error);
+        setCustomDatasets([]);
+      }
+    };
+
+    fetchCustomDatasets();
+  }, []);
+
+  // Function to refresh custom datasets list
+  const refreshCustomDatasets = async () => {
+    try {
+      const datasets = await getCustomDatasets();
+      const datasetNames = datasets.map((dataset) => dataset.name);
+      setCustomDatasets(datasetNames);
+    } catch (error) {
+      console.error("Failed to refresh custom datasets:", error);
+    }
+  };
 
   // Function to get visualization options based on dataset
   const getVisualizationOptions = () => {
@@ -6145,6 +6180,12 @@ const NewBuildPage = (): JSX.Element => {
                     value={selectedDataset}
                     onChange={(e) => {
                       const newDataset = e.target.value;
+
+                      if (newDataset === "__create_custom__") {
+                        setShowCustomDatasetModal(true);
+                        return;
+                      }
+
                       setSelectedDataset(newDataset);
                       // Manually trigger a dataset change event
                       const event = new CustomEvent("datasetChange", {
@@ -6161,6 +6202,20 @@ const NewBuildPage = (): JSX.Element => {
                     <option value="Breast Cancer">Breast Cancer</option>
                     <option value="California Housing">
                       California Housing
+                    </option>
+                    {customDatasets.length > 0 && (
+                      <>
+                        <option disabled>──────────</option>
+                        {customDatasets.map((datasetName) => (
+                          <option key={datasetName} value={datasetName}>
+                            {datasetName} (Custom)
+                          </option>
+                        ))}
+                      </>
+                    )}
+                    <option disabled>──────────</option>
+                    <option value="__create_custom__">
+                      ➕ Add Custom Dataset
                     </option>
                   </select>
                 </div>
@@ -7083,6 +7138,17 @@ const NewBuildPage = (): JSX.Element => {
           )}
         </div>
       </div>
+
+      {/* Custom Dataset Modal */}
+      <CustomDatasetModal
+        isOpen={showCustomDatasetModal}
+        onClose={() => setShowCustomDatasetModal(false)}
+        onDatasetCreated={(datasetName) => {
+          setSelectedDataset(datasetName);
+          setShowCustomDatasetModal(false);
+          refreshCustomDatasets();
+        }}
+      />
     </div>
   );
 };

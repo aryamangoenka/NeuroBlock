@@ -1,6 +1,6 @@
 def generate_pytorch_script(model, training_config, x_train_shape, dataset_name):
     """
-    Generates a PyTorch script equivalent to the trained Keras model.
+    Generate a PyTorch script that recreates the model architecture and training process.
     
     Args:
         model: The trained Keras model
@@ -11,6 +11,52 @@ def generate_pytorch_script(model, training_config, x_train_shape, dataset_name)
     Returns:
         str: Generated PyTorch script content
     """
+    # Import helper functions from python_script module
+    from .python_script import _is_custom_dataset, _load_custom_dataset_metadata
+    
+    # Extract training parameters
+    epochs = training_config.get("epochs", 10)
+    batch_size = training_config.get("batchSize", 32)
+    learning_rate = training_config.get("learningRate", 0.001)
+    optimizer_name = training_config.get("optimizer", "Adam").lower()
+    loss_function = training_config.get("lossFunction", "Categorical Cross-Entropy")
+
+    # Map loss function names to PyTorch equivalents
+    LOSS_FUNCTION_MAPPING = {
+        "Categorical Cross-Entropy": "nn.CrossEntropyLoss()",
+        "Binary Cross-Entropy": "nn.BCEWithLogitsLoss()",
+        "Mean Squared Error": "nn.MSELoss()",
+        "Mean Absolute Error": "nn.L1Loss()",
+        "Huber Loss": "nn.SmoothL1Loss()"
+    }
+    loss_value = LOSS_FUNCTION_MAPPING.get(loss_function, "nn.CrossEntropyLoss()")
+
+    # Start building the PyTorch script
+    pytorch_code = f"""import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+from torch.utils.data import DataLoader, TensorDataset
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder, OneHotEncoder
+
+# Set device
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(f'Using device: {{device}}')
+
+"""
+
+    # Check if this is a custom dataset
+    is_custom_dataset = _is_custom_dataset(dataset_name)
+    
+    if is_custom_dataset:
+        # Handle custom dataset
+        pytorch_code += _generate_pytorch_custom_dataset_code(dataset_name, batch_size)
+    else:
+        # Handle built-in datasets
+        pytorch_code += _generate_pytorch_builtin_dataset_code(dataset_name, batch_size)
+
     # Check if the model contains attention layers
     has_attention_layer = False
     for layer in model.layers:
@@ -21,17 +67,50 @@ def generate_pytorch_script(model, training_config, x_train_shape, dataset_name)
             has_attention_layer = True
             break
     
-    # Extract training parameters from the passed config
-    epochs = training_config.get("epochs", 10)
-    batch_size = training_config.get("batchSize", 32)
-    validation_split = training_config.get("validationSplit", 0.2)
-    learning_rate = training_config.get("learningRate", 0.001)
-    optimizer_name = training_config.get("optimizer", "Adam")
-    loss_function = training_config.get("lossFunction", "Categorical Cross-Entropy")
-    
     # Use the passed dataset_name parameter instead of getting it from training_config
     dataset_name = dataset_name.lower() if dataset_name else ""
     
+    # Add the dataset name as a variable for the evaluation logic
+    pytorch_code += f"\n# Define the dataset name for evaluation logic\ndataset_name = \"{dataset_name}\"\n"
+
+    # Add attention-specific imports if needed
+    if has_attention_layer:
+        pytorch_code += """
+from torch.nn import MultiheadAttention
+"""
+
+    # Determine expected output units based on dataset
+    if is_custom_dataset:
+        # For custom datasets, get expected output units from metadata
+        metadata = _load_custom_dataset_metadata(dataset_name)
+        if metadata:
+            task_type = metadata.get('task_type', 'classification')
+            class_labels = metadata.get('class_labels', [])
+            
+            if task_type == 'classification':
+                if len(class_labels) > 2:
+                    expected_output_units = len(class_labels)
+                else:
+                    # Binary classification - use 1 unit for PyTorch (BCEWithLogitsLoss)
+                    expected_output_units = 1
+            else:
+                # Regression
+                expected_output_units = 1
+        else:
+            expected_output_units = 1  # default
+    else:
+        # Built-in datasets
+        if dataset_name == "iris":
+            expected_output_units = 3
+        elif dataset_name == "breast cancer":
+            expected_output_units = 1
+        elif dataset_name == "california housing":
+            expected_output_units = 1
+        elif dataset_name == "mnist" or dataset_name == "cifar-10":
+            expected_output_units = 10
+        else:
+            expected_output_units = 1  # default
+
     # Map loss function names
     LOSS_FUNCTION_MAPPING = {
         "Categorical Cross-Entropy": "nn.CrossEntropyLoss()",
@@ -44,22 +123,13 @@ def generate_pytorch_script(model, training_config, x_train_shape, dataset_name)
     loss_value = LOSS_FUNCTION_MAPPING.get(loss_function, "nn.CrossEntropyLoss()")
     
     # Base imports
-    pytorch_code = """
+    pytorch_code += """
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
-"""
-
-    # Add the dataset name as a variable for the evaluation logic
-    pytorch_code += f"\n# Define the dataset name for evaluation logic\ndataset_name = \"{dataset_name}\"\n"
-
-    # Add attention-specific imports if needed
-    if has_attention_layer:
-        pytorch_code += """
-from torch.nn import MultiheadAttention
 """
 
     # Dataset-specific preprocessing code
@@ -190,17 +260,6 @@ class NeuralNetwork(nn.Module):
     def __init__(self):
         super(NeuralNetwork, self).__init__()
 """
-
-    # Determine expected output units based on dataset
-    expected_output_units = 10  # default
-    if dataset_name == "iris":
-        expected_output_units = 3
-    elif dataset_name == "breast cancer":
-        expected_output_units = 1
-    elif dataset_name == "california housing":
-        expected_output_units = 1
-    elif dataset_name == "mnist" or dataset_name == "cifar-10":
-        expected_output_units = 10
 
     # Placeholder for layers based on model type
     if 'Conv2D' in str(model.layers):
@@ -412,4 +471,270 @@ torch.save(model.state_dict(), "pytorch_model.pth")
 print("Training completed!")
 """
 
-    return pytorch_code 
+    return pytorch_code
+
+
+def _generate_pytorch_custom_dataset_code(dataset_name, batch_size):
+    """
+    Generate PyTorch code to load and preprocess a custom dataset.
+    
+    Args:
+        dataset_name (str): Name of the custom dataset
+        batch_size (int): Batch size for DataLoader
+        
+    Returns:
+        str: PyTorch code for loading the custom dataset
+    """
+    from .python_script import _load_custom_dataset_metadata
+    
+    metadata = _load_custom_dataset_metadata(dataset_name)
+    
+    if not metadata:
+        return f"""
+# Custom dataset '{dataset_name}' metadata not found
+# Please ensure the dataset files are available and update the paths below
+# X_train = torch.tensor(x_train, dtype=torch.float32)
+# X_test = torch.tensor(x_test, dtype=torch.float32)
+# y_train = torch.tensor(y_train, dtype=torch.float32)
+# y_test = torch.tensor(y_test, dtype=torch.float32)
+"""
+    
+    task_type = metadata.get('task_type', 'classification')
+    class_labels = metadata.get('class_labels', [])
+    feature_columns = metadata.get('feature_columns', [])
+    target_column = metadata.get('target_column', 'target')
+    processed_shape = metadata.get('processed_shape', [0, 0])
+    
+    code = f"""
+# Load custom dataset: {dataset_name}
+# Note: Update the path below to point to your dataset file
+dataset_file = '{dataset_name}.npz'  # Update this path as needed
+
+# Load data from .npz file
+data = np.load(dataset_file)
+X = data['X']
+y = data['y']
+
+# Dataset info:
+# - Task type: {task_type}
+# - Features: {len(feature_columns)} ({', '.join(feature_columns)})
+# - Target: {target_column}
+"""
+    
+    if class_labels:
+        code += f"# - Classes: {len(class_labels)} ({', '.join(map(str, class_labels))})\n"
+    
+    code += f"""# - Processed shape: {processed_shape}
+
+# Preprocessing (same as used during training)
+"""
+    
+    if task_type == 'classification':
+        if len(class_labels) > 2:
+            # Multi-class classification - use class indices for PyTorch CrossEntropyLoss
+            code += f"""# For multi-class classification, use class indices (not one-hot)
+# PyTorch CrossEntropyLoss expects class indices, not one-hot encoded labels
+y_processed = y  # Assuming y contains class indices
+"""
+        else:
+            # Binary classification - use single values for BCEWithLogitsLoss
+            code += f"""# For binary classification, use single values (not one-hot)
+# PyTorch BCEWithLogitsLoss expects single values, not one-hot encoded labels
+y_processed = y.astype(np.float32)
+"""
+    else:
+        # Regression
+        code += f"""# For regression, use labels as-is
+y_processed = y.reshape(-1, 1) if len(y.shape) == 1 else y
+y_processed = y_processed.astype(np.float32)
+"""
+    
+    code += f"""
+# Split the data (80% train, 20% test)
+x_train, x_test, y_train, y_test = train_test_split(
+    X, y_processed, test_size=0.2, random_state=42"""
+    
+    if task_type == 'classification':
+        code += ", stratify=y_processed"
+    
+    code += f""")
+
+# Standardize features (same as used during training)
+scaler = StandardScaler()
+x_train = scaler.fit_transform(x_train)
+x_test = scaler.transform(x_test)
+
+# Convert to PyTorch tensors
+X_train = torch.tensor(x_train, dtype=torch.float32)
+X_test = torch.tensor(x_test, dtype=torch.float32)
+"""
+    
+    if task_type == 'classification':
+        if len(class_labels) > 2:
+            code += "y_train = torch.tensor(y_train, dtype=torch.long)  # Class indices for CrossEntropyLoss\n"
+            code += "y_test = torch.tensor(y_test, dtype=torch.long)\n"
+        else:
+            code += "y_train = torch.tensor(y_train, dtype=torch.float32).unsqueeze(1)  # Single values for BCEWithLogitsLoss\n"
+            code += "y_test = torch.tensor(y_test, dtype=torch.float32).unsqueeze(1)\n"
+    else:
+        code += "y_train = torch.tensor(y_train, dtype=torch.float32)\n"
+        code += "y_test = torch.tensor(y_test, dtype=torch.float32)\n"
+    
+    code += f"""
+# Create TensorDatasets
+train_dataset = TensorDataset(X_train, y_train)
+test_dataset = TensorDataset(X_test, y_test)
+
+# Create DataLoaders
+train_loader = DataLoader(train_dataset, batch_size={batch_size}, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size={batch_size}, shuffle=False)
+
+print(f'Dataset loaded: {{X_train.shape[0]}} training samples, {{X_test.shape[0]}} test samples')
+print(f'Feature shape: {{X_train.shape[1:]}}')
+print(f'Target shape: {{y_train.shape[1:] if len(y_train.shape) > 1 else "scalar"}}')
+"""
+    
+    return code
+
+
+def _generate_pytorch_builtin_dataset_code(dataset_name, batch_size):
+    """
+    Generate PyTorch code to load and preprocess built-in datasets.
+    
+    Args:
+        dataset_name (str): Name of the built-in dataset
+        batch_size (int): Batch size for DataLoader
+        
+    Returns:
+        str: PyTorch code for loading the built-in dataset
+    """
+    if dataset_name == "iris":
+        return f"""
+from sklearn.datasets import load_iris
+
+# Load Iris dataset
+data = load_iris()
+X, y = data.data, data.target
+
+# Standardize features
+scaler = StandardScaler()
+X = scaler.fit_transform(X)
+
+# One-hot encode labels
+encoder = OneHotEncoder(sparse_output=False)
+y = encoder.fit_transform(y.reshape(-1, 1))
+
+# Split data
+x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train, X_test = torch.tensor(x_train, dtype=torch.float32), torch.tensor(x_test, dtype=torch.float32)
+y_train, y_test = torch.tensor(y_train, dtype=torch.float32), torch.tensor(y_test, dtype=torch.float32)
+
+# Create TensorDatasets
+train_dataset = TensorDataset(X_train, y_train)
+test_dataset = TensorDataset(X_test, y_test)
+
+# Create DataLoaders
+train_loader = DataLoader(train_dataset, batch_size={batch_size}, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size={batch_size}, shuffle=False)
+"""
+
+    elif dataset_name == "breast cancer":
+        return f"""
+from sklearn.datasets import load_breast_cancer
+
+# Load dataset
+data = load_breast_cancer()
+X, y = data.data, data.target
+
+# Standardize features
+scaler = StandardScaler()
+X = scaler.fit_transform(X)
+
+# Convert to tensors
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+X_train, X_test = torch.tensor(X_train, dtype=torch.float32), torch.tensor(X_test, dtype=torch.float32)
+y_train, y_test = torch.tensor(y_train, dtype=torch.float32).unsqueeze(1), torch.tensor(y_test, dtype=torch.float32).unsqueeze(1)
+
+# Create TensorDatasets
+train_dataset = TensorDataset(X_train, y_train)
+test_dataset = TensorDataset(X_test, y_test)
+
+# Create DataLoaders
+train_loader = DataLoader(train_dataset, batch_size={batch_size}, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size={batch_size}, shuffle=False)
+"""
+
+    elif dataset_name == "california housing":
+        return f"""
+from sklearn.datasets import fetch_california_housing
+
+# Load dataset
+data = fetch_california_housing()
+X, y = data.data, data.target
+
+# Standardize features
+scaler = StandardScaler()
+X = scaler.fit_transform(X)
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train, X_test = torch.tensor(X_train, dtype=torch.float32), torch.tensor(X_test, dtype=torch.float32)
+y_train, y_test = torch.tensor(y_train, dtype=torch.float32).unsqueeze(1), torch.tensor(y_test, dtype=torch.float32).unsqueeze(1)
+
+# Create TensorDatasets
+train_dataset = TensorDataset(X_train, y_train)
+test_dataset = TensorDataset(X_test, y_test)
+
+# Create DataLoaders
+train_loader = DataLoader(train_dataset, batch_size={batch_size}, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size={batch_size}, shuffle=False)
+"""
+
+    elif dataset_name == "mnist":
+        return f"""
+from torchvision import datasets, transforms
+
+# Define transformations
+transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
+
+# Load MNIST dataset
+train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
+test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+
+# Create DataLoader
+train_loader = DataLoader(train_dataset, batch_size={batch_size}, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size={batch_size}, shuffle=False)
+"""
+
+    elif dataset_name == "cifar-10":
+        return f"""
+from torchvision import datasets, transforms
+
+# Define transformations
+transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+# Load CIFAR-10 dataset
+train_dataset = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
+test_dataset = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
+
+# Create DataLoader
+train_loader = DataLoader(train_dataset, batch_size={batch_size}, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size={batch_size}, shuffle=False)
+"""
+    else:
+        return f"""
+# Dataset loading code would go here based on your specific dataset
+# Convert your data to PyTorch tensors
+X_train = torch.tensor(x_train, dtype=torch.float32)
+X_test = torch.tensor(x_test, dtype=torch.float32)
+y_train = torch.tensor(y_train, dtype=torch.float32)
+y_test = torch.tensor(y_test, dtype=torch.float32)
+
+# Create TensorDatasets
+train_dataset = TensorDataset(X_train, y_train)
+test_dataset = TensorDataset(X_test, y_test)
+
+# Create DataLoaders
+train_loader = DataLoader(train_dataset, batch_size={batch_size}, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size={batch_size}, shuffle=False)
+""" 

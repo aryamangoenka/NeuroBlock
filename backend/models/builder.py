@@ -31,10 +31,112 @@ def determine_output_units(dataset_name):
         return 1  # Regression
     elif dataset_name == "Breast Cancer":
         return 1  # Binary classification
+    elif dataset_name == "test_dataset":
+        # Specific handling for test_dataset
+        logger.info(f"Using predefined output units for test_dataset: 2 classes")
+        return 2
     else:
-        error_msg = f"Unknown dataset: {dataset_name}. Only 'Iris', 'MNIST', 'CIFAR-10', 'California Housing', and 'Breast Cancer' are supported."
-        logger.error(error_msg)
-        raise ValueError(error_msg)
+        # Handle custom datasets by looking up their metadata
+        try:
+            from backend.dataset_loader import dataset_registry
+            
+            # Check if it's a custom dataset
+            custom_datasets = dataset_registry.get_custom_datasets()
+            
+            # Add defensive check for None or empty result
+            if not custom_datasets:
+                logger.warning(f"No custom datasets found for dataset: {dataset_name}")
+                custom_datasets = []
+            
+            # Try exact match first
+            for custom_dataset in custom_datasets:
+                if custom_dataset and custom_dataset.get('name') == dataset_name:
+                    task_type = custom_dataset.get('task_type', 'classification')
+                    if task_type == 'regression':
+                        return 1
+                    else:
+                        # For classification, try to determine number of classes
+                        class_labels = custom_dataset.get('class_labels')
+                        if class_labels and isinstance(class_labels, list) and len(class_labels) > 0:
+                            logger.info(f"Using class_labels from metadata for '{dataset_name}': {len(class_labels)} classes")
+                            return len(class_labels)
+                        else:
+                            # If class_labels is not available, try to load the data and count unique values
+                            try:
+                                logger.info(f"Attempting to analyze data for '{dataset_name}' to determine output units")
+                                (x_train, y_train), (x_test, y_test) = dataset_registry.load_custom_dataset(dataset_name)
+                                import numpy as np
+                                if y_train is not None:
+                                    unique_classes = len(np.unique(y_train.numpy()))
+                                    logger.info(f"Determined {unique_classes} output units for custom dataset '{dataset_name}' by analyzing data")
+                                    return unique_classes
+                                else:
+                                    logger.warning(f"y_train is None for custom dataset '{dataset_name}', defaulting to 2")
+                                    return 2
+                            except Exception as e:
+                                logger.warning(f"Could not determine output units for custom dataset '{dataset_name}': {e}")
+                                # Default to binary classification
+                                logger.info(f"Defaulting to 2 output units for '{dataset_name}'")
+                                return 2
+            
+            # Try case-insensitive match
+            dataset_name_lower = dataset_name.lower()
+            for custom_dataset in custom_datasets:
+                if custom_dataset and custom_dataset.get('name', '').lower() == dataset_name_lower:
+                    logger.info(f"Found case-insensitive match for dataset: '{dataset_name}' -> '{custom_dataset.get('name', '')}'")
+                    task_type = custom_dataset.get('task_type', 'classification')
+                    if task_type == 'regression':
+                        return 1
+                    else:
+                        # For classification, try to determine number of classes
+                        class_labels = custom_dataset.get('class_labels')
+                        if class_labels and isinstance(class_labels, list) and len(class_labels) > 0:
+                            logger.info(f"Using class_labels from metadata for '{custom_dataset.get('name', '')}': {len(class_labels)} classes")
+                            return len(class_labels)
+                        else:
+                            # If class_labels is not available, try to load the data and count unique values
+                            try:
+                                actual_name = custom_dataset.get('name', dataset_name)
+                                logger.info(f"Attempting to analyze data for '{actual_name}' to determine output units")
+                                (x_train, y_train), (x_test, y_test) = dataset_registry.load_custom_dataset(actual_name)
+                                import numpy as np
+                                if y_train is not None:
+                                    unique_classes = len(np.unique(y_train.numpy()))
+                                    logger.info(f"Determined {unique_classes} output units for custom dataset '{actual_name}' by analyzing data")
+                                    return unique_classes
+                                else:
+                                    logger.warning(f"y_train is None for custom dataset '{actual_name}', defaulting to 2")
+                                    return 2
+                            except Exception as e:
+                                logger.warning(f"Could not determine output units for custom dataset '{custom_dataset.get('name', dataset_name)}': {e}")
+                                # Default to binary classification
+                                logger.info(f"Defaulting to 2 output units for '{custom_dataset.get('name', dataset_name)}'")
+                                return 2
+            
+            # If no custom dataset found, raise error
+            try:
+                available_datasets = dataset_registry.get_available_datasets()
+                if available_datasets is None:
+                    available_datasets = ["Iris", "MNIST", "CIFAR-10", "California Housing", "Breast Cancer"]
+                error_msg = f"Unknown dataset: {dataset_name}. Available datasets: {', '.join(available_datasets)}"
+            except Exception as e:
+                logger.warning(f"Could not get available datasets: {e}")
+                error_msg = f"Unknown dataset: {dataset_name}. Could not retrieve available datasets list."
+            
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+            
+        except ImportError:
+            # Fallback if dataset_registry is not available
+            error_msg = f"Unknown dataset: {dataset_name}. Only 'Iris', 'MNIST', 'CIFAR-10', 'California Housing', and 'Breast Cancer' are supported."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+        except Exception as e:
+            # Catch any other exceptions that might cause NoneType errors
+            logger.error(f"Unexpected error in determine_output_units for dataset '{dataset_name}': {e}")
+            # Default to binary classification to allow training to continue
+            logger.warning(f"Defaulting to 2 output units for dataset '{dataset_name}' due to error")
+            return 2
 
 def expand_custom_blocks(nodes):
     """

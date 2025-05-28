@@ -80,3 +80,4 @@ zope.interface==7.2
 seaborn
 flask_socketio
 wandb
+openpyxl

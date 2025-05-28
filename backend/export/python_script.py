@@ -76,107 +76,16 @@ def generate_python_script(model, training_config, x_train_shape, dataset_name):
     # Start building the script
     script.append("# Load and preprocess the dataset")
     
-    # Add dataset-specific code
-    if dataset_name == "MNIST":
-        script.extend([
-            "# Load MNIST dataset",
-            "(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()",
-            "# Normalize pixel values to be between 0 and 1",
-            "x_train, x_test = x_train / 255.0, x_test / 255.0",
-            f"# Reshape for model input {input_shape}",
-            f"x_train = x_train.reshape(x_train.shape[0], {', '.join(str(dim) for dim in input_shape)})",
-            f"x_test = x_test.reshape(x_test.shape[0], {', '.join(str(dim) for dim in input_shape)})",
-            "# Convert class vectors to binary class matrices (one-hot encoding)",
-            "y_train = tf.keras.utils.to_categorical(y_train, 10)",
-            "y_test = tf.keras.utils.to_categorical(y_test, 10)"
-        ])
-    elif dataset_name == "CIFAR-10":
-        script.extend([
-            "# Load CIFAR-10 dataset",
-            "(x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()",
-            "# Normalize pixel values to be between 0 and 1",
-            "x_train, x_test = x_train / 255.0, x_test / 255.0",
-            f"# Reshape for model input {input_shape}",
-            f"x_train = x_train.reshape(x_train.shape[0], {', '.join(str(dim) for dim in input_shape)})",
-            f"x_test = x_test.reshape(x_test.shape[0], {', '.join(str(dim) for dim in input_shape)})",
-            "# Convert class vectors to binary class matrices (one-hot encoding)",
-            "y_train = tf.keras.utils.to_categorical(y_train, 10)",
-            "y_test = tf.keras.utils.to_categorical(y_test, 10)"
-        ])
-    elif dataset_name == "Iris":
-        script.extend([
-            "# Load Iris dataset",
-            "from sklearn.datasets import load_iris",
-            "from sklearn.model_selection import train_test_split",
-            "from sklearn.preprocessing import StandardScaler, OneHotEncoder",
-            "",
-            "iris = load_iris()",
-            "X = iris.data",
-            "y = iris.target.reshape(-1, 1)",
-            "",
-            "# Scale features",
-            "scaler = StandardScaler()",
-            "X_scaled = scaler.fit_transform(X)",
-            "",
-            "# One-hot encode the labels",
-            "encoder = OneHotEncoder(sparse_output=False)",
-            "y_encoded = encoder.fit_transform(y)",
-            "",
-            "# Split the data",
-            "x_train, x_test, y_train, y_test = train_test_split(X_scaled, y_encoded, test_size=0.2, random_state=42)",
-            f"# Reshape for model input {input_shape}",
-            f"x_train = x_train.reshape(x_train.shape[0], {', '.join(str(dim) for dim in input_shape)})",
-            f"x_test = x_test.reshape(x_test.shape[0], {', '.join(str(dim) for dim in input_shape)})"
-        ])
-    elif dataset_name == "Breast Cancer":
-        script.extend([
-            "# Load Breast Cancer dataset",
-            "from sklearn.datasets import load_breast_cancer",
-            "from sklearn.model_selection import train_test_split",
-            "from sklearn.preprocessing import StandardScaler",
-            "",
-            "cancer = load_breast_cancer()",
-            "X = cancer.data",
-            "y = cancer.target",
-            "",
-            "# Scale features",
-            "scaler = StandardScaler()",
-            "X_scaled = scaler.fit_transform(X)",
-            "",
-            "# Split the data",
-            "x_train, x_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)",
-            f"# Reshape for model input {input_shape}",
-            f"x_train = x_train.reshape(x_train.shape[0], {', '.join(str(dim) for dim in input_shape)})",
-            f"x_test = x_test.reshape(x_test.shape[0], {', '.join(str(dim) for dim in input_shape)})"
-        ])
-    elif dataset_name == "California Housing":
-        script.extend([
-            "# Load California Housing dataset",
-            "from sklearn.datasets import fetch_california_housing",
-            "from sklearn.model_selection import train_test_split",
-            "from sklearn.preprocessing import StandardScaler",
-            "",
-            "housing = fetch_california_housing()",
-            "X = housing.data",
-            "y = housing.target",
-            "",
-            "# Scale features",
-            "scaler = StandardScaler()",
-            "X_scaled = scaler.fit_transform(X)",
-            "",
-            "# Split the data",
-            "x_train, x_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)",
-            f"# Reshape for model input {input_shape}",
-            f"x_train = x_train.reshape(x_train.shape[0], {', '.join(str(dim) for dim in input_shape)})",
-            f"x_test = x_test.reshape(x_test.shape[0], {', '.join(str(dim) for dim in input_shape)})"
-        ])
+    # Check if this is a custom dataset
+    is_custom_dataset = _is_custom_dataset(dataset_name)
+    
+    if is_custom_dataset:
+        # Handle custom dataset
+        custom_dataset_code = _generate_custom_dataset_code(dataset_name, input_shape)
+        script.extend(custom_dataset_code)
     else:
-        script.extend([
-            "# Replace with your own dataset loading code",
-            "# x_train, y_train = ...",
-            "# x_test, y_test = ...",
-            f"# Make sure to reshape your data to match the model input shape: {input_shape}"
-        ])
+        # Handle built-in datasets
+        script.extend(_generate_builtin_dataset_code(dataset_name, input_shape))
     
     script.append("")
     script.append("# Define the model")
@@ -194,14 +103,32 @@ def generate_python_script(model, training_config, x_train_shape, dataset_name):
     expected_output_units = None
     
     # Determine expected output units based on dataset
-    if dataset_name == "Iris":
-        expected_output_units = 3
-    elif dataset_name == "Breast Cancer":
-        expected_output_units = 1
-    elif dataset_name == "California Housing":
-        expected_output_units = 1
-    elif dataset_name == "MNIST" or dataset_name == "CIFAR-10":
-        expected_output_units = 10
+    if is_custom_dataset:
+        # For custom datasets, get expected output units from metadata
+        metadata = _load_custom_dataset_metadata(dataset_name)
+        if metadata:
+            task_type = metadata.get('task_type', 'classification')
+            class_labels = metadata.get('class_labels', [])
+            
+            if task_type == 'classification':
+                if len(class_labels) > 2:
+                    expected_output_units = len(class_labels)
+                else:
+                    # Binary classification - use 2 units for one-hot encoding (to match training)
+                    expected_output_units = 2
+            else:
+                # Regression
+                expected_output_units = 1
+    else:
+        # Built-in datasets
+        if dataset_name == "Iris":
+            expected_output_units = 3
+        elif dataset_name == "Breast Cancer":
+            expected_output_units = 1
+        elif dataset_name == "California Housing":
+            expected_output_units = 1
+        elif dataset_name == "MNIST" or dataset_name == "CIFAR-10":
+            expected_output_units = 10
     
     # Process layers to merge standalone activation layers with their preceding layers
     processed_layers = []
@@ -465,4 +392,296 @@ def generate_python_script(model, training_config, x_train_shape, dataset_name):
     script.append("# Save the model")
     script.append("model.save('trained_model.h5')")
     
-    return "\n".join(script) 
+    return "\n".join(script)
+
+
+def _is_custom_dataset(dataset_name):
+    """
+    Check if the dataset is a custom dataset by looking for its metadata file.
+    
+    Args:
+        dataset_name (str): Name of the dataset
+        
+    Returns:
+        bool: True if it's a custom dataset, False otherwise
+    """
+    import os
+    from flask import current_app
+    
+    # List of known built-in datasets
+    builtin_datasets = {"MNIST", "CIFAR-10", "Iris", "Breast Cancer", "California Housing"}
+    
+    # If it's a known built-in dataset, return False
+    if dataset_name in builtin_datasets:
+        return False
+    
+    # Check if custom dataset metadata file exists
+    try:
+        if hasattr(current_app, 'config'):
+            project_root = current_app.config.get('PROJECT_ROOT', '')
+        else:
+            # Fallback to relative path
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        
+        custom_datasets_dir = os.path.join(project_root, 'datasets', 'custom')
+        metadata_file = os.path.join(custom_datasets_dir, f'{dataset_name}_metadata.json')
+        
+        return os.path.exists(metadata_file)
+    except Exception:
+        return False
+
+
+def _load_custom_dataset_metadata(dataset_name):
+    """
+    Load metadata for a custom dataset.
+    
+    Args:
+        dataset_name (str): Name of the custom dataset
+        
+    Returns:
+        dict: Dataset metadata or None if not found
+    """
+    import os
+    import json
+    from flask import current_app
+    
+    try:
+        if hasattr(current_app, 'config'):
+            project_root = current_app.config.get('PROJECT_ROOT', '')
+        else:
+            # Fallback to relative path
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        
+        custom_datasets_dir = os.path.join(project_root, 'datasets', 'custom')
+        metadata_file = os.path.join(custom_datasets_dir, f'{dataset_name}_metadata.json')
+        
+        if os.path.exists(metadata_file):
+            with open(metadata_file, 'r') as f:
+                return json.load(f)
+    except Exception:
+        pass
+    
+    return None
+
+
+def _generate_custom_dataset_code(dataset_name, input_shape):
+    """
+    Generate code to load and preprocess a custom dataset.
+    
+    Args:
+        dataset_name (str): Name of the custom dataset
+        input_shape (tuple): Expected input shape for the model
+        
+    Returns:
+        list: List of code lines for loading the custom dataset
+    """
+    metadata = _load_custom_dataset_metadata(dataset_name)
+    
+    if not metadata:
+        return [
+            f"# Custom dataset '{dataset_name}' metadata not found",
+            "# Please ensure the dataset files are available and update the paths below",
+            "# x_train, y_train = ...",
+            "# x_test, y_test = ...",
+            f"# Make sure to reshape your data to match the model input shape: {input_shape}"
+        ]
+    
+    task_type = metadata.get('task_type', 'classification')
+    class_labels = metadata.get('class_labels', [])
+    feature_columns = metadata.get('feature_columns', [])
+    target_column = metadata.get('target_column', 'target')
+    processed_shape = metadata.get('processed_shape', [0, 0])
+    
+    code = [
+        f"# Load custom dataset: {dataset_name}",
+        "import numpy as np",
+        "from sklearn.model_selection import train_test_split",
+        "from sklearn.preprocessing import StandardScaler, LabelEncoder",
+        "",
+        f"# Load the custom dataset '{dataset_name}'",
+        f"# Note: Update the path below to point to your dataset file",
+        f"dataset_file = '{dataset_name}.npz'  # Update this path as needed",
+        "",
+        "# Load data from .npz file",
+        "data = np.load(dataset_file)",
+        "X = data['X']",
+        "y = data['y']",
+        "",
+        f"# Dataset info:",
+        f"# - Task type: {task_type}",
+        f"# - Features: {len(feature_columns)} ({', '.join(feature_columns)})",
+        f"# - Target: {target_column}",
+    ]
+    
+    if class_labels:
+        code.extend([
+            f"# - Classes: {len(class_labels)} ({', '.join(map(str, class_labels))})",
+        ])
+    
+    code.extend([
+        f"# - Processed shape: {processed_shape}",
+        "",
+        "# Preprocessing (same as used during training)",
+    ])
+    
+    if task_type == 'classification':
+        if len(class_labels) > 2:
+            # Multi-class classification - one-hot encode
+            code.extend([
+                "# One-hot encode labels for multi-class classification",
+                f"y_encoded = tf.keras.utils.to_categorical(y, {len(class_labels)})",
+            ])
+        else:
+            # Binary classification - one-hot encode to match training
+            code.extend([
+                "# One-hot encode labels for binary classification (to match training)",
+                "y_encoded = tf.keras.utils.to_categorical(y, 2)",
+            ])
+    else:
+        # Regression
+        code.extend([
+            "# For regression, use labels as-is",
+            "y_encoded = y.reshape(-1, 1) if len(y.shape) == 1 else y",
+        ])
+    
+    code.extend([
+        "",
+        "# Split the data (80% train, 20% test)",
+        "x_train, x_test, y_train, y_test = train_test_split(",
+        "    X, y_encoded, test_size=0.2, random_state=42",
+    ])
+    
+    if task_type == 'classification':
+        code.append("    , stratify=y_encoded")
+    
+    code.extend([
+        ")",
+        "",
+        "# Standardize features (same as used during training)",
+        "scaler = StandardScaler()",
+        "x_train = scaler.fit_transform(x_train)",
+        "x_test = scaler.transform(x_test)",
+        "",
+        f"# Reshape for model input {input_shape}",
+        f"x_train = x_train.reshape(x_train.shape[0], {', '.join(str(dim) for dim in input_shape)})",
+        f"x_test = x_test.reshape(x_test.shape[0], {', '.join(str(dim) for dim in input_shape)})",
+        "",
+        "print(f'Dataset loaded: {x_train.shape[0]} training samples, {x_test.shape[0]} test samples')",
+        "print(f'Feature shape: {x_train.shape[1:]}')",
+        "print(f'Target shape: {y_train.shape[1:] if len(y_train.shape) > 1 else \"scalar\"}')"
+    ])
+    
+    return code
+
+
+def _generate_builtin_dataset_code(dataset_name, input_shape):
+    """
+    Generate code to load and preprocess built-in datasets.
+    
+    Args:
+        dataset_name (str): Name of the built-in dataset
+        input_shape (tuple): Expected input shape for the model
+        
+    Returns:
+        list: List of code lines for loading the built-in dataset
+    """
+    if dataset_name == "MNIST":
+        return [
+            "# Load MNIST dataset",
+            "(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()",
+            "# Normalize pixel values to be between 0 and 1",
+            "x_train, x_test = x_train / 255.0, x_test / 255.0",
+            f"# Reshape for model input {input_shape}",
+            f"x_train = x_train.reshape(x_train.shape[0], {', '.join(str(dim) for dim in input_shape)})",
+            f"x_test = x_test.reshape(x_test.shape[0], {', '.join(str(dim) for dim in input_shape)})",
+            "# Convert class vectors to binary class matrices (one-hot encoding)",
+            "y_train = tf.keras.utils.to_categorical(y_train, 10)",
+            "y_test = tf.keras.utils.to_categorical(y_test, 10)"
+        ]
+    elif dataset_name == "CIFAR-10":
+        return [
+            "# Load CIFAR-10 dataset",
+            "(x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()",
+            "# Normalize pixel values to be between 0 and 1",
+            "x_train, x_test = x_train / 255.0, x_test / 255.0",
+            f"# Reshape for model input {input_shape}",
+            f"x_train = x_train.reshape(x_train.shape[0], {', '.join(str(dim) for dim in input_shape)})",
+            f"x_test = x_test.reshape(x_test.shape[0], {', '.join(str(dim) for dim in input_shape)})",
+            "# Convert class vectors to binary class matrices (one-hot encoding)",
+            "y_train = tf.keras.utils.to_categorical(y_train, 10)",
+            "y_test = tf.keras.utils.to_categorical(y_test, 10)"
+        ]
+    elif dataset_name == "Iris":
+        return [
+            "# Load Iris dataset",
+            "from sklearn.datasets import load_iris",
+            "from sklearn.model_selection import train_test_split",
+            "from sklearn.preprocessing import StandardScaler, OneHotEncoder",
+            "",
+            "iris = load_iris()",
+            "X = iris.data",
+            "y = iris.target.reshape(-1, 1)",
+            "",
+            "# Scale features",
+            "scaler = StandardScaler()",
+            "X_scaled = scaler.fit_transform(X)",
+            "",
+            "# One-hot encode the labels",
+            "encoder = OneHotEncoder(sparse_output=False)",
+            "y_encoded = encoder.fit_transform(y)",
+            "",
+            "# Split the data",
+            "x_train, x_test, y_train, y_test = train_test_split(X_scaled, y_encoded, test_size=0.2, random_state=42)",
+            f"# Reshape for model input {input_shape}",
+            f"x_train = x_train.reshape(x_train.shape[0], {', '.join(str(dim) for dim in input_shape)})",
+            f"x_test = x_test.reshape(x_test.shape[0], {', '.join(str(dim) for dim in input_shape)})"
+        ]
+    elif dataset_name == "Breast Cancer":
+        return [
+            "# Load Breast Cancer dataset",
+            "from sklearn.datasets import load_breast_cancer",
+            "from sklearn.model_selection import train_test_split",
+            "from sklearn.preprocessing import StandardScaler",
+            "",
+            "cancer = load_breast_cancer()",
+            "X = cancer.data",
+            "y = cancer.target",
+            "",
+            "# Scale features",
+            "scaler = StandardScaler()",
+            "X_scaled = scaler.fit_transform(X)",
+            "",
+            "# Split the data",
+            "x_train, x_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)",
+            f"# Reshape for model input {input_shape}",
+            f"x_train = x_train.reshape(x_train.shape[0], {', '.join(str(dim) for dim in input_shape)})",
+            f"x_test = x_test.reshape(x_test.shape[0], {', '.join(str(dim) for dim in input_shape)})"
+        ]
+    elif dataset_name == "California Housing":
+        return [
+            "# Load California Housing dataset",
+            "from sklearn.datasets import fetch_california_housing",
+            "from sklearn.model_selection import train_test_split",
+            "from sklearn.preprocessing import StandardScaler",
+            "",
+            "housing = fetch_california_housing()",
+            "X = housing.data",
+            "y = housing.target",
+            "",
+            "# Scale features",
+            "scaler = StandardScaler()",
+            "X_scaled = scaler.fit_transform(X)",
+            "",
+            "# Split the data",
+            "x_train, x_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)",
+            f"# Reshape for model input {input_shape}",
+            f"x_train = x_train.reshape(x_train.shape[0], {', '.join(str(dim) for dim in input_shape)})",
+            f"x_test = x_test.reshape(x_test.shape[0], {', '.join(str(dim) for dim in input_shape)})"
+        ]
+    else:
+        return [
+            "# Replace with your own dataset loading code",
+            "# x_train, y_train = ...",
+            "# x_test, y_test = ...",
+            f"# Make sure to reshape your data to match the model input shape: {input_shape}"
+        ] 
