@@ -4435,6 +4435,44 @@ const NewBuildPage = (): JSX.Element => {
               <i className="fas fa-shapes"></i> Model Templates
             </h3>
             <div className="template-list">
+              {/* Save as Template Card */}
+              <div
+                className="template-item"
+                style={{ borderLeftColor: "#22c55e" }}
+              >
+                <span>
+                  <i className="fas fa-save" style={{ color: "#22c55e" }}></i>{" "}
+                  Save Current Model as Template
+                </span>
+                <button
+                  className="add-button"
+                  style={{ color: "#22c55e", border: "1.5px solid #22c55e" }}
+                  onClick={handleSaveAsTemplate}
+                >
+                  <i className="fas fa-plus"></i>
+                </button>
+              </div>
+              {/* Render session templates as cards */}
+              {sessionTemplates.map((template, idx) => (
+                <div
+                  className="template-item"
+                  style={{ borderLeftColor: "#6366f1" }}
+                  key={template.name + idx}
+                >
+                  <span>
+                    <i className="fas fa-user" style={{ color: "#6366f1" }}></i>{" "}
+                    {template.name}
+                  </span>
+                  <button
+                    className="add-button"
+                    style={{ color: "#6366f1", border: "1.5px solid #6366f1" }}
+                    onClick={() => loadSessionTemplate(template)}
+                  >
+                    <i className="fas fa-plus"></i>
+                  </button>
+                </div>
+              ))}
+              {/* Existing hardcoded templates... */}
               <div className="template-item simple-feedforward">
                 <span>
                   <i className="fas fa-network-wired"></i> Simple Feedforward
@@ -6072,6 +6110,54 @@ const NewBuildPage = (): JSX.Element => {
     };
   }, [trainingConfig]);
 
+  // Add state for Save as Template modal and template name
+  const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  void templateName
+  void setShowSaveTemplateModal;
+  void setTemplateName;
+  // Load session templates on mount
+  const [sessionTemplates, setSessionTemplates] = useState<any[]>([]);
+
+  // Load session templates on mount
+  useEffect(() => {
+    const stored = sessionStorage.getItem("sessionTemplates");
+    if (stored) {
+      setSessionTemplates(JSON.parse(stored));
+    }
+  }, []);
+
+  // Save session templates to sessionStorage whenever they change
+  useEffect(() => {
+    sessionStorage.setItem(
+      "sessionTemplates",
+      JSON.stringify(sessionTemplates)
+    );
+  }, [sessionTemplates]);
+
+  // Handler to save as template (now saves to sessionStorage and adds to list)
+  const handleSaveAsTemplate = () => {
+    const name = prompt("Enter a name for your template:");
+    if (!name || !name.trim()) {
+      alert("Please enter a valid template name.");
+      return;
+    }
+    const template = { name: name.trim(), nodes, edges };
+    setSessionTemplates((prev) => [...prev, template]);
+    alert("Template saved!");
+  };
+
+  // Handler to load a session template
+  const loadSessionTemplate = (template: any) => {
+    if (template.nodes && template.edges) {
+      setNodes(template.nodes);
+      setEdges(template.edges);
+      alert("Template loaded!");
+    } else {
+      alert("Invalid template format.");
+    }
+  };
+
   return (
     <div className="new-build-page">
       <div className="new-build-container">
@@ -7206,6 +7292,8 @@ const NewBuildPage = (): JSX.Element => {
           refreshCustomDatasets();
         }}
       />
+
+      {showSaveTemplateModal && false /* Remove modal rendering */}
     </div>
   );
 };

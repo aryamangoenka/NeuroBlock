@@ -97,5 +97,5 @@ logger.info("Starting server", extra={
 })
 
 # Only run with socketio.run() in development
-if __name__ == "__main__" and os.environ.get("FLASK_ENV") == "development":
+if __name__ == "__main__" :
     socketio.run(app, host=host, port=port, debug=debug)
