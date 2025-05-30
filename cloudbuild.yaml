@@ -26,6 +26,15 @@ steps:
       - "--region=us-central1"
       - "--platform=managed"
       - "--allow-unauthenticated"
+      - "--set-env-vars=FLASK_CONFIG=custom_domain,SESSION_CLEANUP_INTERVAL=12,SESSION_MAX_AGE=168,GOOGLE_CLOUD_PROJECT=$PROJECT_ID"
+      - "--update-secrets=SECRET_KEY=flask-secret-key:latest"
+    secretEnv: ["SECRET_KEY"]
+
+# Secret Manager integration for secure session keys
+availableSecrets:
+  secretManager:
+    - versionName: projects/$PROJECT_ID/secrets/flask-secret-key/versions/latest
+      env: "SECRET_KEY"
 
 images:
   - "gcr.io/$PROJECT_ID/dnd-neural-backend:latest"

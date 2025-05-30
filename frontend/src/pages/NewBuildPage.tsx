@@ -48,10 +48,14 @@ import {
 
 import axios from "axios";
 import API_BASE_URL from "../utils/apiConfig";
+import { getSocketUrl } from "../utils/customDatasetApi";
 import CustomLayerModal from "../components/CustomLayerModal";
 import CustomDatasetModal from "../components/CustomDatasetModal";
-import { getCustomDatasets } from "../utils/customDatasetApi";
-
+import {
+  getCustomDatasets,
+  getAvailableDatasets,
+} from "../utils/customDatasetApi";
+void getCustomDatasets;
 // Register Chart.js components
 ChartJS.register(
   CategoryScale,
@@ -136,6 +140,9 @@ const NewBuildPage = (): JSX.Element => {
   // State for custom datasets
   const [customDatasets, setCustomDatasets] = useState<string[]>([]);
 
+  // State for socket connection
+  const [socketConnected, setSocketConnected] = useState(false);
+  void socketConnected;
   // Clear custom layers on component unmount (when user navigates away or closes tab)
   useEffect(() => {
     return () => {
@@ -273,11 +280,21 @@ const NewBuildPage = (): JSX.Element => {
   useEffect(() => {
     const fetchCustomDatasets = async () => {
       try {
-        const datasets = await getCustomDatasets();
-        const datasetNames = datasets.map((dataset) => dataset.name);
-        setCustomDatasets(datasetNames);
+        console.log("🔍 Fetching available datasets from:", API_BASE_URL);
+        // Use getAvailableDatasets to get both built-in and custom datasets
+        const availableDatasets = await getAvailableDatasets();
+        console.log("📦 Full API response:", availableDatasets);
+        console.log("🔧 Built-in datasets:", availableDatasets.built_in);
+        console.log("⭐ Custom datasets:", availableDatasets.custom);
+
+        // Extract only custom dataset names for the dropdown
+        const customDatasetNames = availableDatasets.custom.map(
+          (dataset) => dataset.name
+        );
+        setCustomDatasets(customDatasetNames);
+        console.log("✅ Fetched custom datasets:", customDatasetNames);
       } catch (error) {
-        console.error("Failed to fetch custom datasets:", error);
+        console.error("❌ Failed to fetch custom datasets:", error);
         setCustomDatasets([]);
       }
     };
@@ -288,11 +305,21 @@ const NewBuildPage = (): JSX.Element => {
   // Function to refresh custom datasets list
   const refreshCustomDatasets = async () => {
     try {
-      const datasets = await getCustomDatasets();
-      const datasetNames = datasets.map((dataset) => dataset.name);
-      setCustomDatasets(datasetNames);
+      console.log("🔄 Refreshing available datasets from:", API_BASE_URL);
+      const availableDatasets = await getAvailableDatasets();
+      console.log("📦 Refresh API response:", availableDatasets);
+      console.log(
+        "⭐ Custom datasets after refresh:",
+        availableDatasets.custom
+      );
+
+      const customDatasetNames = availableDatasets.custom.map(
+        (dataset) => dataset.name
+      );
+      setCustomDatasets(customDatasetNames);
+      console.log("✅ Refreshed custom datasets:", customDatasetNames);
     } catch (error) {
-      console.error("Failed to refresh custom datasets:", error);
+      console.error("❌ Failed to refresh custom datasets:", error);
     }
   };
 
@@ -352,16 +379,44 @@ const NewBuildPage = (): JSX.Element => {
 
   // Update the socket.io event handling for training progress
   useEffect(() => {
-    // Initialize Socket.IO client
-    const socket = io(API_BASE_URL);
-    socketRef.current = socket;
+    // Initialize socket connection
+    const socketUrl = getSocketUrl();
+    console.log("Connecting to socket at:", socketUrl);
 
-    socket.on("connect", () => {
-      console.log("Socket.IO connected:", socket.id);
+    // Detect production (GCP/Cloud Run) environment
+    const isProd =
+      window.location.hostname.includes("neuroblock.co") ||
+      window.location.hostname.includes("run.app");
+
+    socketRef.current = io(socketUrl, {
+      transports: isProd ? ["polling"] : ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      secure: true,
+      rejectUnauthorized: false,
+      path: "/socket.io",
+      withCredentials: true,
+    });
+
+    // Socket event listeners
+    socketRef.current.on("connect", () => {
+      console.log("Socket connected");
+      setSocketConnected(true);
+    });
+
+    socketRef.current.on("connect_error", (error) => {
+      console.error("Socket connection error:", error);
+      setSocketConnected(false);
+    });
+
+    socketRef.current.on("disconnect", () => {
+      console.log("Socket disconnected");
+      setSocketConnected(false);
     });
 
     // Listen for training start
-    socket.on("training_start", (data) => {
+    socketRef.current.on("training_start", (data) => {
       console.log("Training started:", data.message);
       // Check if we have a W&B URL
       if (data.wandb_run_url) {
@@ -388,7 +443,7 @@ const NewBuildPage = (): JSX.Element => {
     });
 
     // Listen for real-time training progress
-    socket.on("training_progress", (data) => {
+    socketRef.current.on("training_progress", (data) => {
       console.log("Training progress received:", data);
 
       // Parse numeric values to ensure they're numbers, not strings
@@ -429,7 +484,7 @@ const NewBuildPage = (): JSX.Element => {
     });
 
     // Listen for training complete
-    socket.on("training_complete", (data) => {
+    socketRef.current.on("training_complete", (data) => {
       console.log("Training complete:", data.message);
       console.log(
         "FULL TRAINING COMPLETE DATA:",
@@ -501,7 +556,7 @@ const NewBuildPage = (): JSX.Element => {
     });
 
     // Listen for training error
-    socket.on("training_error", (data) => {
+    socketRef.current.on("training_error", (data) => {
       console.error("Training error:", data.error);
       console.error("Full error data:", data);
       setIsTraining(false);
@@ -526,9 +581,11 @@ const NewBuildPage = (): JSX.Element => {
 
     // Cleanup Socket.IO connection on component unmount
     return () => {
-      socket.disconnect();
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
     };
-  }, []);
+  }, [trainingConfig, nodes, edges]);
 
   // Debug log for selectedDataset changes
   useEffect(() => {

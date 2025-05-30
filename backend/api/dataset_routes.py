@@ -2,13 +2,14 @@ import os
 import json
 import pandas as pd
 import numpy as np
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, session
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import RequestEntityTooLarge
 import tempfile
 import shutil
 from datetime import datetime
 from backend.utils.logging import get_logger
+from backend.utils.session_manager import get_session_datasets_dir, get_session_id
 
 # Initialize logger
 logger = get_logger(__name__)
@@ -416,7 +417,7 @@ def create_custom_dataset():
             processed_data['class_labels'] = None
             
         # Save the dataset
-        datasets_dir = os.path.join(current_app.config.get('PROJECT_ROOT', ''), 'datasets', 'custom')
+        datasets_dir = get_session_datasets_dir()
         os.makedirs(datasets_dir, exist_ok=True)
         
         # Save processed data
@@ -477,7 +478,7 @@ def list_custom_datasets():
     logger.info("List custom datasets endpoint called")
     
     try:
-        datasets_dir = os.path.join(current_app.config.get('PROJECT_ROOT', ''), 'datasets', 'custom')
+        datasets_dir = get_session_datasets_dir()
         
         if not os.path.exists(datasets_dir):
             return jsonify({
@@ -536,29 +537,70 @@ def get_available_datasets():
     try:
         from backend.dataset_loader import dataset_registry
         
-        # Get all available datasets
-        all_datasets = dataset_registry.get_available_datasets()
+        # Get only built-in datasets from the registry
+        # Note: We filter out any custom datasets that might be in the global registry
+        # but no longer have session files (due to ephemeral storage)
         
-        # Get detailed info for custom datasets
-        custom_datasets = dataset_registry.get_custom_datasets()
-        custom_dataset_names = {ds['name'] for ds in custom_datasets}
+        # Get detailed info for custom datasets (session-specific)
+        custom_datasets = []
+        custom_dataset_names = set()
+        try:
+            datasets_dir = get_session_datasets_dir()
+            if os.path.exists(datasets_dir):
+                for filename in os.listdir(datasets_dir):
+                    if filename.endswith('_metadata.json'):
+                        metadata_file = os.path.join(datasets_dir, filename)
+                        try:
+                            with open(metadata_file, 'r') as f:
+                                metadata = json.load(f)
+                                
+                            # Check if the corresponding data file exists
+                            data_file = metadata.get('file_path', '')
+                            if os.path.exists(data_file):
+                                dataset_name = metadata.get('name', 'Unknown')
+                                custom_dataset_names.add(dataset_name)
+                                custom_datasets.append({
+                                    'name': dataset_name,
+                                    'task_type': metadata.get('task_type', 'Unknown'),
+                                    'shape': metadata.get('processed_shape', [0, 0]),
+                                    'feature_count': len(metadata.get('feature_columns', [])),
+                                    'target_column': metadata.get('target_column', 'Unknown'),
+                                    'created_at': metadata.get('created_at', 'Unknown'),
+                                    'original_filename': metadata.get('original_filename', 'Unknown'),
+                                    'class_labels': metadata.get('class_labels')
+                                })
+                        except Exception as e:
+                            logger.warning(f"Could not load metadata from {filename}: {str(e)}")
+                            continue
+        except Exception as e:
+            logger.warning(f"Error loading session datasets: {str(e)}")
         
-        # Build response with dataset categories
-        dataset_list = {
-            'built_in': [],
-            'custom': custom_datasets,
-            'all_names': all_datasets
+        # Get all datasets from registry and filter to only include built-in ones
+        all_registry_datasets = dataset_registry.get_available_datasets()
+        
+        # Define known built-in datasets
+        known_builtin_datasets = {
+            'iris', 'mnist', 'cifar-10', 'california housing', 'breast cancer', 'cereal'
         }
         
-        # Categorize datasets
-        for dataset_name in all_datasets:
-            if dataset_name not in custom_dataset_names:
-                # This is a built-in dataset
-                dataset_list['built_in'].append({
+        # Build list of built-in datasets
+        builtin_datasets = []
+        for dataset_name in all_registry_datasets:
+            # Only include if it's a known built-in dataset AND not in custom datasets
+            if (dataset_name.lower() in known_builtin_datasets and 
+                dataset_name not in custom_dataset_names):
+                builtin_datasets.append({
                     'name': dataset_name,
                     'type': 'built_in',
                     'description': f'Built-in {dataset_name} dataset'
                 })
+        
+        # Build response with dataset categories
+        dataset_list = {
+            'built_in': builtin_datasets,
+            'custom': custom_datasets,
+            'all_names': [ds['name'] for ds in builtin_datasets] + list(custom_dataset_names)
+        }
         
         logger.info(f"Found {len(dataset_list['built_in'])} built-in and {len(dataset_list['custom'])} custom datasets")
         
@@ -570,6 +612,48 @@ def get_available_datasets():
     except Exception as e:
         logger.error(f"Error in get_available_datasets: {str(e)}", exc_info=True)
         return jsonify({'error': f'Failed to get available datasets: {str(e)}'}), 500
+
+@dataset_blueprint.route('/delete/<dataset_name>', methods=['DELETE'])
+def delete_custom_dataset(dataset_name):
+    """
+    Delete a custom dataset from the current session.
+    """
+    logger.info(f"Delete custom dataset endpoint called for: {dataset_name}")
+    
+    try:
+        datasets_dir = get_session_datasets_dir()
+        
+        # Find and delete the dataset files
+        dataset_file = os.path.join(datasets_dir, f'{dataset_name}.npz')
+        metadata_file = os.path.join(datasets_dir, f'{dataset_name}_metadata.json')
+        
+        deleted_files = []
+        
+        if os.path.exists(dataset_file):
+            os.remove(dataset_file)
+            deleted_files.append('data file')
+            
+        if os.path.exists(metadata_file):
+            os.remove(metadata_file)
+            deleted_files.append('metadata file')
+        
+        if not deleted_files:
+            return jsonify({
+                'success': False,
+                'error': f'Dataset "{dataset_name}" not found'
+            }), 404
+        
+        logger.info(f"Successfully deleted dataset '{dataset_name}' ({', '.join(deleted_files)})")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Dataset "{dataset_name}" deleted successfully',
+            'deleted_files': deleted_files
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error deleting dataset '{dataset_name}': {str(e)}", exc_info=True)
+        return jsonify({'error': f'Failed to delete dataset: {str(e)}'}), 500
 
 # Error handlers for the blueprint
 @dataset_blueprint.errorhandler(413)

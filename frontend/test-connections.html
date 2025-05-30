@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Connection Test</title>
+</head>
+<body>
+    <h1>API Connection Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        const results = document.getElementById('results');
+        
+        // Test GCP Backend
+        async function testGCPBackend() {
+            try {
+                const response = await fetch('https://dnd-neural-backend-b54v6cczaa-uc.a.run.app/api/datasets/available', {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                results.innerHTML += `<p style="color: green;">✅ GCP Backend: Connected successfully</p>`;
+                results.innerHTML += `<p>Available datasets: ${JSON.stringify(data, null, 2)}</p>`;
+            } catch (error) {
+                results.innerHTML += `<p style="color: red;">❌ GCP Backend: ${error.message}</p>`;
+            }
+        }
+        
+        // Test Custom Domain (if exists)
+        async function testCustomDomain() {
+            try {
+                const response = await fetch('https://app.neuroblock/api/datasets/available', {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                results.innerHTML += `<p style="color: green;">✅ Custom Domain: Connected successfully</p>`;
+            } catch (error) {
+                results.innerHTML += `<p style="color: red;">❌ Custom Domain: ${error.message}</p>`;
+            }
+        }
+        
+        testGCPBackend();
+        testCustomDomain();
+    </script>
+</body>
+</html> 

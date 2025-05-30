@@ -1,7 +1,12 @@
-from flask import Flask, redirect
+import eventlet
+eventlet.monkey_patch()  # Add this at the very top
+from flask import Flask, redirect, session
 from flask_cors import CORS
 from flask_socketio import SocketIO
 import os
+import uuid
+
+
 
 # Set matplotlib backend early to prevent GUI threading issues on macOS
 import matplotlib
@@ -9,34 +14,44 @@ matplotlib.use('Agg')
 
 from backend.config import config
 from backend.utils.logging import get_logger
+from backend.utils.session_manager import start_cleanup_thread
 
 # Initialize logger
 logger = get_logger(__name__)
 
 def create_app(config_name="default"):
-    """
-    Application factory function that creates and configures the Flask app.
-    
-    Args:
-        config_name: The configuration to use (default, development, production, testing)
-    
-    Returns:
-        The configured Flask application
-    """
-    # Create the Flask application
     app = Flask(__name__)
-    
-    # Load configuration
     app.config.from_object(config[config_name])
     
-    # Enable CORS
-    CORS(app)
+    # Enable CORS with credentials support (important for sessions)
+    CORS(app, supports_credentials=True, resources={
+        r"/*": {
+            "origins": app.config['ALLOWED_ORIGINS'],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True
+        }
+    })
     
     # Ensure export folder exists
     export_folder = app.config.get("EXPORT_FOLDER", os.path.join(os.path.dirname(os.path.dirname(__file__)), "exports"))
     os.makedirs(export_folder, exist_ok=True)
     
-    logger.info("Application initialized", extra={"context": {"export_folder": export_folder}})
+    # Add session initialization middleware
+    @app.before_request
+    def ensure_session():
+        if 'session_id' not in session:
+            session['session_id'] = str(uuid.uuid4())
+            logger.info(f"New session created: {session['session_id']}")
+    
+    # Start session cleanup thread
+    cleanup_interval = app.config.get('SESSION_CLEANUP_INTERVAL_HOURS', 6)
+    max_age = app.config.get('SESSION_MAX_AGE_HOURS', 24)
+    start_cleanup_thread(
+        cleanup_interval_hours=cleanup_interval, 
+        max_age_hours=max_age, 
+        app=app
+    )
     
     # Register blueprints
     from backend.api.routes import api_blueprint
@@ -44,34 +59,16 @@ def create_app(config_name="default"):
     app.register_blueprint(api_blueprint)
     app.register_blueprint(dataset_blueprint)
     
-    # Add health check endpoint for Google Cloud
-    @app.route('/health')
-    def health():
-        return {'status': 'healthy'}, 200
-    
-    # Add root route handler
-    @app.route('/')
-    def root():
-        return {'message': 'DND Neural Network Backend API. Please use /api/ for endpoints.'}, 200
-    
     return app
 
 def create_socketio(app):
-    """
-    Create and configure the SocketIO instance.
-    
-    Args:
-        app: The Flask application
-    
-    Returns:
-        Configured SocketIO instance
-    """
     socketio = SocketIO(
-        app, 
-        cors_allowed_origins="*", 
+        app,
+        cors_allowed_origins=app.config['ALLOWED_ORIGINS'],
         ping_timeout=app.config.get("SOCKETIO_PING_TIMEOUT", 300),
         ping_interval=app.config.get("SOCKETIO_PING_INTERVAL", 25),
-        async_mode="threading"
+        async_mode="eventlet",  # Change to eventlet
+        manage_session=False  # Important: let Flask handle sessions
     )
     
     # Register socket events
@@ -84,14 +81,21 @@ def create_socketio(app):
 app = create_app(os.environ.get("FLASK_CONFIG", "default"))
 socketio = create_socketio(app)
 
-# For Cloud Run or WSGI
-# This line exposes the Flask application for Cloud Run and similar platforms
-wsgi_app = app
+# Log startup configuration
+host = "0.0.0.0"
+port = int(os.environ.get("PORT", 8080))
+debug = app.config.get('DEBUG', False)
 
-if __name__ == "__main__":
-    host = "0.0.0.0"  # Always bind to all interfaces for Cloud Run
-    port = int(os.environ.get("PORT", 5000))
-    debug = os.environ.get("DEBUG", "False").lower() == "true"
-    
-    logger.info("Starting server", extra={"context": {"host": host, "port": port, "debug": debug}})
+logger.info("Starting server", extra={
+    "context": {
+        "host": host,
+        "port": port,
+        "debug": debug,
+        "config": os.environ.get("FLASK_CONFIG", "default"),
+        "allowed_origins": app.config['ALLOWED_ORIGINS']
+    }
+})
+
+# Only run with socketio.run() in development
+if __name__ == "__main__" and os.environ.get("FLASK_ENV") == "development":
     socketio.run(app, host=host, port=port, debug=debug)

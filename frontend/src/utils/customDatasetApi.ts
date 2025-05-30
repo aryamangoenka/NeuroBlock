@@ -1,5 +1,19 @@
 import API_BASE_URL from './apiConfig';
 
+// Add type definitions for process.env
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      NODE_ENV: 'development' | 'production';
+    }
+  }
+}
+
+// Add a function to get the correct socket URL
+export function getSocketUrl(): string {
+  return API_BASE_URL;
+}
+
 // TypeScript interfaces for custom dataset management
 export interface DatasetPreview {
   columns: string[];
@@ -89,15 +103,29 @@ async function makeApiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const url = `${API_BASE_URL}/api/datasets${endpoint}`;
+  // Use the development URL for local development
+  const baseUrl = getSocketUrl();
+    
+  const url = `${baseUrl}/api/datasets${endpoint}`;
+  
+  console.log(`🌐 Making API request to: ${url}`);
+  console.log(`📋 Request options:`, {
+    method: options.method || 'GET',
+    credentials: 'include',
+    headers: options.headers
+  });
   
   try {
     const response = await fetch(url, {
       ...options,
+      credentials: 'include',
       headers: {
         ...options.headers,
       },
     });
+
+    console.log(`📡 Response status: ${response.status} ${response.statusText}`);
+    console.log(`🍪 Response headers:`, Object.fromEntries(response.headers.entries()));
 
     // Handle non-2xx responses
     if (!response.ok) {
@@ -107,8 +135,10 @@ async function makeApiRequest<T>(
       try {
         errorData = await response.json();
         errorMessage = errorData.error || errorMessage;
+        console.log(`❌ Error response data:`, errorData);
       } catch (parseError) {
         // If response is not JSON, use the status text
+        console.log(`⚠️ Could not parse error response as JSON`);
       }
 
       throw new CustomDatasetApiError(errorMessage, response.status, errorData);
@@ -116,13 +146,16 @@ async function makeApiRequest<T>(
 
     // Parse JSON response
     const data = await response.json();
+    console.log(`✅ Response data:`, data);
     return data;
   } catch (error) {
     if (error instanceof CustomDatasetApiError) {
+      console.error(`🚨 API Error:`, error);
       throw error;
     }
 
     // Handle network errors or other issues
+    console.error(`🌐 Network Error:`, error);
     throw new CustomDatasetApiError(
       `Network error: ${error instanceof Error ? error.message : 'Unknown error'}`,
       0,
@@ -175,6 +208,9 @@ export async function previewDataset(file: File): Promise<DatasetPreview> {
     throw new CustomDatasetApiError('Failed to preview dataset', 500, response);
   }
 
+  console.log('🔍 Raw preview response data:', response.data);
+  
+  // The backend returns the data nested under 'data', so we extract it
   return response.data;
 }
 
@@ -263,18 +299,17 @@ export async function createCustomDataset(
  * @returns Promise with array of custom datasets
  */
 export async function getCustomDatasets(): Promise<CustomDataset[]> {
-  const response = await makeApiRequest<{
-    success: boolean;
-    datasets: CustomDataset[];
-  }>('/custom', {
-    method: 'GET',
-  });
-
-  if (!response.success) {
-    throw new CustomDatasetApiError('Failed to fetch custom datasets', 500, response);
-  }
-
-  return response.datasets;
+  console.log('🔍 Fetching custom datasets...');
+  
+  const response = await makeApiRequest<{success: boolean, datasets: CustomDataset[]}>('/custom');
+  
+  console.log('📦 getCustomDatasets raw response:', response);
+  
+  // Extract the datasets array from the response
+  const datasets = response.datasets || [];
+  console.log('⭐ Extracted custom datasets:', datasets);
+  
+  return datasets;
 }
 
 /**
@@ -282,18 +317,17 @@ export async function getCustomDatasets(): Promise<CustomDataset[]> {
  * @returns Promise with categorized datasets
  */
 export async function getAvailableDatasets(): Promise<AvailableDatasets> {
-  const response = await makeApiRequest<{
-    success: boolean;
-    datasets: AvailableDatasets;
-  }>('/available', {
-    method: 'GET',
-  });
-
-  if (!response.success) {
-    throw new CustomDatasetApiError('Failed to fetch available datasets', 500, response);
-  }
-
-  return response.datasets;
+  console.log('🔍 Fetching available datasets...');
+  
+  const response = await makeApiRequest<{success: boolean, datasets: AvailableDatasets}>('/available');
+  
+  console.log('📦 getAvailableDatasets raw response:', response);
+  
+  // Extract the datasets object from the response
+  const datasets = response.datasets || { built_in: [], custom: [], all_names: [] };
+  console.log('⭐ Extracted available datasets:', datasets);
+  
+  return datasets;
 }
 
 /**
@@ -306,7 +340,7 @@ export async function deleteCustomDataset(datasetName: string): Promise<{ succes
     throw new CustomDatasetApiError('Dataset name is required', 400);
   }
 
-  const response = await makeApiRequest<{ success: boolean; message: string }>(`/custom/${encodeURIComponent(datasetName)}`, {
+  const response = await makeApiRequest<{ success: boolean; message: string }>(`/delete/${encodeURIComponent(datasetName)}`, {
     method: 'DELETE',
   });
 

@@ -41,7 +41,7 @@ export async function examplePreviewDataset(file: File): Promise<void> {
     console.log('  📋 Columns:', preview.columns);
     console.log('  🏷️  Data Types:', preview.data_types);
     console.log('  ❓ Missing Values:', preview.missing_values);
-    console.log('  📊 Sample Data (first 5 rows):', preview.rows);
+    
     
     if (preview.row_limit_exceeded) {
       console.log('⚠️  Row limit exceeded - showing first 100,000 rows only');

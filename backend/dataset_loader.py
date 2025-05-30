@@ -1,6 +1,6 @@
 import numpy as np
 import os
-from flask import current_app
+from flask import current_app, session
 from backend.utils.logging import get_logger
 import json
 import tensorflow as tf
@@ -28,7 +28,7 @@ class DatasetRegistry:
             "California Housing": load_california_housing_dataset,
             "Breast Cancer": load_breast_cancer_dataset
         }
-        self.custom_datasets = {}  # Store custom dataset configurations
+        # Remove global custom_datasets - now handled per session
         
     def register_dataset(self, name, loader_function):
         """
@@ -43,9 +43,9 @@ class DatasetRegistry:
         self.loaders[name] = loader_function
         logger.info(f"Registered dataset: {name}")
     
-    def register_custom_dataset(self, dataset_config):
+    def register_custom_dataset(self, dataset_config, session_id=None):
         """
-        Register a custom dataset with the registry
+        Register a custom dataset with the registry for the current session
         
         Args:
             dataset_config (dict): Configuration dictionary containing:
@@ -55,6 +55,7 @@ class DatasetRegistry:
                 - task_type: 'classification' or 'regression'
                 - feature_count: Number of features
                 - class_labels: List of class labels (for classification)
+            session_id (str, optional): Session ID. If None, uses current session.
         
         Returns:
             str: Dataset ID (name) for future reference
@@ -75,73 +76,78 @@ class DatasetRegistry:
         if not os.path.exists(dataset_config['metadata_path']):
             raise FileNotFoundError(f"Metadata file not found: {dataset_config['metadata_path']}")
         
-        # Store the configuration
-        self.custom_datasets[dataset_name] = dataset_config
-        
         # Create and register a loader function for this custom dataset
         def custom_loader():
-            return self._load_custom_dataset_data(dataset_name)
+            return self._load_custom_dataset_data(dataset_name, session_id)
         
         self.register_dataset(dataset_name, custom_loader)
         
         logger.info(f"Registered custom dataset: {dataset_name}")
         return dataset_name
     
-    def load_custom_dataset(self, dataset_id):
+    def load_custom_dataset(self, dataset_id, session_id=None):
         """
         Load a custom dataset for training
         
         Args:
             dataset_id (str): ID/name of the custom dataset
+            session_id (str, optional): Session ID. If None, uses current session.
             
         Returns:
             tuple: ((x_train, y_train), (x_test, y_test)) format
         """
-        # Try exact match first
-        if dataset_id in self.custom_datasets:
-            return self._load_custom_dataset_data(dataset_id)
-        
-        # Try case-insensitive match
-        dataset_id_lower = dataset_id.lower()
-        for registered_name in self.custom_datasets.keys():
-            if registered_name.lower() == dataset_id_lower:
-                logger.info(f"Found case-insensitive match for custom dataset: '{dataset_id}' -> '{registered_name}'")
-                return self._load_custom_dataset_data(registered_name)
-        
-        # No match found
-        raise ValueError(f"Custom dataset '{dataset_id}' not found in registry")
+        return self._load_custom_dataset_data(dataset_id, session_id)
     
-    def _load_custom_dataset_data(self, dataset_name):
+    def _load_custom_dataset_data(self, dataset_name, session_id=None):
         """
-        Internal method to load custom dataset data
+        Internal method to load custom dataset data from session-specific storage
         
         Args:
             dataset_name (str): Name of the custom dataset
+            session_id (str, optional): Session ID. If None, uses current session.
             
         Returns:
             tuple: ((x_train, y_train), (x_test, y_test)) format
         """
-        config = self.custom_datasets[dataset_name]
-        
         try:
+            # Get session-specific dataset directory
+            from backend.utils.session_manager import get_session_datasets_dir, get_session_id
+            
+            if session_id is None:
+                try:
+                    session_id = get_session_id()
+                except RuntimeError:
+                    # No session context available, try to find dataset in any session
+                    logger.warning(f"No session context for loading dataset '{dataset_name}', searching all sessions")
+                    return self._load_dataset_from_any_session(dataset_name)
+            
+            datasets_dir = get_session_datasets_dir(session_id)
+            
+            # Find dataset files
+            dataset_file = os.path.join(datasets_dir, f'{dataset_name}.npz')
+            metadata_file = os.path.join(datasets_dir, f'{dataset_name}_metadata.json')
+            
+            if not os.path.exists(dataset_file):
+                raise FileNotFoundError(f"Dataset file not found: {dataset_file}")
+            
+            if not os.path.exists(metadata_file):
+                raise FileNotFoundError(f"Metadata file not found: {metadata_file}")
+            
             # Load the dataset from .npz file
-            data = np.load(config['file_path'])
+            data = np.load(dataset_file)
             X = data['X']
             y = data['y']
             
             # Load metadata for additional processing info
-            with open(config['metadata_path'], 'r') as f:
+            with open(metadata_file, 'r') as f:
                 metadata = json.load(f)
             
-            task_type = config['task_type']
+            task_type = metadata.get('task_type', 'classification')
             
             # Preprocessing based on task type
             if task_type == 'classification':
                 # For classification, ensure labels are properly encoded
-                if y.dtype == 'object' or len(np.unique(y)) != len(config.get('class_labels', [])):
-                    # Re-encode if needed
-                    label_encoder = LabelEncoder()
-                    y = label_encoder.fit_transform(y)
+                class_labels = metadata.get('class_labels')
                 
                 # One-hot encode for classification
                 n_classes = len(np.unique(y))
@@ -185,100 +191,114 @@ class DatasetRegistry:
             logger.error(f"Error loading custom dataset '{dataset_name}': {str(e)}")
             raise
     
-    def get_custom_datasets(self):
+    def _load_dataset_from_any_session(self, dataset_name):
         """
-        Get a list of all registered custom datasets
+        Fallback method to load dataset from any session when no session context is available.
+        This is used during training when the session context might not be available.
+        
+        Args:
+            dataset_name (str): Name of the custom dataset
+            
+        Returns:
+            tuple: ((x_train, y_train), (x_test, y_test)) format
+        """
+        try:
+            project_root = current_app.config.get('PROJECT_ROOT', '')
+            sessions_dir = os.path.join(project_root, 'datasets', 'sessions')
+            
+            if not os.path.exists(sessions_dir):
+                raise FileNotFoundError(f"No sessions directory found")
+            
+            # Search through all session directories
+            for session_id in os.listdir(sessions_dir):
+                session_path = os.path.join(sessions_dir, session_id)
+                
+                if not os.path.isdir(session_path):
+                    continue
+                
+                dataset_file = os.path.join(session_path, f'{dataset_name}.npz')
+                metadata_file = os.path.join(session_path, f'{dataset_name}_metadata.json')
+                
+                if os.path.exists(dataset_file) and os.path.exists(metadata_file):
+                    logger.info(f"Found dataset '{dataset_name}' in session: {session_id}")
+                    return self._load_custom_dataset_data(dataset_name, session_id)
+            
+            raise FileNotFoundError(f"Dataset '{dataset_name}' not found in any session")
+            
+        except Exception as e:
+            logger.error(f"Error searching for dataset '{dataset_name}' across sessions: {str(e)}")
+            raise
+    
+    def get_custom_datasets(self, session_id=None):
+        """
+        Get a list of all custom datasets for the current session
+        
+        Args:
+            session_id (str, optional): Session ID. If None, uses current session.
         
         Returns:
             list: List of dictionaries containing custom dataset information
         """
         custom_dataset_list = []
         
-        for name, config in self.custom_datasets.items():
-            try:
-                # Try to load metadata for additional info
-                with open(config['metadata_path'], 'r') as f:
-                    metadata = json.load(f)
-                
-                dataset_info = {
-                    'name': name,
-                    'task_type': config['task_type'],
-                    'feature_count': config.get('feature_count', metadata.get('processed_shape', [0, 0])[1]),
-                    'shape': metadata.get('processed_shape', [0, 0]),
-                    'target_column': metadata.get('target_column', 'Unknown'),
-                    'created_at': metadata.get('created_at', 'Unknown'),
-                    'original_filename': metadata.get('original_filename', 'Unknown'),
-                    'class_labels': config.get('class_labels', metadata.get('class_labels'))
-                }
-                custom_dataset_list.append(dataset_info)
-                
-            except Exception as e:
-                logger.warning(f"Could not load metadata for custom dataset '{name}': {str(e)}")
-                # Fallback to basic info
-                dataset_info = {
-                    'name': name,
-                    'task_type': config.get('task_type', 'Unknown'),
-                    'feature_count': config.get('feature_count', 0),
-                    'shape': [0, 0],
-                    'target_column': 'Unknown',
-                    'created_at': 'Unknown',
-                    'original_filename': 'Unknown',
-                    'class_labels': config.get('class_labels')
-                }
-                custom_dataset_list.append(dataset_info)
+        try:
+            from backend.utils.session_manager import get_session_datasets_dir, get_session_id
+            
+            if session_id is None:
+                try:
+                    session_id = get_session_id()
+                except RuntimeError:
+                    # No session context available
+                    logger.warning("No session context available for getting custom datasets")
+                    return []
+            
+            datasets_dir = get_session_datasets_dir(session_id)
+            
+            if not os.path.exists(datasets_dir):
+                return []
+            
+            # Find all metadata files
+            for filename in os.listdir(datasets_dir):
+                if filename.endswith('_metadata.json'):
+                    metadata_file = os.path.join(datasets_dir, filename)
+                    try:
+                        with open(metadata_file, 'r') as f:
+                            metadata = json.load(f)
+                        
+                        # Check if the corresponding data file exists
+                        dataset_name = metadata.get('name', 'Unknown')
+                        data_file = os.path.join(datasets_dir, f'{dataset_name}.npz')
+                        
+                        if os.path.exists(data_file):
+                            dataset_info = {
+                                'name': dataset_name,
+                                'task_type': metadata.get('task_type', 'Unknown'),
+                                'feature_count': len(metadata.get('feature_columns', [])),
+                                'shape': metadata.get('processed_shape', [0, 0]),
+                                'target_column': metadata.get('target_column', 'Unknown'),
+                                'created_at': metadata.get('created_at', 'Unknown'),
+                                'original_filename': metadata.get('original_filename', 'Unknown'),
+                                'class_labels': metadata.get('class_labels')
+                            }
+                            custom_dataset_list.append(dataset_info)
+                            
+                    except Exception as e:
+                        logger.warning(f"Could not load metadata from {filename}: {str(e)}")
+                        continue
+        
+        except Exception as e:
+            logger.error(f"Error getting custom datasets: {str(e)}")
         
         return custom_dataset_list
     
     def _discover_custom_datasets(self):
         """
-        Automatically discover and register custom datasets from the datasets/custom directory
+        This method is no longer used with session-based storage.
+        Custom datasets are now discovered per session.
         """
-        try:
-            # Get the custom datasets directory
-            if hasattr(current_app, 'config'):
-                project_root = current_app.config.get('PROJECT_ROOT', '')
-            else:
-                project_root = os.path.dirname(os.path.dirname(__file__))
-            
-            custom_datasets_dir = os.path.join(project_root, 'datasets', 'custom')
-            
-            if not os.path.exists(custom_datasets_dir):
-                return
-            
-            # Find all metadata files
-            for filename in os.listdir(custom_datasets_dir):
-                if filename.endswith('_metadata.json'):
-                    metadata_path = os.path.join(custom_datasets_dir, filename)
-                    
-                    try:
-                        with open(metadata_path, 'r') as f:
-                            metadata = json.load(f)
-                        
-                        dataset_name = metadata.get('name')
-                        data_file_path = metadata.get('file_path', '')
-                        
-                        # Check if data file exists
-                        if dataset_name and os.path.exists(data_file_path):
-                            dataset_config = {
-                                'name': dataset_name,
-                                'file_path': data_file_path,
-                                'metadata_path': metadata_path,
-                                'task_type': metadata.get('task_type', 'classification'),
-                                'feature_count': len(metadata.get('feature_columns', [])),
-                                'class_labels': metadata.get('class_labels')
-                            }
-                            
-                            # Only register if not already registered
-                            if dataset_name not in self.custom_datasets:
-                                self.register_custom_dataset(dataset_config)
-                                
-                    except Exception as e:
-                        logger.warning(f"Could not load custom dataset from {filename}: {str(e)}")
-                        continue
-                        
-        except Exception as e:
-            logger.warning(f"Error discovering custom datasets: {str(e)}")
-        
+        logger.info("Custom dataset discovery is now handled per session")
+        pass
+    
     def get_loader(self, dataset_name):
         """
         Get the loader function for a dataset
@@ -369,38 +389,43 @@ def load_dataset(dataset_name):
     return loader()
 
 # Convenience functions for custom dataset management
-def register_custom_dataset(dataset_config):
+def register_custom_dataset(dataset_config, session_id=None):
     """
-    Register a custom dataset with the global registry
+    Register a custom dataset with the global registry for the current session
     
     Args:
         dataset_config (dict): Dataset configuration
+        session_id (str, optional): Session ID. If None, uses current session.
         
     Returns:
         str: Dataset ID
     """
-    return dataset_registry.register_custom_dataset(dataset_config)
+    return dataset_registry.register_custom_dataset(dataset_config, session_id)
 
-def get_custom_datasets():
+def get_custom_datasets(session_id=None):
     """
-    Get all custom datasets from the global registry
+    Get all custom datasets for the current session
+    
+    Args:
+        session_id (str, optional): Session ID. If None, uses current session.
     
     Returns:
         list: List of custom dataset information
     """
-    return dataset_registry.get_custom_datasets()
+    return dataset_registry.get_custom_datasets(session_id)
 
-def load_custom_dataset(dataset_id):
+def load_custom_dataset(dataset_id, session_id=None):
     """
-    Load a custom dataset from the global registry
+    Load a custom dataset for the current session
     
     Args:
         dataset_id (str): Dataset ID
+        session_id (str, optional): Session ID. If None, uses current session.
         
     Returns:
         tuple: ((x_train, y_train), (x_test, y_test))
     """
-    return dataset_registry.load_custom_dataset(dataset_id)
+    return dataset_registry.load_custom_dataset(dataset_id, session_id)
 
 if __name__ == "__main__":
     # Use the dataset specified in the saved model, or default to MNIST

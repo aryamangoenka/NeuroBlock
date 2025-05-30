@@ -5,13 +5,14 @@ import TutorialPage from "./pages/TutorialPage";
 
 import NavBar from "./components/NavBar";
 import axios from "axios";
+import API_BASE_URL from "./utils/apiConfig";
 
 // AppContent component that uses the context
 const AppContent: React.FC = () => {
   useEffect(() => {
     // Send a POST request to clear the saved model data when the app loads
     axios
-      .post("http://localhost:5000/api/clear_model")
+      .post(`${API_BASE_URL}/api/clear_model`)
       .then((response) => {
         console.log("🧹", response.data.message); // Logs success message
       })

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socket.IO Connection Test</title>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Socket.IO Connection Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        const results = document.getElementById('results');
+        
+        // Test Socket.IO connection to GCP Backend
+        async function testSocketIO() {
+            try {
+                results.innerHTML += `<p>🔌 Connecting to Socket.IO...</p>`;
+                
+                const socket = io('https://dnd-neural-backend-b54v6cczaa-uc.a.run.app', {
+                    transports: ['websocket'],
+                    secure: true,
+                    rejectUnauthorized: false
+                });
+                
+                socket.on('connect', () => {
+                    results.innerHTML += `<p style="color: green;">✅ Socket.IO Connected: ${socket.id}</p>`;
+                });
+                
+                socket.on('connect_error', (error) => {
+                    results.innerHTML += `<p style="color: red;">❌ Socket.IO Error: ${error.message}</p>`;
+                });
+                
+                // Test after 5 seconds
+                setTimeout(() => {
+                    if (!socket.connected) {
+                        results.innerHTML += `<p style="color: orange;">⚠️ Socket.IO still connecting...</p>`;
+                    }
+                }, 5000);
+                
+            } catch (error) {
+                results.innerHTML += `<p style="color: red;">❌ Socket.IO Error: ${error.message}</p>`;
+            }
+        }
+        
+        testSocketIO();
+    </script>
+</body>
+</html> 

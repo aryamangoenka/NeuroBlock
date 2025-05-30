@@ -94,6 +94,7 @@ chmod +x ./run_backend.sh  # Make the script executable (macOS/Linux only)
 ```
 
 The `run_backend.sh` script automatically:
+
 - Sets the correct Python path to ensure imports work properly
 - Activates the Poetry virtual environment
 - Runs the Flask server with the proper configuration
@@ -110,6 +111,7 @@ poetry run python -m backend.main        # Run the backend through Poetry's envi
 ```
 
 This script ensures:
+
 1. The proper Python module paths are set up
 2. The application runs in the Poetry-managed virtual environment
 3. You don't need to manually activate the virtual environment
@@ -206,6 +208,7 @@ chmod +x ./run_tests.sh  # Make the script executable (macOS/Linux only)
 ```
 
 The `run_tests.sh` script automatically:
+
 - Sets the correct Python path
 - Activates the Poetry virtual environment
 - Runs the test suite with proper configuration
@@ -232,6 +235,7 @@ poetry run python -m backend.run_tests "$@"  # Run tests through Poetry's enviro
 ```
 
 This script ensures:
+
 1. Tests run in the Poetry-managed virtual environment
 2. The proper Python module paths are set up
 3. Command-line arguments are passed to the test runner
@@ -345,3 +349,189 @@ This project is licensed under the **MIT License**.
 ```
 MIT License
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software...
+```
+
+# DND Neural Network Backend
+
+This is the backend service for the DND Neural Network project, a drag-and-drop neural network builder.
+
+## Prerequisites
+
+- Python 3.10 or higher (but less than 3.13)
+- Poetry for dependency management
+- Google Cloud SDK (for production deployment)
+
+## Development Setup
+
+1. **Install Poetry** (if not already installed):
+
+   ```bash
+   curl -sSL https://install.python-poetry.org | python3 -
+   ```
+
+2. **Clone the repository and navigate to the project directory**:
+
+   ```bash
+   cd DND-Neural-Network
+   ```
+
+3. **Install dependencies**:
+
+   ```bash
+   poetry install
+   ```
+
+4. **Set up environment variables**:
+
+   ```bash
+   export FLASK_CONFIG=development
+   export PORT=5000
+   export HOST=localhost
+   ```
+
+5. **Run the development server**:
+   ```bash
+   poetry run python backend/main.py
+   ```
+
+The development server will start on `http://localhost:5000` with:
+
+- Debug mode enabled
+- CORS configured for local development
+- WebSocket support
+- Detailed logging
+
+## Production Deployment
+
+### Option 1: Google Cloud Run (Recommended)
+
+1. **Set up Google Cloud SDK**:
+
+   ```bash
+   # Install Google Cloud SDK
+   # Follow instructions at: https://cloud.google.com/sdk/docs/install
+
+   # Login to Google Cloud
+   gcloud auth login
+
+   # Set your project
+   gcloud config set project YOUR_PROJECT_ID
+   ```
+
+2. **Set up environment variables in Secret Manager**:
+
+   ```bash
+   # Create a secret for your Flask secret key
+   echo -n "your-secure-secret-key" | gcloud secrets create flask-secret-key --data-file=-
+   ```
+
+3. **Deploy to Cloud Run**:
+   ```bash
+   gcloud run deploy dnd-neural-backend \
+     --source . \
+     --platform managed \
+     --region us-central1 \
+     --set-env-vars="FLASK_CONFIG=production,PORT=8080,HOST=0.0.0.0" \
+     --set-secrets="SECRET_KEY=flask-secret-key:latest" \
+     --allow-unauthenticated
+   ```
+
+### Option 2: Manual Server Deployment
+
+1. **Set up environment variables**:
+
+   ```bash
+   export FLASK_CONFIG=production
+   export PORT=8080
+   export HOST=0.0.0.0
+   export SECRET_KEY=your-secure-secret-key
+   ```
+
+2. **Install production dependencies**:
+
+   ```bash
+   poetry install --no-dev
+   ```
+
+3. **Run with Gunicorn**:
+   ```bash
+   poetry run gunicorn -w 4 -k eventlet -b 0.0.0.0:8080 backend.main:app
+   ```
+
+## Environment Configuration
+
+### Development Environment
+
+- `FLASK_CONFIG=development`
+- `PORT=5000`
+- `HOST=localhost`
+- Debug mode enabled
+- CORS allows: `http://localhost:5173`, `http://localhost:3000`
+
+### Production Environment
+
+- `FLASK_CONFIG=production`
+- `PORT=8080`
+- `HOST=0.0.0.0`
+- Debug mode disabled
+- CORS allows: `https://app.neuroblock.co`, `https://api.neuroblock.co`, `https://neuroblock.co`
+
+## API Endpoints
+
+The backend provides the following main endpoints:
+
+- `/api/datasets` - Dataset management
+- `/api/train` - Model training
+- `/api/predict` - Model prediction
+- `/api/export` - Model export
+- WebSocket endpoint for real-time training updates
+
+## Session Management
+
+- Development: Sessions expire after 24 hours
+- Production: Sessions expire after 7 days
+- Session cleanup runs every 6 hours in development, 12 hours in production
+
+## Troubleshooting
+
+1. **Port already in use**:
+
+   ```bash
+   # Find process using port
+   lsof -i :5000
+   # Kill process
+   kill -9 <PID>
+   ```
+
+2. **CORS issues**:
+
+   - Verify the frontend URL is in the allowed origins
+   - Check if credentials are being sent with requests
+
+3. **WebSocket connection issues**:
+   - Ensure eventlet is properly installed
+   - Check if the WebSocket URL is correct in the frontend
+
+## Monitoring
+
+- Development: Check console logs for detailed information
+- Production: Use Google Cloud Logging
+  ```bash
+  gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=dnd-neural-backend"
+  ```
+
+## Contributing
+
+1. Create a new branch for your feature
+2. Make your changes
+3. Run tests: `poetry run pytest`
+4. Submit a pull request
+
+## License
+
+[Your License Here]
+
+```
+MIT License
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software...
+```
