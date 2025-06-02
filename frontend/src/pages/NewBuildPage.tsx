@@ -88,6 +88,7 @@ const nodeTypes = {
 
 // Define the sidebar navigation options
 type SidebarOption = "layers" | "templates" | "activations";
+type RightSidebarTab = "dataset" | "parameters" | "train";
 
 // Add these near the top of the file with other type definitions
 type ValidationErrors = string[];
@@ -1411,12 +1412,6 @@ const NewBuildPage = (): JSX.Element => {
   };
 
   // Function to handle back button click in visualization section
-  const handleBackButtonClick = (): void => {
-    // Reset the training state and labels to return to the dataset options view
-    setIsTraining(false);
-    setLabels([]);
-    setWandbUrl(null); // Clear Weights & Biases URL to remove the dashboard section
-  };
 
   // Function to handle custom layer save
   const handleCustomLayerSave = (blockName: string, layers: any[]) => {
@@ -3329,13 +3324,8 @@ const NewBuildPage = (): JSX.Element => {
   };
 
   const onNodeClick = (_: React.MouseEvent, node: Node): void => {
-    console.log("Node clicked:", {
-      id: node.id,
-      type: node.type,
-      data: node.data,
-    });
     setSelectedNode(node);
-    setActiveSidebarOption("layers");
+    setActiveRightSidebarTab("parameters");
   };
 
   // Validate layer parameters before saving or training
@@ -5013,7 +5003,6 @@ const NewBuildPage = (): JSX.Element => {
                       />
                     </div>
                   </div>
-
                   <div className="param-subgroup">
                     <label>Stride</label>
                     <div className="dimension-input">
@@ -5044,7 +5033,6 @@ const NewBuildPage = (): JSX.Element => {
                       />
                     </div>
                   </div>
-
                   <div className="param-subgroup">
                     <label>Padding</label>
                     <select
@@ -6113,7 +6101,7 @@ const NewBuildPage = (): JSX.Element => {
   // Add state for Save as Template modal and template name
   const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
   const [templateName, setTemplateName] = useState("");
-  void templateName
+  void templateName;
   void setShowSaveTemplateModal;
   void setTemplateName;
   // Load session templates on mount
@@ -6157,6 +6145,894 @@ const NewBuildPage = (): JSX.Element => {
       alert("Invalid template format.");
     }
   };
+
+  const [activeRightSidebarTab, setActiveRightSidebarTab] =
+    useState<RightSidebarTab>("dataset");
+
+  const renderRightSidebarContent = () => {
+    switch (activeRightSidebarTab) {
+      case "dataset":
+        return (
+          <>
+            {/* Dataset Selection Dropdown */}
+            <div className="dataset-section">
+              <div className="dataset-header">
+                <i className="fas fa-database"></i>
+                <h3>Choose Dataset</h3>
+              </div>
+              <div className="dataset-dropdown-container">
+                <select
+                  value={selectedDataset}
+                  onChange={(e) => {
+                    const newDataset = e.target.value;
+                    if (newDataset === "__create_custom__") {
+                      setShowCustomDatasetModal(true);
+                      return;
+                    }
+                    setSelectedDataset(newDataset);
+                    // Manually trigger a dataset change event
+                    const event = new CustomEvent("datasetChange", {
+                      detail: { dataset: newDataset },
+                    });
+                    window.dispatchEvent(event);
+                  }}
+                  className="dataset-select-dropdown"
+                >
+                  <option value="">Select Dataset</option>
+                  <option value="MNIST">MNIST</option>
+                  <option value="CIFAR-10">CIFAR-10</option>
+                  <option value="Iris">Iris</option>
+                  <option value="Breast Cancer">Breast Cancer</option>
+                  <option value="California Housing">California Housing</option>
+                  {customDatasets.length > 0 && (
+                    <>
+                      <option disabled>──────────</option>
+                      {customDatasets.map((datasetName) => (
+                        <option key={datasetName} value={datasetName}>
+                          {datasetName} (Custom)
+                        </option>
+                      ))}
+                    </>
+                  )}
+                  <option disabled>──────────</option>
+                  <option value="__create_custom__">
+                    ➕ Add Custom Dataset
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            {/* Hyperparameters Section */}
+            <div className="hyperparams-modern-card">
+              <div className="hyperparams-modern-header">
+                <i className="fas fa-sliders-h"></i>
+                <span>Hyperparameters</span>
+              </div>
+              <div className="hyperparams-modern-content">
+                {/* Batch Size */}
+                <div className="modern-param-row">
+                  <span>Batch Size</span>
+                  <div className="modern-number-input">
+                    <button
+                      onClick={() =>
+                        setTrainingConfig({
+                          ...trainingConfig,
+                          batchSize: Math.max(1, trainingConfig.batchSize - 1),
+                        })
+                      }
+                    >
+                      -
+                    </button>
+                    <span>{trainingConfig.batchSize}</span>
+                    <button
+                      onClick={() =>
+                        setTrainingConfig({
+                          ...trainingConfig,
+                          batchSize: trainingConfig.batchSize + 1,
+                        })
+                      }
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                {/* Epochs */}
+                <div className="modern-param-row">
+                  <span>Epochs</span>
+                  <div className="modern-number-input">
+                    <button
+                      onClick={() =>
+                        setTrainingConfig({
+                          ...trainingConfig,
+                          epochs: Math.max(1, trainingConfig.epochs - 1),
+                        })
+                      }
+                    >
+                      -
+                    </button>
+                    <span>{trainingConfig.epochs}</span>
+                    <button
+                      onClick={() =>
+                        setTrainingConfig({
+                          ...trainingConfig,
+                          epochs: trainingConfig.epochs + 1,
+                        })
+                      }
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                {/* Optimizer */}
+                <div className="modern-param-row">
+                  <span>Optimizer</span>
+                  <select
+                    value={trainingConfig.optimizer}
+                    onChange={(e) =>
+                      setTrainingConfig({
+                        ...trainingConfig,
+                        optimizer: e.target.value,
+                      })
+                    }
+                  >
+                    <option value="Adam">Adam</option>
+                    <option value="SGD">SGD</option>
+                    <option value="RMSprop">RMSprop</option>
+                    <option value="Adagrad">Adagrad</option>
+                    <option value="Adadelta">Adadelta</option>
+                  </select>
+                </div>
+                {/* Loss Function */}
+                <div className="modern-param-row">
+                  <span>Loss Function</span>
+                  <select
+                    value={trainingConfig.lossFunction}
+                    onChange={(e) =>
+                      setTrainingConfig({
+                        ...trainingConfig,
+                        lossFunction: e.target.value,
+                      })
+                    }
+                  >
+                    <option value="Categorical Cross-Entropy">
+                      Categorical Cross-Entropy
+                    </option>
+                    <option value="Binary Cross-Entropy">
+                      Binary Cross-Entropy
+                    </option>
+                    <option value="Mean Squared Error">
+                      Mean Squared Error
+                    </option>
+                    <option value="Mean Absolute Error">
+                      Mean Absolute Error
+                    </option>
+                    <option value="Huber Loss">Huber Loss</option>
+                  </select>
+                </div>
+                {/* Validation Split */}
+                <div className="modern-param-row">
+                  <span>Validation Split</span>
+                  <div className="modern-slider-group">
+                    <input
+                      type="range"
+                      min="0.1"
+                      max="0.5"
+                      step="0.01"
+                      value={trainingConfig.validationSplit}
+                      onChange={(e) =>
+                        setTrainingConfig({
+                          ...trainingConfig,
+                          validationSplit: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                    <span className="modern-slider-value">
+                      {trainingConfig.validationSplit}
+                    </span>
+                  </div>
+                </div>
+                {/* Learning Rate */}
+                <div className="modern-param-row">
+                  <span>Learning Rate</span>
+                  <div className="modern-slider-group">
+                    <input
+                      type="range"
+                      min="0.0001"
+                      max="0.1"
+                      step="0.0001"
+                      value={trainingConfig.learningRate}
+                      onChange={(e) =>
+                        setTrainingConfig({
+                          ...trainingConfig,
+                          learningRate: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                    <span className="modern-slider-value">
+                      {trainingConfig.learningRate}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      case "parameters":
+        return (
+          <>
+            {/* Layer Parameters Section - Only visible when a node is selected */}
+            {selectedNode && (
+              <div className="layer-params-container">
+                <div className="layer-params-header">
+                  <i
+                    className={`fas ${getLayerIcon(selectedNode.type || "")}`}
+                  ></i>
+                  <h3>
+                    {selectedNode.type
+                      ? selectedNode.type.charAt(0).toUpperCase() +
+                        selectedNode.type.slice(1)
+                      : ""}
+                  </h3>
+                </div>
+                <div className="layer-params-content">
+                  {/* Layer Name - Only for non-custom blocks */}
+                  {selectedNode.type !== "customblock" && (
+                    <div className="param-group">
+                      <input
+                        type="text"
+                        value={selectedNode.data.label || ""}
+                        onChange={(e) =>
+                          updateParameter("label", e.target.value)
+                        }
+                        placeholder="Layer Name"
+                        className="param-input full-width"
+                      />
+                    </div>
+                  )}
+                  {/* Dense Layer Parameters */}
+                  {selectedNode.type === "dense" && (
+                    <>
+                      <div className="param-group">
+                        <label>Neurons</label>
+                        <div className="number-input-with-controls">
+                          <input
+                            type="number"
+                            min="1"
+                            value={selectedNode.data.neurons || ""}
+                            onChange={(e) =>
+                              updateParameter("neurons", +e.target.value)
+                            }
+                            className="param-input"
+                          />
+                          <div className="param-controls">
+                            <button
+                              className="control-btn"
+                              onClick={() =>
+                                updateParameter(
+                                  "neurons",
+                                  Math.max(
+                                    1,
+                                    (selectedNode.data.neurons || 1) - 1
+                                  )
+                                )
+                              }
+                            >
+                              <i className="fas fa-minus"></i>
+                            </button>
+                            <button
+                              className="control-btn"
+                              onClick={() =>
+                                updateParameter(
+                                  "neurons",
+                                  (selectedNode.data.neurons || 0) + 1
+                                )
+                              }
+                            >
+                              <i className="fas fa-plus"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  {/* Dropout Layer Parameters */}
+                  {selectedNode.type === "dropout" && (
+                    <div className="param-group">
+                      <label>Rate</label>
+                      <div className="slider-with-value">
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.01"
+                          value={selectedNode.data.rate || 0.2}
+                          onChange={(e) =>
+                            updateParameter(
+                              "rate",
+                              parseFloat(e.target.value) || 0
+                            )
+                          }
+                          className="param-slider"
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          max="1"
+                          step="0.01"
+                          value={selectedNode.data.rate || 0.2}
+                          onChange={(e) =>
+                            updateParameter(
+                              "rate",
+                              parseFloat(e.target.value) || 0
+                            )
+                          }
+                          className="param-input small"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {/* Convolution Layer Parameters */}
+                  {selectedNode.type === "convolution" && (
+                    <>
+                      <div className="param-group">
+                        <label>Filters</label>
+                        <div className="number-input-with-controls">
+                          <input
+                            type="number"
+                            min="1"
+                            value={selectedNode.data.filters || ""}
+                            onChange={(e) =>
+                              updateParameter("filters", +e.target.value)
+                            }
+                            className="param-input"
+                          />
+                          <div className="param-controls">
+                            <button
+                              className="control-btn"
+                              onClick={() =>
+                                updateParameter(
+                                  "filters",
+                                  Math.max(
+                                    1,
+                                    (selectedNode.data.filters || 1) - 1
+                                  )
+                                )
+                              }
+                            >
+                              <i className="fas fa-minus"></i>
+                            </button>
+                            <button
+                              className="control-btn"
+                              onClick={() =>
+                                updateParameter(
+                                  "filters",
+                                  (selectedNode.data.filters || 0) + 1
+                                )
+                              }
+                            >
+                              <i className="fas fa-plus"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="param-group">
+                        <label>Kernel Size</label>
+                        <div className="dimension-input">
+                          <input
+                            type="number"
+                            min="1"
+                            value={selectedNode.data.kernelSize?.[0] || "3"}
+                            onChange={(e) =>
+                              updateParameter("kernelSize", [
+                                parseInt(e.target.value) || 3,
+                                selectedNode.data.kernelSize?.[1] || 3,
+                              ])
+                            }
+                            className="param-input"
+                          />
+                          <span>×</span>
+                          <input
+                            type="number"
+                            min="1"
+                            value={selectedNode.data.kernelSize?.[1] || "3"}
+                            onChange={(e) =>
+                              updateParameter("kernelSize", [
+                                selectedNode.data.kernelSize?.[0] || 3,
+                                parseInt(e.target.value) || 3,
+                              ])
+                            }
+                            className="param-input"
+                          />
+                        </div>
+                      </div>
+                      <div className="param-group">
+                        <label>Stride</label>
+                        <div className="dimension-input">
+                          <input
+                            type="number"
+                            min="1"
+                            value={selectedNode.data.stride?.[0] || "1"}
+                            onChange={(e) =>
+                              updateParameter("stride", [
+                                parseInt(e.target.value) || 1,
+                                selectedNode.data.stride?.[1] || 1,
+                              ])
+                            }
+                            className="param-input"
+                          />
+                          <span>×</span>
+                          <input
+                            type="number"
+                            min="1"
+                            value={selectedNode.data.stride?.[1] || "1"}
+                            onChange={(e) =>
+                              updateParameter("stride", [
+                                selectedNode.data.stride?.[0] || 1,
+                                parseInt(e.target.value) || 1,
+                              ])
+                            }
+                            className="param-input"
+                          />
+                        </div>
+                      </div>
+                      <div className="param-group">
+                        <label>Padding</label>
+                        <select
+                          value={selectedNode.data.padding || "valid"}
+                          onChange={(e) =>
+                            updateParameter("padding", e.target.value)
+                          }
+                          className="param-select"
+                        >
+                          <option value="valid">Valid</option>
+                          <option value="same">Same</option>
+                        </select>
+                      </div>
+                      {/* Activation functionality moved to separate activation layers */}
+                      <div className="param-group">
+                        <p className="param-info">
+                          For activation functions, add a separate Activation
+                          layer after this layer.
+                        </p>
+                      </div>
+                    </>
+                  )}
+                  {/* MaxPooling Layer Parameters */}
+                  {selectedNode.type === "maxpooling" && (
+                    <>
+                      <div className="param-group">
+                        <label>Pool Size</label>
+                        <div className="dimension-input">
+                          <input
+                            type="number"
+                            min="1"
+                            value={selectedNode.data.poolSize?.[0] || "2"}
+                            onChange={(e) =>
+                              updateParameter("poolSize", [
+                                parseInt(e.target.value) || 2,
+                                selectedNode.data.poolSize?.[1] || 2,
+                              ])
+                            }
+                            className="param-input"
+                          />
+                          <span>×</span>
+                          <input
+                            type="number"
+                            min="1"
+                            value={selectedNode.data.poolSize?.[1] || "2"}
+                            onChange={(e) =>
+                              updateParameter("poolSize", [
+                                selectedNode.data.poolSize?.[0] || 2,
+                                parseInt(e.target.value) || 2,
+                              ])
+                            }
+                            className="param-input"
+                          />
+                        </div>
+                      </div>
+                      <div className="param-group">
+                        <label>Stride</label>
+                        <div className="dimension-input">
+                          <input
+                            type="number"
+                            min="1"
+                            value={selectedNode.data.stride?.[0] || "2"}
+                            onChange={(e) =>
+                              updateParameter("stride", [
+                                parseInt(e.target.value) || 2,
+                                selectedNode.data.stride?.[1] || 2,
+                              ])
+                            }
+                            className="param-input"
+                          />
+                          <span>×</span>
+                          <input
+                            type="number"
+                            min="1"
+                            value={selectedNode.data.stride?.[1] || "2"}
+                            onChange={(e) =>
+                              updateParameter("stride", [
+                                selectedNode.data.stride?.[0] || 2,
+                                parseInt(e.target.value) || 2,
+                              ])
+                            }
+                            className="param-input"
+                          />
+                        </div>
+                      </div>
+                      <div className="param-group">
+                        <label>Padding</label>
+                        <select
+                          value={selectedNode.data.padding || "valid"}
+                          onChange={(e) =>
+                            updateParameter("padding", e.target.value)
+                          }
+                          className="param-select"
+                        >
+                          <option value="valid">Valid</option>
+                          <option value="same">Same</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
+                  {/* GlobalAveragePool Layer has no parameters */}
+                  {selectedNode.type === "globalaveragepool" && (
+                    <div className="param-group">
+                      <p className="param-info">
+                        This layer has no configurable parameters.
+                      </p>
+                    </div>
+                  )}
+                  {/* Add Layer has no parameters */}
+                  {selectedNode.type === "addlayer" && (
+                    <div className="param-group">
+                      <p className="param-info">
+                        This layer has no configurable parameters.
+                      </p>
+                    </div>
+                  )}
+                  {/* Flatten Layer has no parameters */}
+                  {selectedNode.type === "flatten" && (
+                    <div className="param-group">
+                      <p className="param-info">
+                        This layer has no configurable parameters.
+                      </p>
+                    </div>
+                  )}
+                  {/* BatchNormalization Layer Parameters */}
+                  {selectedNode.type === "batchnormalization" && (
+                    <>
+                      <div className="param-group">
+                        <label>Momentum</label>
+                        <div className="slider-with-value">
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={selectedNode.data.momentum || 0.99}
+                            onChange={(e) =>
+                              updateParameter(
+                                "momentum",
+                                parseFloat(e.target.value) || 0.99
+                              )
+                            }
+                            className="param-slider"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={selectedNode.data.momentum || 0.99}
+                            onChange={(e) =>
+                              updateParameter(
+                                "momentum",
+                                parseFloat(e.target.value) || 0.99
+                              )
+                            }
+                            className="param-input small"
+                          />
+                        </div>
+                      </div>
+                      <div className="param-group">
+                        <label>Epsilon</label>
+                        <input
+                          type="number"
+                          min="0.00001"
+                          step="0.00001"
+                          value={selectedNode.data.epsilon || 0.001}
+                          onChange={(e) =>
+                            updateParameter(
+                              "epsilon",
+                              parseFloat(e.target.value) || 0.001
+                            )
+                          }
+                          className="param-input"
+                        />
+                      </div>
+                    </>
+                  )}
+                  {/* Attention Layer Parameters */}
+                  {selectedNode.type === "attention" && (
+                    <>
+                      <div className="param-group">
+                        <label>Num Heads</label>
+                        <div className="number-input-with-controls">
+                          <input
+                            type="number"
+                            min="1"
+                            value={selectedNode.data.heads || 8}
+                            onChange={(e) =>
+                              updateParameter(
+                                "heads",
+                                parseInt(e.target.value) || 8
+                              )
+                            }
+                            className="param-input"
+                          />
+                          <div className="param-controls">
+                            <button
+                              className="control-btn"
+                              onClick={() =>
+                                updateParameter(
+                                  "heads",
+                                  Math.max(
+                                    1,
+                                    (selectedNode.data.heads || 8) - 1
+                                  )
+                                )
+                              }
+                            >
+                              <i className="fas fa-minus"></i>
+                            </button>
+                            <button
+                              className="control-btn"
+                              onClick={() =>
+                                updateParameter(
+                                  "heads",
+                                  (selectedNode.data.heads || 8) + 1
+                                )
+                              }
+                            >
+                              <i className="fas fa-plus"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="param-group">
+                        <label>Key Dimension</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={selectedNode.data.keyDim || 64}
+                          onChange={(e) =>
+                            updateParameter(
+                              "keyDim",
+                              parseInt(e.target.value) || 64
+                            )
+                          }
+                          className="param-input"
+                        />
+                      </div>
+                      <div className="param-group">
+                        <label>Dropout Rate</label>
+                        <div className="slider-with-value">
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={selectedNode.data.attentionDropout || 0}
+                            onChange={(e) =>
+                              updateParameter(
+                                "attentionDropout",
+                                parseFloat(e.target.value) || 0
+                              )
+                            }
+                            className="param-slider"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={selectedNode.data.attentionDropout || 0}
+                            onChange={(e) =>
+                              updateParameter(
+                                "attentionDropout",
+                                parseFloat(e.target.value) || 0
+                              )
+                            }
+                            className="param-input small"
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  {/* ResNetBlock Layer Parameters */}
+                  {selectedNode.type === "resnetblock" && (
+                    <>
+                      <div className="param-group">
+                        <label>Block Type</label>
+                        <select
+                          value={selectedNode.data.blockType || "Basic"}
+                          onChange={(e) =>
+                            updateParameter("blockType", e.target.value)
+                          }
+                          className="param-select"
+                        >
+                          <option value="Basic">Basic Block</option>
+                          <option value="Bottleneck">Bottleneck Block</option>
+                        </select>
+                      </div>
+                      <div className="param-group">
+                        <label>Filters</label>
+                        <div className="number-input-with-controls">
+                          <input
+                            type="number"
+                            min="1"
+                            value={selectedNode.data.filters || 64}
+                            onChange={(e) =>
+                              updateParameter(
+                                "filters",
+                                parseInt(e.target.value) || 64
+                              )
+                            }
+                            className="param-input"
+                          />
+                          <div className="param-controls">
+                            <button
+                              className="param-control-btn"
+                              onClick={() =>
+                                updateParameter(
+                                  "filters",
+                                  (selectedNode.data.filters || 64) + 1
+                                )
+                              }
+                            >
+                              <i className="fas fa-caret-up"></i>
+                            </button>
+                            <button
+                              className="param-control-btn"
+                              onClick={() =>
+                                updateParameter(
+                                  "filters",
+                                  Math.max(
+                                    1,
+                                    (selectedNode.data.filters || 64) - 1
+                                  )
+                                )
+                              }
+                            >
+                              <i className="fas fa-caret-down"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="param-group">
+                        <label>Stride</label>
+                        <div className="slider-with-value">
+                          <select
+                            value={
+                              Array.isArray(selectedNode.data.stride)
+                                ? selectedNode.data.stride[0]
+                                : 1
+                            }
+                            onChange={(e) =>
+                              updateParameter("stride", [
+                                parseInt(e.target.value),
+                                parseInt(e.target.value),
+                              ])
+                            }
+                            className="param-select"
+                          >
+                            <option value="1">1x1</option>
+                            <option value="2">2x2</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="param-group">
+                        <label>Activation</label>
+                        <select
+                          value={selectedNode.data.activation || "relu"}
+                          onChange={(e) =>
+                            updateParameter("activation", e.target.value)
+                          }
+                          className="param-select"
+                        >
+                          <option value="relu">ReLU</option>
+                          <option value="leaky_relu">Leaky ReLU</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
+                  {/* Custom Block Parameters */}
+                  {selectedNode.type === "customblock" &&
+                    renderCustomBlockParameters()}
+                  {/* Activation Layer Parameters */}
+                  {selectedNode.type === "activation" && (
+                    <div className="param-group">
+                      <label>
+                        <i className="fas fa-bolt"></i> Activation Function
+                      </label>
+                      <select
+                        value={selectedNode.data.function || "relu"}
+                        onChange={(e) =>
+                          updateParameter("function", e.target.value)
+                        }
+                        className="param-select"
+                      >
+                        <option value="relu">ReLU</option>
+                        <option value="sigmoid">Sigmoid</option>
+                        <option value="tanh">Tanh</option>
+                        <option value="softmax">Softmax</option>
+                        <option value="leaky_relu">Leaky ReLU</option>
+                        <option value="elu">ELU</option>
+                        <option value="swish">Swish</option>
+                        <option value="linear">Linear</option>
+                      </select>
+                    </div>
+                  )}
+                  {/* Output Layer Parameters */}
+                  {selectedNode.type === "output" && (
+                    <div className="param-group"></div>
+                  )}
+                </div>
+              </div>
+            )}
+            {/* Display a message when no node is selected */}
+            {!selectedNode && (
+              <div className="no-layer-selected">
+                <i className="fas fa-mouse-pointer"></i>
+                <p>Select a layer to edit parameters</p>
+              </div>
+            )}
+          </>
+        );
+      case "train":
+        return (
+          <div className="train-metrics-tab-content">
+            {/* Visualization Dropdown and Content */}
+            <div className="visualization-controls">
+              <label htmlFor="visualization-select">
+                Select Visualization:
+              </label>
+              <div className="custom-select-container">
+                <select
+                  id="visualization-select"
+                  value={selectedVisualization}
+                  onChange={(e) => {
+                    visualizationUserSelected.current = true;
+                    setSelectedVisualization(e.target.value);
+                  }}
+                  className="visualization-select"
+                >
+                  {getVisualizationOptions().map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="visualization-content">{renderVisualization()}</div>
+            {/* Training Metrics Below Visualization */}
+            {renderTrainingMetrics()}
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  useEffect(() => {
+    const handleTrainModel = () => {
+      setActiveRightSidebarTab("train");
+    };
+    window.addEventListener("trainModel", handleTrainModel);
+    return () => window.removeEventListener("trainModel", handleTrainModel);
+  }, []);
 
   return (
     <div className="new-build-page">
@@ -6256,1029 +7132,38 @@ const NewBuildPage = (): JSX.Element => {
          * Visualization Section (during and after training)
          */}
         <div className="right-panel">
-          {isTraining || labels.length > 0 ? (
-            <div
-              className={`visualization-section ${
-                isTraining ? "training-active" : ""
-              }`}
-            >
-              <h3>Visualizations</h3>
-              <div className="visualization-controls">
-                <label htmlFor="visualization-select">
-                  Select Visualization:
-                </label>
-                <div className="custom-select-container">
-                  <select
-                    id="visualization-select"
-                    value={selectedVisualization}
-                    onChange={(e) => {
-                      visualizationUserSelected.current = true;
-                      setSelectedVisualization(e.target.value);
-                    }}
-                    className="visualization-select"
-                  >
-                    {getVisualizationOptions().map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              {/* Visualization content - Render before metrics to ensure proper display */}
-              <div className="visualization-content">
-                {renderVisualization()}
-              </div>
-
-              {/* Training metrics and back button in a single container */}
-              <div className="metrics-and-controls-container">
-                {/* Training metrics */}
-                {(isTraining || labels.length > 0) && (
-                  <div className="training-metrics-container">
-                    {renderTrainingMetrics()}
-                  </div>
-                )}
-
-                {/* Back button */}
-                <div className="visualization-back-button-container">
-                  <button
-                    className="visualization-back-button"
-                    onClick={handleBackButtonClick}
-                  >
-                    <i className="fas fa-arrow-left"></i> Back
-                  </button>
-                </div>
-              </div>
+          <div className="right-sidebar-controls">
+            <div className="right-sidebar-tabs">
+              <button
+                className={`tab-button ${
+                  activeRightSidebarTab === "dataset" ? "active" : ""
+                }`}
+                onClick={() => setActiveRightSidebarTab("dataset")}
+              >
+                <i className="fas fa-database"></i>
+                Dataset
+              </button>
+              <button
+                className={`tab-button ${
+                  activeRightSidebarTab === "parameters" ? "active" : ""
+                }`}
+                onClick={() => setActiveRightSidebarTab("parameters")}
+              >
+                <i className="fas fa-sliders-h"></i>
+                Parameters
+              </button>
+              <button
+                className={`tab-button ${
+                  activeRightSidebarTab === "train" ? "active" : ""
+                }`}
+                onClick={() => setActiveRightSidebarTab("train")}
+              >
+                <i className="fas fa-play-circle"></i>
+                Train
+              </button>
             </div>
-          ) : (
-            <div className="right-sidebar-controls">
-              {/* Dataset Selection Dropdown */}
-              <div className="dataset-section">
-                <div className="dataset-header">
-                  <i className="fas fa-database"></i>
-                  <h3>Choose Dataset</h3>
-                </div>
-                <div className="dataset-dropdown-container">
-                  <select
-                    value={selectedDataset}
-                    onChange={(e) => {
-                      const newDataset = e.target.value;
-
-                      if (newDataset === "__create_custom__") {
-                        setShowCustomDatasetModal(true);
-                        return;
-                      }
-
-                      setSelectedDataset(newDataset);
-                      // Manually trigger a dataset change event
-                      const event = new CustomEvent("datasetChange", {
-                        detail: { dataset: newDataset },
-                      });
-                      window.dispatchEvent(event);
-                    }}
-                    className="dataset-select-dropdown"
-                  >
-                    <option value="">Select Dataset</option>
-                    <option value="MNIST">MNIST</option>
-                    <option value="CIFAR-10">CIFAR-10</option>
-                    <option value="Iris">Iris</option>
-                    <option value="Breast Cancer">Breast Cancer</option>
-                    <option value="California Housing">
-                      California Housing
-                    </option>
-                    {customDatasets.length > 0 && (
-                      <>
-                        <option disabled>──────────</option>
-                        {customDatasets.map((datasetName) => (
-                          <option key={datasetName} value={datasetName}>
-                            {datasetName} (Custom)
-                          </option>
-                        ))}
-                      </>
-                    )}
-                    <option disabled>──────────</option>
-                    <option value="__create_custom__">
-                      ➕ Add Custom Dataset
-                    </option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Layer Parameters Section - Only visible when a node is selected */}
-              {selectedNode && (
-                <div className="layer-params-container">
-                  <div className="layer-params-header">
-                    <i
-                      className={`fas ${getLayerIcon(selectedNode.type || "")}`}
-                    ></i>
-                    <h3>
-                      {selectedNode.type
-                        ? selectedNode.type.charAt(0).toUpperCase() +
-                          selectedNode.type.slice(1)
-                        : ""}
-                    </h3>
-                  </div>
-
-                  <div className="layer-params-content">
-                    {/* Layer Name - Only for non-custom blocks */}
-                    {selectedNode.type !== "customblock" && (
-                      <div className="param-group">
-                        <input
-                          type="text"
-                          value={selectedNode.data.label || ""}
-                          onChange={(e) =>
-                            updateParameter("label", e.target.value)
-                          }
-                          placeholder="Layer Name"
-                          className="param-input full-width"
-                        />
-                      </div>
-                    )}
-
-                    {/* Dense Layer Parameters */}
-                    {selectedNode.type === "dense" && (
-                      <>
-                        <div className="param-group">
-                          <label>Neurons</label>
-                          <div className="number-input-with-controls">
-                            <input
-                              type="number"
-                              min="1"
-                              value={selectedNode.data.neurons || ""}
-                              onChange={(e) =>
-                                updateParameter("neurons", +e.target.value)
-                              }
-                              className="param-input"
-                            />
-                            <div className="param-controls">
-                              <button
-                                className="control-btn"
-                                onClick={() =>
-                                  updateParameter(
-                                    "neurons",
-                                    Math.max(
-                                      1,
-                                      (selectedNode.data.neurons || 1) - 1
-                                    )
-                                  )
-                                }
-                              >
-                                <i className="fas fa-minus"></i>
-                              </button>
-                              <button
-                                className="control-btn"
-                                onClick={() =>
-                                  updateParameter(
-                                    "neurons",
-                                    (selectedNode.data.neurons || 0) + 1
-                                  )
-                                }
-                              >
-                                <i className="fas fa-plus"></i>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                    {/* Dropout Layer Parameters */}
-                    {selectedNode.type === "dropout" && (
-                      <div className="param-group">
-                        <label>Rate</label>
-                        <div className="slider-with-value">
-                          <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.01"
-                            value={selectedNode.data.rate || 0.2}
-                            onChange={(e) =>
-                              updateParameter(
-                                "rate",
-                                parseFloat(e.target.value) || 0
-                              )
-                            }
-                            className="param-slider"
-                          />
-                          <input
-                            type="number"
-                            min="0"
-                            max="1"
-                            step="0.01"
-                            value={selectedNode.data.rate || 0.2}
-                            onChange={(e) =>
-                              updateParameter(
-                                "rate",
-                                parseFloat(e.target.value) || 0
-                              )
-                            }
-                            className="param-input small"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Convolution Layer Parameters */}
-                    {selectedNode.type === "convolution" && (
-                      <>
-                        <div className="param-group">
-                          <label>Filters</label>
-                          <div className="number-input-with-controls">
-                            <input
-                              type="number"
-                              min="1"
-                              value={selectedNode.data.filters || ""}
-                              onChange={(e) =>
-                                updateParameter("filters", +e.target.value)
-                              }
-                              className="param-input"
-                            />
-                            <div className="param-controls">
-                              <button
-                                className="control-btn"
-                                onClick={() =>
-                                  updateParameter(
-                                    "filters",
-                                    Math.max(
-                                      1,
-                                      (selectedNode.data.filters || 1) - 1
-                                    )
-                                  )
-                                }
-                              >
-                                <i className="fas fa-minus"></i>
-                              </button>
-                              <button
-                                className="control-btn"
-                                onClick={() =>
-                                  updateParameter(
-                                    "filters",
-                                    (selectedNode.data.filters || 0) + 1
-                                  )
-                                }
-                              >
-                                <i className="fas fa-plus"></i>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="param-group">
-                          <label>Kernel Size</label>
-                          <div className="dimension-input">
-                            <input
-                              type="number"
-                              min="1"
-                              value={selectedNode.data.kernelSize?.[0] || "3"}
-                              onChange={(e) =>
-                                updateParameter("kernelSize", [
-                                  parseInt(e.target.value) || 3,
-                                  selectedNode.data.kernelSize?.[1] || 3,
-                                ])
-                              }
-                              className="param-input"
-                            />
-                            <span>×</span>
-                            <input
-                              type="number"
-                              min="1"
-                              value={selectedNode.data.kernelSize?.[1] || "3"}
-                              onChange={(e) =>
-                                updateParameter("kernelSize", [
-                                  selectedNode.data.kernelSize?.[0] || 3,
-                                  parseInt(e.target.value) || 3,
-                                ])
-                              }
-                              className="param-input"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="param-group">
-                          <label>Stride</label>
-                          <div className="dimension-input">
-                            <input
-                              type="number"
-                              min="1"
-                              value={selectedNode.data.stride?.[0] || "1"}
-                              onChange={(e) =>
-                                updateParameter("stride", [
-                                  parseInt(e.target.value) || 1,
-                                  selectedNode.data.stride?.[1] || 1,
-                                ])
-                              }
-                              className="param-input"
-                            />
-                            <span>×</span>
-                            <input
-                              type="number"
-                              min="1"
-                              value={selectedNode.data.stride?.[1] || "1"}
-                              onChange={(e) =>
-                                updateParameter("stride", [
-                                  selectedNode.data.stride?.[0] || 1,
-                                  parseInt(e.target.value) || 1,
-                                ])
-                              }
-                              className="param-input"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="param-group">
-                          <label>Padding</label>
-                          <select
-                            value={selectedNode.data.padding || "valid"}
-                            onChange={(e) =>
-                              updateParameter("padding", e.target.value)
-                            }
-                            className="param-select"
-                          >
-                            <option value="valid">Valid</option>
-                            <option value="same">Same</option>
-                          </select>
-                        </div>
-
-                        {/* Activation functionality moved to separate activation layers */}
-                        <div className="param-group">
-                          <p className="param-info">
-                            For activation functions, add a separate Activation
-                            layer after this layer.
-                          </p>
-                        </div>
-                      </>
-                    )}
-
-                    {/* MaxPooling Layer Parameters */}
-                    {selectedNode.type === "maxpooling" && (
-                      <>
-                        <div className="param-group">
-                          <label>Pool Size</label>
-                          <div className="dimension-input">
-                            <input
-                              type="number"
-                              min="1"
-                              value={selectedNode.data.poolSize?.[0] || "2"}
-                              onChange={(e) =>
-                                updateParameter("poolSize", [
-                                  parseInt(e.target.value) || 2,
-                                  selectedNode.data.poolSize?.[1] || 2,
-                                ])
-                              }
-                              className="param-input"
-                            />
-                            <span>×</span>
-                            <input
-                              type="number"
-                              min="1"
-                              value={selectedNode.data.poolSize?.[1] || "2"}
-                              onChange={(e) =>
-                                updateParameter("poolSize", [
-                                  selectedNode.data.poolSize?.[0] || 2,
-                                  parseInt(e.target.value) || 2,
-                                ])
-                              }
-                              className="param-input"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="param-group">
-                          <label>Stride</label>
-                          <div className="dimension-input">
-                            <input
-                              type="number"
-                              min="1"
-                              value={selectedNode.data.stride?.[0] || "2"}
-                              onChange={(e) =>
-                                updateParameter("stride", [
-                                  parseInt(e.target.value) || 2,
-                                  selectedNode.data.stride?.[1] || 2,
-                                ])
-                              }
-                              className="param-input"
-                            />
-                            <span>×</span>
-                            <input
-                              type="number"
-                              min="1"
-                              value={selectedNode.data.stride?.[1] || "2"}
-                              onChange={(e) =>
-                                updateParameter("stride", [
-                                  selectedNode.data.stride?.[0] || 2,
-                                  parseInt(e.target.value) || 2,
-                                ])
-                              }
-                              className="param-input"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="param-group">
-                          <label>Padding</label>
-                          <select
-                            value={selectedNode.data.padding || "valid"}
-                            onChange={(e) =>
-                              updateParameter("padding", e.target.value)
-                            }
-                            className="param-select"
-                          >
-                            <option value="valid">Valid</option>
-                            <option value="same">Same</option>
-                          </select>
-                        </div>
-                      </>
-                    )}
-
-                    {/* GlobalAveragePool Layer has no parameters */}
-                    {selectedNode.type === "globalaveragepool" && (
-                      <div className="param-group">
-                        <p className="param-info">
-                          This layer has no configurable parameters.
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Add Layer has no parameters */}
-                    {selectedNode.type === "addlayer" && (
-                      <div className="param-group">
-                        <p className="param-info">
-                          This layer has no configurable parameters.
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Flatten Layer has no parameters */}
-                    {selectedNode.type === "flatten" && (
-                      <div className="param-group">
-                        <p className="param-info">
-                          This layer has no configurable parameters.
-                        </p>
-                      </div>
-                    )}
-
-                    {/* BatchNormalization Layer Parameters */}
-                    {selectedNode.type === "batchnormalization" && (
-                      <>
-                        <div className="param-group">
-                          <label>Momentum</label>
-                          <div className="slider-with-value">
-                            <input
-                              type="range"
-                              min="0"
-                              max="1"
-                              step="0.01"
-                              value={selectedNode.data.momentum || 0.99}
-                              onChange={(e) =>
-                                updateParameter(
-                                  "momentum",
-                                  parseFloat(e.target.value) || 0.99
-                                )
-                              }
-                              className="param-slider"
-                            />
-                            <input
-                              type="number"
-                              min="0"
-                              max="1"
-                              step="0.01"
-                              value={selectedNode.data.momentum || 0.99}
-                              onChange={(e) =>
-                                updateParameter(
-                                  "momentum",
-                                  parseFloat(e.target.value) || 0.99
-                                )
-                              }
-                              className="param-input small"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="param-group">
-                          <label>Epsilon</label>
-                          <input
-                            type="number"
-                            min="0.00001"
-                            step="0.00001"
-                            value={selectedNode.data.epsilon || 0.001}
-                            onChange={(e) =>
-                              updateParameter(
-                                "epsilon",
-                                parseFloat(e.target.value) || 0.001
-                              )
-                            }
-                            className="param-input"
-                          />
-                        </div>
-                      </>
-                    )}
-
-                    {/* Attention Layer Parameters */}
-                    {selectedNode.type === "attention" && (
-                      <>
-                        <div className="param-group">
-                          <label>Num Heads</label>
-                          <div className="number-input-with-controls">
-                            <input
-                              type="number"
-                              min="1"
-                              value={selectedNode.data.heads || 8}
-                              onChange={(e) =>
-                                updateParameter(
-                                  "heads",
-                                  parseInt(e.target.value) || 8
-                                )
-                              }
-                              className="param-input"
-                            />
-                            <div className="param-controls">
-                              <button
-                                className="control-btn"
-                                onClick={() =>
-                                  updateParameter(
-                                    "heads",
-                                    Math.max(
-                                      1,
-                                      (selectedNode.data.heads || 8) - 1
-                                    )
-                                  )
-                                }
-                              >
-                                <i className="fas fa-minus"></i>
-                              </button>
-                              <button
-                                className="control-btn"
-                                onClick={() =>
-                                  updateParameter(
-                                    "heads",
-                                    (selectedNode.data.heads || 8) + 1
-                                  )
-                                }
-                              >
-                                <i className="fas fa-plus"></i>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="param-group">
-                          <label>Key Dimension</label>
-                          <input
-                            type="number"
-                            min="1"
-                            value={selectedNode.data.keyDim || 64}
-                            onChange={(e) =>
-                              updateParameter(
-                                "keyDim",
-                                parseInt(e.target.value) || 64
-                              )
-                            }
-                            className="param-input"
-                          />
-                        </div>
-
-                        <div className="param-group">
-                          <label>Dropout Rate</label>
-                          <div className="slider-with-value">
-                            <input
-                              type="range"
-                              min="0"
-                              max="1"
-                              step="0.01"
-                              value={selectedNode.data.attentionDropout || 0}
-                              onChange={(e) =>
-                                updateParameter(
-                                  "attentionDropout",
-                                  parseFloat(e.target.value) || 0
-                                )
-                              }
-                              className="param-slider"
-                            />
-                            <input
-                              type="number"
-                              min="0"
-                              max="1"
-                              step="0.01"
-                              value={selectedNode.data.attentionDropout || 0}
-                              onChange={(e) =>
-                                updateParameter(
-                                  "attentionDropout",
-                                  parseFloat(e.target.value) || 0
-                                )
-                              }
-                              className="param-input small"
-                            />
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                    {/* ResNetBlock Layer Parameters */}
-                    {selectedNode.type === "resnetblock" && (
-                      <>
-                        <div className="param-group">
-                          <label>Block Type</label>
-                          <select
-                            value={selectedNode.data.blockType || "Basic"}
-                            onChange={(e) =>
-                              updateParameter("blockType", e.target.value)
-                            }
-                            className="param-select"
-                          >
-                            <option value="Basic">Basic Block</option>
-                            <option value="Bottleneck">Bottleneck Block</option>
-                          </select>
-                        </div>
-
-                        <div className="param-group">
-                          <label>Filters</label>
-                          <div className="number-input-with-controls">
-                            <input
-                              type="number"
-                              min="1"
-                              value={selectedNode.data.filters || 64}
-                              onChange={(e) =>
-                                updateParameter(
-                                  "filters",
-                                  parseInt(e.target.value) || 64
-                                )
-                              }
-                              className="param-input"
-                            />
-                            <div className="param-controls">
-                              <button
-                                className="param-control-btn"
-                                onClick={() =>
-                                  updateParameter(
-                                    "filters",
-                                    (selectedNode.data.filters || 64) + 1
-                                  )
-                                }
-                              >
-                                <i className="fas fa-caret-up"></i>
-                              </button>
-                              <button
-                                className="param-control-btn"
-                                onClick={() =>
-                                  updateParameter(
-                                    "filters",
-                                    Math.max(
-                                      1,
-                                      (selectedNode.data.filters || 64) - 1
-                                    )
-                                  )
-                                }
-                              >
-                                <i className="fas fa-caret-down"></i>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="param-group">
-                          <label>Stride</label>
-                          <div className="slider-with-value">
-                            <select
-                              value={
-                                Array.isArray(selectedNode.data.stride)
-                                  ? selectedNode.data.stride[0]
-                                  : 1
-                              }
-                              onChange={(e) =>
-                                updateParameter("stride", [
-                                  parseInt(e.target.value),
-                                  parseInt(e.target.value),
-                                ])
-                              }
-                              className="param-select"
-                            >
-                              <option value="1">1x1</option>
-                              <option value="2">2x2</option>
-                            </select>
-                          </div>
-                        </div>
-
-                        <div className="param-group">
-                          <label>Activation</label>
-                          <select
-                            value={selectedNode.data.activation || "relu"}
-                            onChange={(e) =>
-                              updateParameter("activation", e.target.value)
-                            }
-                            className="param-select"
-                          >
-                            <option value="relu">ReLU</option>
-                            <option value="leaky_relu">Leaky ReLU</option>
-                          </select>
-                        </div>
-                      </>
-                    )}
-
-                    {/* Custom Block Parameters */}
-                    {selectedNode.type === "customblock" &&
-                      renderCustomBlockParameters()}
-
-                    {/* Activation Layer Parameters */}
-                    {selectedNode.type === "activation" && (
-                      <div className="param-group">
-                        <label>
-                          <i className="fas fa-bolt"></i> Activation Function
-                        </label>
-                        <select
-                          value={selectedNode.data.function || "relu"}
-                          onChange={(e) =>
-                            updateParameter("function", e.target.value)
-                          }
-                          className="param-select"
-                        >
-                          <option value="relu">ReLU</option>
-                          <option value="sigmoid">Sigmoid</option>
-                          <option value="tanh">Tanh</option>
-                          <option value="softmax">Softmax</option>
-                          <option value="leaky_relu">Leaky ReLU</option>
-                          <option value="elu">ELU</option>
-                          <option value="swish">Swish</option>
-                          <option value="linear">Linear</option>
-                        </select>
-                      </div>
-                    )}
-
-                    {/* Output Layer Parameters */}
-                    {selectedNode.type === "output" && (
-                      <div className="param-group"></div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Display a message when no node is selected */}
-              {!selectedNode && (
-                <div className="no-layer-selected">
-                  <i className="fas fa-mouse-pointer"></i>
-                  <p>Select a layer to edit parameters</p>
-                </div>
-              )}
-
-              {/* Hyperparameters Section */}
-              <div className="hyperparams-container">
-                <div className="hyperparams-header">
-                  <i className="fas fa-sliders-h"></i>
-                  <h3>Hyperparameters</h3>
-                </div>
-
-                <div className="hyperparams-content">
-                  <div
-                    className="param-group"
-                    data-tooltip="Number of samples processed before model update. Larger batches provide more stable gradient estimates but use more memory."
-                  >
-                    <label>
-                      <i className="fas fa-layer-group"></i> Batch Size
-                    </label>
-                    <div className="number-input-with-controls">
-                      <input
-                        type="number"
-                        min="1"
-                        value={trainingConfig.batchSize}
-                        onChange={(e) =>
-                          setTrainingConfig({
-                            ...trainingConfig,
-                            batchSize: parseInt(e.target.value) || 32,
-                          })
-                        }
-                        className="param-input"
-                      />
-                      <div className="param-controls">
-                        <button
-                          className="control-btn"
-                          onClick={() =>
-                            setTrainingConfig({
-                              ...trainingConfig,
-                              batchSize: Math.max(
-                                1,
-                                trainingConfig.batchSize - 8
-                              ),
-                            })
-                          }
-                        >
-                          <i className="fas fa-minus"></i>
-                        </button>
-                        <button
-                          className="control-btn"
-                          onClick={() =>
-                            setTrainingConfig({
-                              ...trainingConfig,
-                              batchSize: trainingConfig.batchSize + 8,
-                            })
-                          }
-                        >
-                          <i className="fas fa-plus"></i>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div
-                    className="param-group"
-                    data-tooltip="Controls the step size during optimization. Low values: slow learning but stable. High values: faster learning but risk of overshooting."
-                  >
-                    <label>
-                      <i className="fas fa-tachometer-alt"></i> Learning Rate
-                    </label>
-                    <div className="slider-with-value">
-                      <input
-                        type="range"
-                        min="0.0001"
-                        max="0.1"
-                        step="0.0001"
-                        value={trainingConfig.learningRate}
-                        onChange={(e) =>
-                          setTrainingConfig({
-                            ...trainingConfig,
-                            learningRate: parseFloat(e.target.value) || 0.001,
-                          })
-                        }
-                        className="param-slider"
-                      />
-                      <input
-                        type="number"
-                        min="0.0001"
-                        max="0.1"
-                        step="0.0001"
-                        value={trainingConfig.learningRate}
-                        onChange={(e) =>
-                          setTrainingConfig({
-                            ...trainingConfig,
-                            learningRate: parseFloat(e.target.value) || 0.001,
-                          })
-                        }
-                        className="param-input small"
-                      />
-                    </div>
-                  </div>
-
-                  <div
-                    className="param-group"
-                    data-tooltip="Number of complete passes through the dataset. More epochs: better learning but risk of overfitting."
-                  >
-                    <label>
-                      <i className="fas fa-redo"></i> Epochs
-                    </label>
-                    <div className="number-input-with-controls">
-                      <input
-                        type="number"
-                        min="1"
-                        value={trainingConfig.epochs}
-                        onChange={(e) => {
-                          const newValue = parseInt(e.target.value) || 10;
-                          console.log(
-                            "Current trainingConfig:",
-                            trainingConfig
-                          );
-                          console.log(
-                            "Updating epochs from",
-                            trainingConfig.epochs,
-                            "to",
-                            newValue
-                          );
-                          setTrainingConfig((prevConfig) => {
-                            const updatedConfig = {
-                              ...prevConfig,
-                              epochs: newValue,
-                            };
-                            console.log("New trainingConfig:", updatedConfig);
-                            return updatedConfig;
-                          });
-                        }}
-                        className="param-input"
-                      />
-                      <div className="param-controls">
-                        <button
-                          className="control-btn"
-                          onClick={() =>
-                            setTrainingConfig({
-                              ...trainingConfig,
-                              epochs: Math.max(1, trainingConfig.epochs - 1),
-                            })
-                          }
-                        >
-                          <i className="fas fa-minus"></i>
-                        </button>
-                        <button
-                          className="control-btn"
-                          onClick={() =>
-                            setTrainingConfig({
-                              ...trainingConfig,
-                              epochs: trainingConfig.epochs + 1,
-                            })
-                          }
-                        >
-                          <i className="fas fa-plus"></i>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div
-                    className="param-group"
-                    data-tooltip="Algorithm to adjust weights. Adam: adaptive learning rates (good default). SGD: simple but may need tuning. RMSprop: good for RNNs."
-                  >
-                    <label>
-                      <i className="fas fa-cog"></i> Optimizer
-                    </label>
-                    <select
-                      value={trainingConfig.optimizer}
-                      onChange={(e) =>
-                        setTrainingConfig({
-                          ...trainingConfig,
-                          optimizer: e.target.value,
-                        })
-                      }
-                      className="param-select"
-                    >
-                      <option value="Adam">Adam</option>
-                      <option value="SGD">SGD</option>
-                      <option value="RMSprop">RMSprop</option>
-                      <option value="Adagrad">Adagrad</option>
-                      <option value="Adadelta">Adadelta</option>
-                    </select>
-                  </div>
-
-                  <div
-                    className="param-group"
-                    data-tooltip="Function measuring prediction error. Cross-entropy: for classification. MSE: for regression. Different tasks need different loss functions."
-                  >
-                    <label>
-                      <i className="fas fa-chart-line"></i> Loss Function
-                    </label>
-                    <select
-                      value={trainingConfig.lossFunction}
-                      onChange={(e) =>
-                        setTrainingConfig({
-                          ...trainingConfig,
-                          lossFunction: e.target.value,
-                        })
-                      }
-                      className="param-select"
-                    >
-                      <option value="Categorical Cross-Entropy">
-                        Categorical Cross-Entropy
-                      </option>
-                      <option value="Binary Cross-Entropy">
-                        Binary Cross-Entropy
-                      </option>
-                      <option value="Mean Squared Error">
-                        Mean Squared Error
-                      </option>
-                      <option value="Mean Absolute Error">
-                        Mean Absolute Error
-                      </option>
-                      <option value="Huber Loss">Huber Loss</option>
-                    </select>
-                  </div>
-
-                  <div
-                    className="param-group"
-                    data-tooltip="Portion of training data used to evaluate model during training. Higher values: better validation but less training data."
-                  >
-                    <label>
-                      <i className="fas fa-percentage"></i> Validation Split
-                    </label>
-                    <div className="slider-with-value">
-                      <input
-                        type="range"
-                        min="0.1"
-                        max="0.5"
-                        step="0.05"
-                        value={trainingConfig.validationSplit}
-                        onChange={(e) =>
-                          setTrainingConfig({
-                            ...trainingConfig,
-                            validationSplit: parseFloat(e.target.value) || 0.2,
-                          })
-                        }
-                        className="param-slider"
-                      />
-                      <input
-                        type="number"
-                        min="0.1"
-                        max="0.5"
-                        step="0.05"
-                        value={trainingConfig.validationSplit}
-                        onChange={(e) =>
-                          setTrainingConfig({
-                            ...trainingConfig,
-                            validationSplit: parseFloat(e.target.value) || 0.2,
-                          })
-                        }
-                        className="param-input small"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+            {renderRightSidebarContent()}
+          </div>
         </div>
       </div>
 
@@ -7297,5 +7182,4 @@ const NewBuildPage = (): JSX.Element => {
     </div>
   );
 };
-
 export default NewBuildPage;

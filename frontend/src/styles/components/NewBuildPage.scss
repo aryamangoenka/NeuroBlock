@@ -7655,5 +7655,285 @@
 
 /* Modal Styles */
 
+/* Right Sidebar Tabs */
+.right-sidebar-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  margin-bottom: 16px;
+}
+
+.tab-button {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  background-color: transparent;
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+
+  i {
+    font-size: 0.9rem;
+  }
+
+  &:hover {
+    background-color: #e9ecef;
+    color: #495057;
+  }
+
+  &.active {
+    background-color: #0ea5e9;
+    color: white;
+  }
+}
+
+.right-sidebar-tab-content {
+  padding: 0 12px;
+}
+
+/* Dataset Section */
+.dataset-section {
+  background-color: white;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.dataset-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+
+  i {
+    color: #0ea5e9;
+    font-size: 1.1rem;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+  }
+}
+
+.dataset-dropdown-container {
+  position: relative;
+
+  select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background-color: #f8fafc;
+    color: #1e293b;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: #0ea5e9;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: #0ea5e9;
+      box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.1);
+    }
+  }
+}
+
+/* Hyperparameters Section */
+.hyperparameters-section {
+  background-color: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+
+  i {
+    color: #0ea5e9;
+    font-size: 1.1rem;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+  }
+}
+
+/* Training Section */
+.training-section {
+  background-color: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.train-button {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+
+  i {
+    font-size: 1rem;
+  }
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(14, 165, 233, 0.25);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  &.training {
+    background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+    animation: pulse 2s infinite;
+  }
+}
+
+/* Modern Hyperparameter Card Styles */
+.hyperparams-modern-card {
+  background: #f6faff;
+  border-radius: 18px;
+  box-shadow: 0 2px 16px rgba(59, 130, 246, 0.08);
+  border: 1.5px solid #c7e0fa;
+  padding: 0 0 22px 0;
+  margin: 24px auto 24px auto;
+  min-width: 280px;
+  max-width: 420px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.hyperparams-modern-header {
+  background: linear-gradient(90deg, #3b82f6 0%, #2196f3 100%);
+  color: #fff;
+  font-size: 1.18rem;
+  font-weight: 700;
+  padding: 22px 24px 12px 24px;
+  border-radius: 18px 18px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: 0.01em;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.09);
+  width: 100%;
+  justify-content: center;
+}
+.hyperparams-modern-header i {
+  font-size: 1.2rem;
+  color: #fff;
+}
+.hyperparams-modern-content {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 22px 28px 0 28px;
+  width: 100%;
+}
+.modern-param-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  font-size: 1.08rem;
+  font-weight: 500;
+  color: #1e293b;
+}
+.modern-number-input {
+  display: flex;
+  align-items: center;
+  background: #e3f0ff;
+  border-radius: 8px;
+  padding: 2px 14px;
+  gap: 12px;
+  font-size: 1.12rem;
+  font-weight: 600;
+}
+.modern-number-input button {
+  background: #c7e0fa;
+  border: none;
+  border-radius: 6px;
+  color: #2563eb;
+  font-size: 1.1rem;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.modern-number-input button:hover {
+  background: #93c5fd;
+}
+.modern-slider-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 140px;
+}
+.modern-slider-group input[type="range"] {
+  accent-color: #3b82f6;
+  width: 130px;
+  height: 4px;
+  border-radius: 4px;
+  background: #c7e0fa;
+}
+.modern-slider-value {
+  color: #2563eb;
+  font-weight: 700;
+  font-size: 1.05rem;
+  min-width: 44px;
+  text-align: right;
+}
+.hyperparams-modern-content select {
+  background: #e3f0ff;
+  border: 1px solid #c7e0fa;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 1.05rem;
+  color: #2563eb;
+  font-weight: 500;
+  outline: none;
+  transition: border 0.15s;
+}
+.hyperparams-modern-content select:focus {
+  border: 1.5px solid #3b82f6;
+}
+
 
 
