@@ -4973,72 +4973,170 @@ const NewBuildPage = (): JSX.Element => {
               {/* MaxPooling Layer Parameters */}
               {layerType === "maxpooling" && (
                 <>
-                  <div className="param-subgroup">
+                  <div className="param-item">
                     <label>Pool Size</label>
-                    <div className="dimension-input">
-                      <input
-                        type="number"
-                        min="1"
-                        value={getLayerParameter(index, "poolSize", [2, 2])[0]}
-                        onChange={(e) =>
-                          updateLayerParameter(index, "poolSize", [
-                            parseInt(e.target.value) || 2,
-                            getLayerParameter(index, "poolSize", [2, 2])[1],
-                          ])
-                        }
-                        className="param-input"
-                      />
+                    <div className="dimension-control">
+                      <div className="number-control">
+                        <button
+                          className="control-btn"
+                          onClick={() =>
+                            updateParameter("poolSize", [
+                              (selectedNode.data.poolSize?.[0] || 2) - 1,
+                              selectedNode.data.poolSize?.[1] || 2,
+                            ])
+                          }
+                        >
+                          <i className="fas fa-minus"></i>
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          value={selectedNode.data.poolSize?.[0] || "2"}
+                          onChange={(e) =>
+                            updateParameter("poolSize", [
+                              parseInt(e.target.value) || 2,
+                              selectedNode.data.poolSize?.[1] || 2,
+                            ])
+                          }
+                          className="number-input"
+                        />
+                        <button
+                          className="control-btn"
+                          onClick={() =>
+                            updateParameter("poolSize", [
+                              (selectedNode.data.poolSize?.[0] || 2) + 1,
+                              selectedNode.data.poolSize?.[1] || 2,
+                            ])
+                          }
+                        >
+                          <i className="fas fa-plus"></i>
+                        </button>
+                      </div>
                       <span>×</span>
-                      <input
-                        type="number"
-                        min="1"
-                        value={getLayerParameter(index, "poolSize", [2, 2])[1]}
-                        onChange={(e) =>
-                          updateLayerParameter(index, "poolSize", [
-                            getLayerParameter(index, "poolSize", [2, 2])[0],
-                            parseInt(e.target.value) || 2,
-                          ])
-                        }
-                        className="param-input"
-                      />
+                      <div className="number-control">
+                        <button
+                          className="control-btn"
+                          onClick={() =>
+                            updateParameter("poolSize", [
+                              selectedNode.data.poolSize?.[0] || 2,
+                              (selectedNode.data.poolSize?.[1] || 2) - 1,
+                            ])
+                          }
+                        >
+                          <i className="fas fa-minus"></i>
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          value={selectedNode.data.poolSize?.[1] || "2"}
+                          onChange={(e) =>
+                            updateParameter("poolSize", [
+                              selectedNode.data.poolSize?.[0] || 2,
+                              parseInt(e.target.value) || 2,
+                            ])
+                          }
+                          className="number-input"
+                        />
+                        <button
+                          className="control-btn"
+                          onClick={() =>
+                            updateParameter("poolSize", [
+                              selectedNode.data.poolSize?.[0] || 2,
+                              (selectedNode.data.poolSize?.[1] || 2) + 1,
+                            ])
+                          }
+                        >
+                          <i className="fas fa-plus"></i>
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  <div className="param-subgroup">
+
+                  <div className="param-item">
                     <label>Stride</label>
-                    <div className="dimension-input">
-                      <input
-                        type="number"
-                        min="1"
-                        value={getLayerParameter(index, "stride", [2, 2])[0]}
-                        onChange={(e) =>
-                          updateLayerParameter(index, "stride", [
-                            parseInt(e.target.value) || 2,
-                            getLayerParameter(index, "stride", [2, 2])[1],
-                          ])
-                        }
-                        className="param-input"
-                      />
+                    <div className="dimension-control">
+                      <div className="number-control">
+                        <button
+                          className="control-btn"
+                          onClick={() =>
+                            updateParameter("stride", [
+                              (selectedNode.data.stride?.[0] || 2) - 1,
+                              selectedNode.data.stride?.[1] || 2,
+                            ])
+                          }
+                        >
+                          <i className="fas fa-minus"></i>
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          value={selectedNode.data.stride?.[0] || "2"}
+                          onChange={(e) =>
+                            updateParameter("stride", [
+                              parseInt(e.target.value) || 2,
+                              selectedNode.data.stride?.[1] || 2,
+                            ])
+                          }
+                          className="number-input"
+                        />
+                        <button
+                          className="control-btn"
+                          onClick={() =>
+                            updateParameter("stride", [
+                              (selectedNode.data.stride?.[0] || 2) + 1,
+                              selectedNode.data.stride?.[1] || 2,
+                            ])
+                          }
+                        >
+                          <i className="fas fa-plus"></i>
+                        </button>
+                      </div>
                       <span>×</span>
-                      <input
-                        type="number"
-                        min="1"
-                        value={getLayerParameter(index, "stride", [2, 2])[1]}
-                        onChange={(e) =>
-                          updateLayerParameter(index, "stride", [
-                            getLayerParameter(index, "stride", [2, 2])[0],
-                            parseInt(e.target.value) || 2,
-                          ])
-                        }
-                        className="param-input"
-                      />
+                      <div className="number-control">
+                        <button
+                          className="control-btn"
+                          onClick={() =>
+                            updateParameter("stride", [
+                              selectedNode.data.stride?.[0] || 2,
+                              (selectedNode.data.stride?.[1] || 2) - 1,
+                            ])
+                          }
+                        >
+                          <i className="fas fa-minus"></i>
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          value={selectedNode.data.stride?.[1] || "2"}
+                          onChange={(e) =>
+                            updateParameter("stride", [
+                              selectedNode.data.stride?.[0] || 2,
+                              parseInt(e.target.value) || 2,
+                            ])
+                          }
+                          className="number-input"
+                        />
+                        <button
+                          className="control-btn"
+                          onClick={() =>
+                            updateParameter("stride", [
+                              selectedNode.data.stride?.[0] || 2,
+                              (selectedNode.data.stride?.[1] || 2) + 1,
+                            ])
+                          }
+                        >
+                          <i className="fas fa-plus"></i>
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  <div className="param-subgroup">
+
+                  <div className="param-item">
                     <label>Padding</label>
                     <select
-                      value={getLayerParameter(index, "padding", "valid")}
+                      value={selectedNode.data.padding || "valid"}
                       onChange={(e) =>
-                        updateLayerParameter(index, "padding", e.target.value)
+                        updateParameter("padding", e.target.value)
                       }
                       className="param-select"
                     >
@@ -6364,20 +6462,32 @@ const NewBuildPage = (): JSX.Element => {
             {selectedNode && (
               <div className="layer-params-container">
                 <div className="layer-params-header">
-                  <i
-                    className={`fas ${getLayerIcon(selectedNode.type || "")}`}
-                  ></i>
-                  <h3>
-                    {selectedNode.type
-                      ? selectedNode.type.charAt(0).toUpperCase() +
-                        selectedNode.type.slice(1)
-                      : ""}
-                  </h3>
+                  <div className="header-content">
+                    <i
+                      className={`fas ${getLayerIcon(selectedNode.type || "")}`}
+                    ></i>
+                    <h3>
+                      {selectedNode.type
+                        ? selectedNode.type.charAt(0).toUpperCase() +
+                          selectedNode.type.slice(1)
+                        : ""}
+                    </h3>
+                  </div>
+                  {selectedNode.type !== "input" &&
+                    selectedNode.type !== "output" && (
+                      <button
+                        className="delete-layer-btn"
+                        onClick={() => deleteNode(selectedNode.id)}
+                        title="Delete Layer"
+                      >
+                        <i className="fas fa-trash"></i>
+                      </button>
+                    )}
                 </div>
                 <div className="layer-params-content">
-                  {/* Layer Name - Only for non-custom blocks */}
+                  {/* Layer Name Input - Only for non-custom blocks */}
                   {selectedNode.type !== "customblock" && (
-                    <div className="param-group">
+                    <div className="param-item">
                       <input
                         type="text"
                         value={selectedNode.data.label || ""}
@@ -6385,47 +6495,244 @@ const NewBuildPage = (): JSX.Element => {
                           updateParameter("label", e.target.value)
                         }
                         placeholder="Layer Name"
-                        className="param-input full-width"
+                        className="layer-name-input"
                       />
                     </div>
                   )}
+
                   {/* Dense Layer Parameters */}
                   {selectedNode.type === "dense" && (
+                    <div className="param-item">
+                      <label>Neurons</label>
+                      <div className="number-control">
+                        <button
+                          className="control-btn"
+                          onClick={() =>
+                            updateParameter(
+                              "neurons",
+                              Math.max(1, (selectedNode.data.neurons || 1) - 1)
+                            )
+                          }
+                        >
+                          <i className="fas fa-minus"></i>
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          value={selectedNode.data.neurons || ""}
+                          onChange={(e) =>
+                            updateParameter("neurons", +e.target.value)
+                          }
+                          className="number-input"
+                        />
+                        <button
+                          className="control-btn"
+                          onClick={() =>
+                            updateParameter(
+                              "neurons",
+                              (selectedNode.data.neurons || 0) + 1
+                            )
+                          }
+                        >
+                          <i className="fas fa-plus"></i>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Convolution Layer Parameters */}
+                  {selectedNode.type === "convolution" && (
                     <>
-                      <div className="param-group">
-                        <label>Neurons</label>
-                        <div className="number-input-with-controls">
+                      <div className="param-item">
+                        <label>Filters</label>
+                        <div className="number-control">
+                          <button
+                            className="control-btn"
+                            onClick={() =>
+                              updateParameter(
+                                "filters",
+                                Math.max(
+                                  1,
+                                  (selectedNode.data.filters || 32) - 1
+                                )
+                              )
+                            }
+                          >
+                            <i className="fas fa-minus"></i>
+                          </button>
                           <input
                             type="number"
                             min="1"
-                            value={selectedNode.data.neurons || ""}
+                            value={selectedNode.data.filters || "32"}
                             onChange={(e) =>
-                              updateParameter("neurons", +e.target.value)
+                              updateParameter("filters", +e.target.value)
                             }
-                            className="param-input"
+                            className="number-input"
                           />
-                          <div className="param-controls">
+                          <button
+                            className="control-btn"
+                            onClick={() =>
+                              updateParameter(
+                                "filters",
+                                (selectedNode.data.filters || 32) + 1
+                              )
+                            }
+                          >
+                            <i className="fas fa-plus"></i>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="param-item">
+                        <label>Kernel Size</label>
+                        <div className="dimension-control">
+                          <div className="number-control">
                             <button
                               className="control-btn"
                               onClick={() =>
-                                updateParameter(
-                                  "neurons",
-                                  Math.max(
-                                    1,
-                                    (selectedNode.data.neurons || 1) - 1
-                                  )
-                                )
+                                updateParameter("kernelSize", [
+                                  (selectedNode.data.kernelSize?.[0] || 3) - 1,
+                                  selectedNode.data.kernelSize?.[1] || 3,
+                                ])
                               }
                             >
                               <i className="fas fa-minus"></i>
                             </button>
+                            <input
+                              type="number"
+                              min="1"
+                              value={selectedNode.data.kernelSize?.[0] || "3"}
+                              onChange={(e) =>
+                                updateParameter("kernelSize", [
+                                  +e.target.value,
+                                  selectedNode.data.kernelSize?.[1] || 3,
+                                ])
+                              }
+                              className="number-input"
+                            />
                             <button
                               className="control-btn"
                               onClick={() =>
-                                updateParameter(
-                                  "neurons",
-                                  (selectedNode.data.neurons || 0) + 1
-                                )
+                                updateParameter("kernelSize", [
+                                  (selectedNode.data.kernelSize?.[0] || 3) + 1,
+                                  selectedNode.data.kernelSize?.[1] || 3,
+                                ])
+                              }
+                            >
+                              <i className="fas fa-plus"></i>
+                            </button>
+                          </div>
+                          <span>×</span>
+                          <div className="number-control">
+                            <button
+                              className="control-btn"
+                              onClick={() =>
+                                updateParameter("kernelSize", [
+                                  selectedNode.data.kernelSize?.[0] || 3,
+                                  (selectedNode.data.kernelSize?.[1] || 3) - 1,
+                                ])
+                              }
+                            >
+                              <i className="fas fa-minus"></i>
+                            </button>
+                            <input
+                              type="number"
+                              min="1"
+                              value={selectedNode.data.kernelSize?.[1] || "3"}
+                              onChange={(e) =>
+                                updateParameter("kernelSize", [
+                                  selectedNode.data.kernelSize?.[0] || 3,
+                                  +e.target.value,
+                                ])
+                              }
+                              className="number-input"
+                            />
+                            <button
+                              className="control-btn"
+                              onClick={() =>
+                                updateParameter("kernelSize", [
+                                  selectedNode.data.kernelSize?.[0] || 3,
+                                  (selectedNode.data.kernelSize?.[1] || 3) + 1,
+                                ])
+                              }
+                            >
+                              <i className="fas fa-plus"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="param-item">
+                        <label>Stride</label>
+                        <div className="dimension-control">
+                          <div className="number-control">
+                            <button
+                              className="control-btn"
+                              onClick={() =>
+                                updateParameter("stride", [
+                                  (selectedNode.data.stride?.[0] || 1) - 1,
+                                  selectedNode.data.stride?.[1] || 1,
+                                ])
+                              }
+                            >
+                              <i className="fas fa-minus"></i>
+                            </button>
+                            <input
+                              type="number"
+                              min="1"
+                              value={selectedNode.data.stride?.[0] || "1"}
+                              onChange={(e) =>
+                                updateParameter("stride", [
+                                  +e.target.value,
+                                  selectedNode.data.stride?.[1] || 1,
+                                ])
+                              }
+                              className="number-input"
+                            />
+                            <button
+                              className="control-btn"
+                              onClick={() =>
+                                updateParameter("stride", [
+                                  (selectedNode.data.stride?.[0] || 1) + 1,
+                                  selectedNode.data.stride?.[1] || 1,
+                                ])
+                              }
+                            >
+                              <i className="fas fa-plus"></i>
+                            </button>
+                          </div>
+                          <span>×</span>
+                          <div className="number-control">
+                            <button
+                              className="control-btn"
+                              onClick={() =>
+                                updateParameter("stride", [
+                                  selectedNode.data.stride?.[0] || 1,
+                                  (selectedNode.data.stride?.[1] || 1) - 1,
+                                ])
+                              }
+                            >
+                              <i className="fas fa-minus"></i>
+                            </button>
+                            <input
+                              type="number"
+                              min="1"
+                              value={selectedNode.data.stride?.[1] || "1"}
+                              onChange={(e) =>
+                                updateParameter("stride", [
+                                  selectedNode.data.stride?.[0] || 1,
+                                  +e.target.value,
+                                ])
+                              }
+                              className="number-input"
+                            />
+                            <button
+                              className="control-btn"
+                              onClick={() =>
+                                updateParameter("stride", [
+                                  selectedNode.data.stride?.[0] || 1,
+                                  (selectedNode.data.stride?.[1] || 1) + 1,
+                                ])
                               }
                             >
                               <i className="fas fa-plus"></i>
@@ -6435,9 +6742,408 @@ const NewBuildPage = (): JSX.Element => {
                       </div>
                     </>
                   )}
+
+                  {/* BatchNormalization Layer Parameters */}
+                  {selectedNode.type === "batchnormalization" && (
+                    <>
+                      <div className="param-item">
+                        <label>Momentum</label>
+                        <div className="number-control">
+                          <button
+                            className="control-btn"
+                            onClick={() =>
+                              updateParameter(
+                                "momentum",
+                                Math.max(
+                                  0,
+                                  (selectedNode.data.momentum || 0.99) - 0.01
+                                )
+                              )
+                            }
+                          >
+                            <i className="fas fa-minus"></i>
+                          </button>
+                          <input
+                            type="number"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={selectedNode.data.momentum || "0.99"}
+                            onChange={(e) =>
+                              updateParameter("momentum", +e.target.value)
+                            }
+                            className="number-input"
+                          />
+                          <button
+                            className="control-btn"
+                            onClick={() =>
+                              updateParameter(
+                                "momentum",
+                                Math.min(
+                                  1,
+                                  (selectedNode.data.momentum || 0.99) + 0.01
+                                )
+                              )
+                            }
+                          >
+                            <i className="fas fa-plus"></i>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="param-item">
+                        <label>Epsilon</label>
+                        <div className="number-control">
+                          <button
+                            className="control-btn"
+                            onClick={() =>
+                              updateParameter(
+                                "epsilon",
+                                Math.max(
+                                  0.00001,
+                                  (selectedNode.data.epsilon || 0.001) - 0.0001
+                                )
+                              )
+                            }
+                          >
+                            <i className="fas fa-minus"></i>
+                          </button>
+                          <input
+                            type="number"
+                            min="0.00001"
+                            step="0.00001"
+                            value={selectedNode.data.epsilon || "0.001"}
+                            onChange={(e) =>
+                              updateParameter("epsilon", +e.target.value)
+                            }
+                            className="number-input"
+                          />
+                          <button
+                            className="control-btn"
+                            onClick={() =>
+                              updateParameter(
+                                "epsilon",
+                                (selectedNode.data.epsilon || 0.001) + 0.0001
+                              )
+                            }
+                          >
+                            <i className="fas fa-plus"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  {/* MaxPooling Layer Parameters */}
+                  {selectedNode.type === "maxpooling" && (
+                    <>
+                      <div className="param-item">
+                        <label>Pool Size</label>
+                        <div className="dimension-control">
+                          <div className="number-control">
+                            <button
+                              className="control-btn"
+                              onClick={() =>
+                                updateParameter("poolSize", [
+                                  (selectedNode.data.poolSize?.[0] || 2) - 1,
+                                  selectedNode.data.poolSize?.[1] || 2,
+                                ])
+                              }
+                            >
+                              <i className="fas fa-minus"></i>
+                            </button>
+                            <input
+                              type="number"
+                              min="1"
+                              value={selectedNode.data.poolSize?.[0] || "2"}
+                              onChange={(e) =>
+                                updateParameter("poolSize", [
+                                  parseInt(e.target.value) || 2,
+                                  selectedNode.data.poolSize?.[1] || 2,
+                                ])
+                              }
+                              className="number-input"
+                            />
+                            <button
+                              className="control-btn"
+                              onClick={() =>
+                                updateParameter("poolSize", [
+                                  (selectedNode.data.poolSize?.[0] || 2) + 1,
+                                  selectedNode.data.poolSize?.[1] || 2,
+                                ])
+                              }
+                            >
+                              <i className="fas fa-plus"></i>
+                            </button>
+                          </div>
+                          <span>×</span>
+                          <div className="number-control">
+                            <button
+                              className="control-btn"
+                              onClick={() =>
+                                updateParameter("poolSize", [
+                                  selectedNode.data.poolSize?.[0] || 2,
+                                  (selectedNode.data.poolSize?.[1] || 2) - 1,
+                                ])
+                              }
+                            >
+                              <i className="fas fa-minus"></i>
+                            </button>
+                            <input
+                              type="number"
+                              min="1"
+                              value={selectedNode.data.poolSize?.[1] || "2"}
+                              onChange={(e) =>
+                                updateParameter("poolSize", [
+                                  selectedNode.data.poolSize?.[0] || 2,
+                                  parseInt(e.target.value) || 2,
+                                ])
+                              }
+                              className="number-input"
+                            />
+                            <button
+                              className="control-btn"
+                              onClick={() =>
+                                updateParameter("poolSize", [
+                                  selectedNode.data.poolSize?.[0] || 2,
+                                  (selectedNode.data.poolSize?.[1] || 2) + 1,
+                                ])
+                              }
+                            >
+                              <i className="fas fa-plus"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="param-item">
+                        <label>Stride</label>
+                        <div className="dimension-control">
+                          <div className="number-control">
+                            <button
+                              className="control-btn"
+                              onClick={() =>
+                                updateParameter("stride", [
+                                  (selectedNode.data.stride?.[0] || 2) - 1,
+                                  selectedNode.data.stride?.[1] || 2,
+                                ])
+                              }
+                            >
+                              <i className="fas fa-minus"></i>
+                            </button>
+                            <input
+                              type="number"
+                              min="1"
+                              value={selectedNode.data.stride?.[0] || "2"}
+                              onChange={(e) =>
+                                updateParameter("stride", [
+                                  parseInt(e.target.value) || 2,
+                                  selectedNode.data.stride?.[1] || 2,
+                                ])
+                              }
+                              className="number-input"
+                            />
+                            <button
+                              className="control-btn"
+                              onClick={() =>
+                                updateParameter("stride", [
+                                  (selectedNode.data.stride?.[0] || 2) + 1,
+                                  selectedNode.data.stride?.[1] || 2,
+                                ])
+                              }
+                            >
+                              <i className="fas fa-plus"></i>
+                            </button>
+                          </div>
+                          <span>×</span>
+                          <div className="number-control">
+                            <button
+                              className="control-btn"
+                              onClick={() =>
+                                updateParameter("stride", [
+                                  selectedNode.data.stride?.[0] || 2,
+                                  (selectedNode.data.stride?.[1] || 2) - 1,
+                                ])
+                              }
+                            >
+                              <i className="fas fa-minus"></i>
+                            </button>
+                            <input
+                              type="number"
+                              min="1"
+                              value={selectedNode.data.stride?.[1] || "2"}
+                              onChange={(e) =>
+                                updateParameter("stride", [
+                                  selectedNode.data.stride?.[0] || 2,
+                                  parseInt(e.target.value) || 2,
+                                ])
+                              }
+                              className="number-input"
+                            />
+                            <button
+                              className="control-btn"
+                              onClick={() =>
+                                updateParameter("stride", [
+                                  selectedNode.data.stride?.[0] || 2,
+                                  (selectedNode.data.stride?.[1] || 2) + 1,
+                                ])
+                              }
+                            >
+                              <i className="fas fa-plus"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="param-item">
+                        <label>Padding</label>
+                        <select
+                          value={selectedNode.data.padding || "valid"}
+                          onChange={(e) =>
+                            updateParameter("padding", e.target.value)
+                          }
+                          className="param-select"
+                        >
+                          <option value="valid">Valid</option>
+                          <option value="same">Same</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
+
+                  {/*  Layer Parameters */}
+                  {selectedNode.type === "attention" && (
+                    <>
+                      <div className="param-item">
+                        <label>Number of Heads</label>
+                        <div className="number-control">
+                          <button
+                            className="control-btn"
+                            onClick={() =>
+                              updateParameter(
+                                "heads",
+                                Math.max(1, (selectedNode.data.heads || 8) - 1)
+                              )
+                            }
+                          >
+                            <i className="fas fa-minus"></i>
+                          </button>
+                          <input
+                            type="number"
+                            min="1"
+                            value={selectedNode.data.heads || "8"}
+                            onChange={(e) =>
+                              updateParameter("heads", +e.target.value)
+                            }
+                            className="number-input"
+                          />
+                          <button
+                            className="control-btn"
+                            onClick={() =>
+                              updateParameter(
+                                "heads",
+                                (selectedNode.data.heads || 8) + 1
+                              )
+                            }
+                          >
+                            <i className="fas fa-plus"></i>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="param-item">
+                        <label>Key Dimension</label>
+                        <div className="number-control">
+                          <button
+                            className="control-btn"
+                            onClick={() =>
+                              updateParameter(
+                                "keyDim",
+                                Math.max(
+                                  1,
+                                  (selectedNode.data.keyDim || 64) - 1
+                                )
+                              )
+                            }
+                          >
+                            <i className="fas fa-minus"></i>
+                          </button>
+                          <input
+                            type="number"
+                            min="1"
+                            value={selectedNode.data.keyDim || "64"}
+                            onChange={(e) =>
+                              updateParameter("keyDim", +e.target.value)
+                            }
+                            className="number-input"
+                          />
+                          <button
+                            className="control-btn"
+                            onClick={() =>
+                              updateParameter(
+                                "keyDim",
+                                (selectedNode.data.keyDim || 64) + 1
+                              )
+                            }
+                          >
+                            <i className="fas fa-plus"></i>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="param-item">
+                        <label>Dropout Rate</label>
+                        <div className="number-control">
+                          <button
+                            className="control-btn"
+                            onClick={() =>
+                              updateParameter(
+                                "attentionDropout",
+                                Math.max(
+                                  0,
+                                  (selectedNode.data.attentionDropout || 0) -
+                                    0.1
+                                )
+                              )
+                            }
+                          >
+                            <i className="fas fa-minus"></i>
+                          </button>
+                          <input
+                            type="number"
+                            min="0"
+                            max="1"
+                            step="0.1"
+                            value={selectedNode.data.attentionDropout || "0"}
+                            onChange={(e) =>
+                              updateParameter(
+                                "attentionDropout",
+                                +e.target.value
+                              )
+                            }
+                            className="number-input"
+                          />
+                          <button
+                            className="control-btn"
+                            onClick={() =>
+                              updateParameter(
+                                "attentionDropout",
+                                Math.min(
+                                  1,
+                                  (selectedNode.data.attentionDropout || 0) +
+                                    0.1
+                                )
+                              )
+                            }
+                          >
+                            <i className="fas fa-plus"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                   {/* Dropout Layer Parameters */}
                   {selectedNode.type === "dropout" && (
-                    <div className="param-group">
+                    <div className="param-item">
                       <label>Rate</label>
                       <div className="slider-with-value">
                         <input
@@ -6471,389 +7177,11 @@ const NewBuildPage = (): JSX.Element => {
                       </div>
                     </div>
                   )}
-                  {/* Convolution Layer Parameters */}
-                  {selectedNode.type === "convolution" && (
-                    <>
-                      <div className="param-group">
-                        <label>Filters</label>
-                        <div className="number-input-with-controls">
-                          <input
-                            type="number"
-                            min="1"
-                            value={selectedNode.data.filters || ""}
-                            onChange={(e) =>
-                              updateParameter("filters", +e.target.value)
-                            }
-                            className="param-input"
-                          />
-                          <div className="param-controls">
-                            <button
-                              className="control-btn"
-                              onClick={() =>
-                                updateParameter(
-                                  "filters",
-                                  Math.max(
-                                    1,
-                                    (selectedNode.data.filters || 1) - 1
-                                  )
-                                )
-                              }
-                            >
-                              <i className="fas fa-minus"></i>
-                            </button>
-                            <button
-                              className="control-btn"
-                              onClick={() =>
-                                updateParameter(
-                                  "filters",
-                                  (selectedNode.data.filters || 0) + 1
-                                )
-                              }
-                            >
-                              <i className="fas fa-plus"></i>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="param-group">
-                        <label>Kernel Size</label>
-                        <div className="dimension-input">
-                          <input
-                            type="number"
-                            min="1"
-                            value={selectedNode.data.kernelSize?.[0] || "3"}
-                            onChange={(e) =>
-                              updateParameter("kernelSize", [
-                                parseInt(e.target.value) || 3,
-                                selectedNode.data.kernelSize?.[1] || 3,
-                              ])
-                            }
-                            className="param-input"
-                          />
-                          <span>×</span>
-                          <input
-                            type="number"
-                            min="1"
-                            value={selectedNode.data.kernelSize?.[1] || "3"}
-                            onChange={(e) =>
-                              updateParameter("kernelSize", [
-                                selectedNode.data.kernelSize?.[0] || 3,
-                                parseInt(e.target.value) || 3,
-                              ])
-                            }
-                            className="param-input"
-                          />
-                        </div>
-                      </div>
-                      <div className="param-group">
-                        <label>Stride</label>
-                        <div className="dimension-input">
-                          <input
-                            type="number"
-                            min="1"
-                            value={selectedNode.data.stride?.[0] || "1"}
-                            onChange={(e) =>
-                              updateParameter("stride", [
-                                parseInt(e.target.value) || 1,
-                                selectedNode.data.stride?.[1] || 1,
-                              ])
-                            }
-                            className="param-input"
-                          />
-                          <span>×</span>
-                          <input
-                            type="number"
-                            min="1"
-                            value={selectedNode.data.stride?.[1] || "1"}
-                            onChange={(e) =>
-                              updateParameter("stride", [
-                                selectedNode.data.stride?.[0] || 1,
-                                parseInt(e.target.value) || 1,
-                              ])
-                            }
-                            className="param-input"
-                          />
-                        </div>
-                      </div>
-                      <div className="param-group">
-                        <label>Padding</label>
-                        <select
-                          value={selectedNode.data.padding || "valid"}
-                          onChange={(e) =>
-                            updateParameter("padding", e.target.value)
-                          }
-                          className="param-select"
-                        >
-                          <option value="valid">Valid</option>
-                          <option value="same">Same</option>
-                        </select>
-                      </div>
-                      {/* Activation functionality moved to separate activation layers */}
-                      <div className="param-group">
-                        <p className="param-info">
-                          For activation functions, add a separate Activation
-                          layer after this layer.
-                        </p>
-                      </div>
-                    </>
-                  )}
-                  {/* MaxPooling Layer Parameters */}
-                  {selectedNode.type === "maxpooling" && (
-                    <>
-                      <div className="param-group">
-                        <label>Pool Size</label>
-                        <div className="dimension-input">
-                          <input
-                            type="number"
-                            min="1"
-                            value={selectedNode.data.poolSize?.[0] || "2"}
-                            onChange={(e) =>
-                              updateParameter("poolSize", [
-                                parseInt(e.target.value) || 2,
-                                selectedNode.data.poolSize?.[1] || 2,
-                              ])
-                            }
-                            className="param-input"
-                          />
-                          <span>×</span>
-                          <input
-                            type="number"
-                            min="1"
-                            value={selectedNode.data.poolSize?.[1] || "2"}
-                            onChange={(e) =>
-                              updateParameter("poolSize", [
-                                selectedNode.data.poolSize?.[0] || 2,
-                                parseInt(e.target.value) || 2,
-                              ])
-                            }
-                            className="param-input"
-                          />
-                        </div>
-                      </div>
-                      <div className="param-group">
-                        <label>Stride</label>
-                        <div className="dimension-input">
-                          <input
-                            type="number"
-                            min="1"
-                            value={selectedNode.data.stride?.[0] || "2"}
-                            onChange={(e) =>
-                              updateParameter("stride", [
-                                parseInt(e.target.value) || 2,
-                                selectedNode.data.stride?.[1] || 2,
-                              ])
-                            }
-                            className="param-input"
-                          />
-                          <span>×</span>
-                          <input
-                            type="number"
-                            min="1"
-                            value={selectedNode.data.stride?.[1] || "2"}
-                            onChange={(e) =>
-                              updateParameter("stride", [
-                                selectedNode.data.stride?.[0] || 2,
-                                parseInt(e.target.value) || 2,
-                              ])
-                            }
-                            className="param-input"
-                          />
-                        </div>
-                      </div>
-                      <div className="param-group">
-                        <label>Padding</label>
-                        <select
-                          value={selectedNode.data.padding || "valid"}
-                          onChange={(e) =>
-                            updateParameter("padding", e.target.value)
-                          }
-                          className="param-select"
-                        >
-                          <option value="valid">Valid</option>
-                          <option value="same">Same</option>
-                        </select>
-                      </div>
-                    </>
-                  )}
-                  {/* GlobalAveragePool Layer has no parameters */}
-                  {selectedNode.type === "globalaveragepool" && (
-                    <div className="param-group">
-                      <p className="param-info">
-                        This layer has no configurable parameters.
-                      </p>
-                    </div>
-                  )}
-                  {/* Add Layer has no parameters */}
-                  {selectedNode.type === "addlayer" && (
-                    <div className="param-group">
-                      <p className="param-info">
-                        This layer has no configurable parameters.
-                      </p>
-                    </div>
-                  )}
-                  {/* Flatten Layer has no parameters */}
-                  {selectedNode.type === "flatten" && (
-                    <div className="param-group">
-                      <p className="param-info">
-                        This layer has no configurable parameters.
-                      </p>
-                    </div>
-                  )}
-                  {/* BatchNormalization Layer Parameters */}
-                  {selectedNode.type === "batchnormalization" && (
-                    <>
-                      <div className="param-group">
-                        <label>Momentum</label>
-                        <div className="slider-with-value">
-                          <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.01"
-                            value={selectedNode.data.momentum || 0.99}
-                            onChange={(e) =>
-                              updateParameter(
-                                "momentum",
-                                parseFloat(e.target.value) || 0.99
-                              )
-                            }
-                            className="param-slider"
-                          />
-                          <input
-                            type="number"
-                            min="0"
-                            max="1"
-                            step="0.01"
-                            value={selectedNode.data.momentum || 0.99}
-                            onChange={(e) =>
-                              updateParameter(
-                                "momentum",
-                                parseFloat(e.target.value) || 0.99
-                              )
-                            }
-                            className="param-input small"
-                          />
-                        </div>
-                      </div>
-                      <div className="param-group">
-                        <label>Epsilon</label>
-                        <input
-                          type="number"
-                          min="0.00001"
-                          step="0.00001"
-                          value={selectedNode.data.epsilon || 0.001}
-                          onChange={(e) =>
-                            updateParameter(
-                              "epsilon",
-                              parseFloat(e.target.value) || 0.001
-                            )
-                          }
-                          className="param-input"
-                        />
-                      </div>
-                    </>
-                  )}
-                  {/* Attention Layer Parameters */}
-                  {selectedNode.type === "attention" && (
-                    <>
-                      <div className="param-group">
-                        <label>Num Heads</label>
-                        <div className="number-input-with-controls">
-                          <input
-                            type="number"
-                            min="1"
-                            value={selectedNode.data.heads || 8}
-                            onChange={(e) =>
-                              updateParameter(
-                                "heads",
-                                parseInt(e.target.value) || 8
-                              )
-                            }
-                            className="param-input"
-                          />
-                          <div className="param-controls">
-                            <button
-                              className="control-btn"
-                              onClick={() =>
-                                updateParameter(
-                                  "heads",
-                                  Math.max(
-                                    1,
-                                    (selectedNode.data.heads || 8) - 1
-                                  )
-                                )
-                              }
-                            >
-                              <i className="fas fa-minus"></i>
-                            </button>
-                            <button
-                              className="control-btn"
-                              onClick={() =>
-                                updateParameter(
-                                  "heads",
-                                  (selectedNode.data.heads || 8) + 1
-                                )
-                              }
-                            >
-                              <i className="fas fa-plus"></i>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="param-group">
-                        <label>Key Dimension</label>
-                        <input
-                          type="number"
-                          min="1"
-                          value={selectedNode.data.keyDim || 64}
-                          onChange={(e) =>
-                            updateParameter(
-                              "keyDim",
-                              parseInt(e.target.value) || 64
-                            )
-                          }
-                          className="param-input"
-                        />
-                      </div>
-                      <div className="param-group">
-                        <label>Dropout Rate</label>
-                        <div className="slider-with-value">
-                          <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.01"
-                            value={selectedNode.data.attentionDropout || 0}
-                            onChange={(e) =>
-                              updateParameter(
-                                "attentionDropout",
-                                parseFloat(e.target.value) || 0
-                              )
-                            }
-                            className="param-slider"
-                          />
-                          <input
-                            type="number"
-                            min="0"
-                            max="1"
-                            step="0.01"
-                            value={selectedNode.data.attentionDropout || 0}
-                            onChange={(e) =>
-                              updateParameter(
-                                "attentionDropout",
-                                parseFloat(e.target.value) || 0
-                              )
-                            }
-                            className="param-input small"
-                          />
-                        </div>
-                      </div>
-                    </>
-                  )}
+
                   {/* ResNetBlock Layer Parameters */}
                   {selectedNode.type === "resnetblock" && (
                     <>
-                      <div className="param-group">
+                      <div className="param-item">
                         <label>Block Type</label>
                         <select
                           value={selectedNode.data.blockType || "Basic"}
@@ -6866,73 +7194,69 @@ const NewBuildPage = (): JSX.Element => {
                           <option value="Bottleneck">Bottleneck Block</option>
                         </select>
                       </div>
-                      <div className="param-group">
+
+                      <div className="param-item">
                         <label>Filters</label>
-                        <div className="number-input-with-controls">
+                        <div className="number-control">
+                          <button
+                            className="control-btn"
+                            onClick={() =>
+                              updateParameter(
+                                "filters",
+                                Math.max(
+                                  1,
+                                  (selectedNode.data.filters || 64) - 1
+                                )
+                              )
+                            }
+                          >
+                            <i className="fas fa-minus"></i>
+                          </button>
                           <input
                             type="number"
                             min="1"
-                            value={selectedNode.data.filters || 64}
+                            value={selectedNode.data.filters || "64"}
                             onChange={(e) =>
+                              updateParameter("filters", +e.target.value)
+                            }
+                            className="number-input"
+                          />
+                          <button
+                            className="control-btn"
+                            onClick={() =>
                               updateParameter(
                                 "filters",
-                                parseInt(e.target.value) || 64
+                                (selectedNode.data.filters || 64) + 1
                               )
                             }
-                            className="param-input"
-                          />
-                          <div className="param-controls">
-                            <button
-                              className="param-control-btn"
-                              onClick={() =>
-                                updateParameter(
-                                  "filters",
-                                  (selectedNode.data.filters || 64) + 1
-                                )
-                              }
-                            >
-                              <i className="fas fa-caret-up"></i>
-                            </button>
-                            <button
-                              className="param-control-btn"
-                              onClick={() =>
-                                updateParameter(
-                                  "filters",
-                                  Math.max(
-                                    1,
-                                    (selectedNode.data.filters || 64) - 1
-                                  )
-                                )
-                              }
-                            >
-                              <i className="fas fa-caret-down"></i>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="param-group">
-                        <label>Stride</label>
-                        <div className="slider-with-value">
-                          <select
-                            value={
-                              Array.isArray(selectedNode.data.stride)
-                                ? selectedNode.data.stride[0]
-                                : 1
-                            }
-                            onChange={(e) =>
-                              updateParameter("stride", [
-                                parseInt(e.target.value),
-                                parseInt(e.target.value),
-                              ])
-                            }
-                            className="param-select"
                           >
-                            <option value="1">1x1</option>
-                            <option value="2">2x2</option>
-                          </select>
+                            <i className="fas fa-plus"></i>
+                          </button>
                         </div>
                       </div>
-                      <div className="param-group">
+
+                      <div className="param-item">
+                        <label>Stride</label>
+                        <select
+                          value={
+                            Array.isArray(selectedNode.data.stride)
+                              ? selectedNode.data.stride[0]
+                              : 1
+                          }
+                          onChange={(e) =>
+                            updateParameter("stride", [
+                              parseInt(e.target.value),
+                              parseInt(e.target.value),
+                            ])
+                          }
+                          className="param-select"
+                        >
+                          <option value="1">1x1</option>
+                          <option value="2">2x2</option>
+                        </select>
+                      </div>
+
+                      <div className="param-item">
                         <label>Activation</label>
                         <select
                           value={selectedNode.data.activation || "relu"}
@@ -6947,36 +7271,18 @@ const NewBuildPage = (): JSX.Element => {
                       </div>
                     </>
                   )}
+
                   {/* Custom Block Parameters */}
                   {selectedNode.type === "customblock" &&
                     renderCustomBlockParameters()}
-                  {/* Activation Layer Parameters */}
-                  {selectedNode.type === "activation" && (
-                    <div className="param-group">
-                      <label>
-                        <i className="fas fa-bolt"></i> Activation Function
-                      </label>
-                      <select
-                        value={selectedNode.data.function || "relu"}
-                        onChange={(e) =>
-                          updateParameter("function", e.target.value)
-                        }
-                        className="param-select"
-                      >
-                        <option value="relu">ReLU</option>
-                        <option value="sigmoid">Sigmoid</option>
-                        <option value="tanh">Tanh</option>
-                        <option value="softmax">Softmax</option>
-                        <option value="leaky_relu">Leaky ReLU</option>
-                        <option value="elu">ELU</option>
-                        <option value="swish">Swish</option>
-                        <option value="linear">Linear</option>
-                      </select>
+
+                  {/* No parameters message for layers without parameters */}
+                  {(selectedNode.type === "flatten" ||
+                    selectedNode.type === "globalaveragepool" ||
+                    selectedNode.type === "addlayer") && (
+                    <div className="no-params-message">
+                      <p>This layer has no configurable parameters.</p>
                     </div>
-                  )}
-                  {/* Output Layer Parameters */}
-                  {selectedNode.type === "output" && (
-                    <div className="param-group"></div>
                   )}
                 </div>
               </div>
@@ -7033,6 +7339,22 @@ const NewBuildPage = (): JSX.Element => {
     window.addEventListener("trainModel", handleTrainModel);
     return () => window.removeEventListener("trainModel", handleTrainModel);
   }, []);
+
+  // Function to delete a node
+  const deleteNode = (nodeId: string): void => {
+    // Remove all edges connected to this node
+    setEdges((eds) =>
+      eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId)
+    );
+
+    // Remove the node
+    setNodes((nds) => nds.filter((node) => node.id !== nodeId));
+
+    // Clear selected node if it was the deleted node
+    if (selectedNode?.id === nodeId) {
+      setSelectedNode(null);
+    }
+  };
 
   return (
     <div className="new-build-page">
