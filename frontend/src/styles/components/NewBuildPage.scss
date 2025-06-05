@@ -5713,5 +5713,57 @@
   }
 }
 
+.custom-edge-label {
+  opacity: 0; /* Hidden by default */
+  pointer-events: all;
+  z-index: 10;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease; /* Add smooth transition */
+}
+
+/* Make the edge label visible when hovering over the edge path */
+.react-flow__edge-path:hover ~ .react-flow__edgelabel-renderer .custom-edge-label,
+.react-flow__edge-path:hover + .react-flow__edgelabel-renderer .custom-edge-label,
+.react-flow__edge:hover .react-flow__edgelabel-renderer .custom-edge-label,
+.react-flow__edge.selected .react-flow__edgelabel-renderer .custom-edge-label {
+  opacity: 1;
+}
+
+/* Also make it visible when hovering over the label itself */
+.custom-edge-label:hover {
+  opacity: 1;
+}
+
+.edge-delete-btn {
+  background: #fff;
+  border: 1.5px solid #e74c3c;
+  color: #e74c3c;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1; /* Set opacity to 1 */
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+  z-index: 11;
+  position: relative;
+}
+
+.edge-delete-btn:hover {
+  background: #e74c3c;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(231,76,60,0.18);
+  
+}
+
+/* For production, set .custom-edge-label { opacity: 0; } and use the hover selector to show it. For now, always visible for debugging. */
+
 
 

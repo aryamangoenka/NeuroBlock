@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { NavLink } from "react-router-dom";
 import "../styles/components/NavBar.scss";
+import ToastNotification, { ToastType } from "./ToastNotification";
 
 // Define a custom event for saving the model - copied from NewBuildPage for direct access
 const triggerSaveModel = () => {
@@ -62,6 +63,12 @@ const NavBar: React.FC = () => {
   const [hasSelectedDataset, setHasSelectedDataset] = useState<boolean>(false);
   const [exportDropdownOpen, setExportDropdownOpen] = useState<boolean>(false);
   const exportDropdownRef = useRef<HTMLDivElement>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type?: ToastType;
+  } | null>(null);
+  const showToast = (message: string, type: ToastType = "info") =>
+    setToast({ message, type });
 
   // Listen for training state changes
   useEffect(() => {
@@ -130,8 +137,9 @@ const NavBar: React.FC = () => {
 
     if (!datasetConfirmed) {
       console.warn("Dataset not detected when trying to save");
-      alert(
-        "No dataset selected! Please select a dataset in the Settings tab before saving."
+      showToast(
+        "No dataset selected! Please select a dataset in the Settings tab before saving.",
+        "error"
       );
       return;
     }
@@ -155,7 +163,10 @@ const NavBar: React.FC = () => {
 
   const handleTrainModelClick = () => {
     if (!hasSelectedDataset) {
-      alert("No dataset selected! Please select a dataset before training.");
+      showToast(
+        "No dataset selected! Please select a dataset before training.",
+        "error"
+      );
       return;
     }
 
@@ -172,7 +183,10 @@ const NavBar: React.FC = () => {
 
   const handleExportClick = (format: string) => {
     if (!hasSelectedDataset) {
-      alert("No dataset selected! Please select a dataset before exporting.");
+      showToast(
+        "No dataset selected! Please select a dataset before exporting.",
+        "error"
+      );
       return;
     }
 
@@ -186,6 +200,13 @@ const NavBar: React.FC = () => {
 
   return (
     <nav className="navbar">
+      {toast && (
+        <ToastNotification
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
       <div className="container d-flex justify-content-between align-items-center">
         <div className="navbar-brand">
           <i className="fas fa-brain brand-icon"></i>

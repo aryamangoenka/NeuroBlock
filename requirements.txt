@@ -81,4 +81,4 @@ seaborn
 flask_socketio
 eventlet==0.35.2
 wandb
-openpyxl
+openpyxl>=3.1.0

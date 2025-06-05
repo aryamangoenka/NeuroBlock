@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import "../styles/components/CustomLayerModal.scss";
+import ToastNotification, { ToastType } from "./ToastNotification";
 
 interface LayerType {
   id: string;
@@ -29,6 +30,12 @@ const CustomLayerModal: React.FC<CustomLayerModalProps> = ({
 }) => {
   const [blockName, setBlockName] = useState<string>("");
   const [selectedLayers, setSelectedLayers] = useState<SelectedLayer[]>([]);
+  const [toast, setToast] = useState<{
+    message: string;
+    type?: ToastType;
+  } | null>(null);
+  const showToast = (message: string, type: ToastType = "info") =>
+    setToast({ message, type });
 
   // Available layer types (excluding Input and Output as they're special)
   const availableLayers: LayerType[] = [
@@ -119,11 +126,11 @@ const CustomLayerModal: React.FC<CustomLayerModalProps> = ({
 
   const handleSave = () => {
     if (!blockName.trim()) {
-      alert("Please enter a name for your custom block.");
+      showToast("Please enter a name for your custom block.", "error");
       return;
     }
     if (selectedLayers.length === 0) {
-      alert("Please add at least one layer to your custom block.");
+      showToast("Please add at least one layer to your custom block.", "error");
       return;
     }
     onSave(blockName.trim(), selectedLayers);
@@ -144,6 +151,13 @@ const CustomLayerModal: React.FC<CustomLayerModalProps> = ({
 
   return (
     <div className="modal-overlay">
+      {toast && (
+        <ToastNotification
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
       <div className="modal-container custom-layer-modal">
         <div className="modal-header">
           <h3>Create Custom Layer</h3>

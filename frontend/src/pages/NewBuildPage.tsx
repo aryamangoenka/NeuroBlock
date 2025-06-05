@@ -14,6 +14,9 @@ import ReactFlow, {
   OnNodesChange,
   OnEdgesChange,
   Edge,
+  BaseEdge,
+  EdgeLabelRenderer,
+  getBezierPath,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { io, Socket } from "socket.io-client";
@@ -55,6 +58,7 @@ import {
   getCustomDatasets,
   getAvailableDatasets,
 } from "../utils/customDatasetApi";
+import ToastNotification, { ToastType } from "../components/ToastNotification";
 void getCustomDatasets;
 // Register Chart.js components
 ChartJS.register(
@@ -92,6 +96,51 @@ type RightSidebarTab = "dataset" | "parameters" | "train";
 
 // Add these near the top of the file with other type definitions
 type ValidationErrors = string[];
+
+// Custom Edge with Delete Button
+const CustomEdge = ({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  style = {},
+  markerEnd,
+  data,
+}: any) => {
+  const [edgePath, labelX, labelY] = getBezierPath({
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+  });
+  return (
+    <>
+      <BaseEdge path={edgePath} markerEnd={markerEnd} style={style} />
+      <EdgeLabelRenderer>
+        <div
+          style={{
+            position: "absolute",
+            transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+            pointerEvents: "all",
+            zIndex: 1,
+          }}
+          className="custom-edge-label"
+        >
+          <button
+            className="edge-delete-btn"
+            onClick={() => data?.onDelete?.(id)}
+            title="Delete edge"
+          >
+            ×
+          </button>
+        </div>
+      </EdgeLabelRenderer>
+    </>
+  );
+};
+
+const edgeTypes = { custom: CustomEdge };
 
 const NewBuildPage = (): JSX.Element => {
   const {
@@ -577,7 +626,7 @@ const NewBuildPage = (): JSX.Element => {
           })),
       });
 
-      alert(`Training error: ${errorMessage}`);
+      showToast(`Training error: ${errorMessage}`, "error");
     });
 
     // Cleanup Socket.IO connection on component unmount
@@ -676,7 +725,10 @@ const NewBuildPage = (): JSX.Element => {
 
       if (!selectedDataset || selectedDataset === "") {
         console.error("Error: No dataset selected when trying to save");
-        alert("No dataset selected! Please select a dataset before saving.");
+        showToast(
+          "No dataset selected! Please select a dataset before saving.",
+          "error"
+        );
         return;
       }
 
@@ -684,7 +736,7 @@ const NewBuildPage = (): JSX.Element => {
       const validationIssues = preValidateModel();
       if (validationIssues) {
         console.warn("Pre-validation failed:", validationIssues);
-        alert(`Cannot save model: ${validationIssues}`);
+        showToast(`Cannot save model: ${validationIssues}`, "error");
         return;
       }
 
@@ -1184,7 +1236,10 @@ const NewBuildPage = (): JSX.Element => {
     // Double check if dataset is selected
     if (!selectedDataset || selectedDataset.trim() === "") {
       console.error("Error: No dataset selected in handleSaveModel");
-      alert("No dataset selected! Please select a dataset before saving.");
+      showToast(
+        "No dataset selected! Please select a dataset before saving.",
+        "error"
+      );
       return;
     }
 
@@ -1202,14 +1257,15 @@ const NewBuildPage = (): JSX.Element => {
       setValidationErrors(errors);
       displayValidationErrors(errors);
 
-      // Show only critical errors in the alert, without the [Critical] prefix
+      // Show only critical errors in the toast, without the [Critical] prefix
       const formattedErrors = criticalErrors.map((err) =>
         err.replace("[Critical] ", "")
       );
-      alert(
-        `Cannot save model due to critical issues:\n${formattedErrors.join(
-          "\n"
-        )}`
+      showToast(
+        `Cannot save model due to critical issues: ${formattedErrors.join(
+          "; "
+        )}`,
+        "error"
       );
       return;
     }
@@ -1272,7 +1328,7 @@ const NewBuildPage = (): JSX.Element => {
         // Display a more detailed error message
         const errorMessage =
           errorData.error || "Unknown error occurred while saving the model";
-        alert(`Saving failed: ${errorMessage}`);
+        showToast(`Saving failed: ${errorMessage}`, "error");
         return;
       }
 
@@ -1288,13 +1344,15 @@ const NewBuildPage = (): JSX.Element => {
         setIsModelSaved(true);
 
         // Display success message
-        alert(
-          "Model architecture saved successfully! Note: This only saves the model structure."
+        showToast(
+          "Model architecture saved successfully! Note: This only saves the model structure.",
+          "success"
         );
       } else {
         // Display the exact message from the backend
-        alert(
-          "Model architecture saved successfully! Note: This only saves the model structure."
+        showToast(
+          "Model architecture saved successfully! Note: This only saves the model structure.",
+          "info"
         );
       }
     } catch (error) {
@@ -1310,10 +1368,11 @@ const NewBuildPage = (): JSX.Element => {
       }
 
       // Display a more detailed error message
-      alert(
+      showToast(
         `An error occurred while saving the model: ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }`,
+        "error"
       );
     }
   };
@@ -1324,12 +1383,15 @@ const NewBuildPage = (): JSX.Element => {
     const validationIssue = preValidateModel();
     if (validationIssue) {
       console.warn("Cannot start training:", validationIssue);
-      alert(`Cannot start training: ${validationIssue}`);
+      showToast(`Cannot start training: ${validationIssue}`, "error");
       return;
     }
 
     if (!selectedDataset) {
-      alert("No dataset selected! Please select a dataset before training.");
+      showToast(
+        "No dataset selected! Please select a dataset before training.",
+        "error"
+      );
       return;
     }
 
@@ -1389,8 +1451,9 @@ const NewBuildPage = (): JSX.Element => {
       console.log("Start training event emitted");
     } else {
       console.error("Socket connection not established");
-      alert(
-        "Socket connection not established. Please refresh the page and try again."
+      showToast(
+        "Socket connection not established. Please refresh the page and try again.",
+        "error"
       );
       setIsTraining(false);
       return;
@@ -1407,7 +1470,7 @@ const NewBuildPage = (): JSX.Element => {
       console.log("Stop training signal sent");
       setIsTraining(false);
       setWandbUrl(null); // Clear W&B URL when stopping training
-      alert("Training stopped by user");
+      showToast("Training stopped by user", "info");
     }
   };
 
@@ -1470,8 +1533,9 @@ const NewBuildPage = (): JSX.Element => {
     setShowCustomLayerModal(false);
 
     // Show success message
-    alert(
-      `Custom layer "${blockName}" created and added to available layers!\n\nNote: Custom layers are only available during this session and will be cleared when you refresh or close the page.`
+    showToast(
+      `Custom layer "${blockName}" created and added to available layers!\n\nNote: Custom layers are only available during this session and will be cleared when you refresh or close the page.`,
+      "success"
     );
   };
 
@@ -5736,7 +5800,7 @@ const NewBuildPage = (): JSX.Element => {
   // Add the handleExport function
   const handleExport = async (format: string) => {
     if (!selectedDataset) {
-      alert("⚠️ Please select a dataset before exporting.");
+      showToast("⚠️ Please select a dataset before exporting.", "error");
       return;
     }
 
@@ -5844,7 +5908,10 @@ const NewBuildPage = (): JSX.Element => {
     const trainModelHandler = () => {
       // Quick check for dataset selection
       if (!selectedDataset) {
-        alert("No dataset selected! Please select a dataset before training.");
+        showToast(
+          "No dataset selected! Please select a dataset before training.",
+          "error"
+        );
         return;
       }
 
@@ -5858,7 +5925,7 @@ const NewBuildPage = (): JSX.Element => {
       const validationIssue = preValidateModel();
       if (validationIssue) {
         console.warn("Cannot start training:", validationIssue);
-        alert(`Cannot start training: ${validationIssue}`);
+        showToast(`Cannot start training: ${validationIssue}`, "error");
         return;
       }
 
@@ -6225,12 +6292,12 @@ const NewBuildPage = (): JSX.Element => {
   const handleSaveAsTemplate = () => {
     const name = prompt("Enter a name for your template:");
     if (!name || !name.trim()) {
-      alert("Please enter a valid template name.");
+      showToast("Please enter a valid template name.", "error");
       return;
     }
     const template = { name: name.trim(), nodes, edges };
     setSessionTemplates((prev) => [...prev, template]);
-    alert("Template saved!");
+    showToast("Template saved!", "success");
   };
 
   // Handler to load a session template
@@ -6238,9 +6305,9 @@ const NewBuildPage = (): JSX.Element => {
     if (template.nodes && template.edges) {
       setNodes(template.nodes);
       setEdges(template.edges);
-      alert("Template loaded!");
+      showToast("Template loaded!", "success");
     } else {
-      alert("Invalid template format.");
+      showToast("Invalid template format.", "error");
     }
   };
 
@@ -6473,16 +6540,13 @@ const NewBuildPage = (): JSX.Element => {
                         : ""}
                     </h3>
                   </div>
-                  {selectedNode.type !== "input" &&
-                    selectedNode.type !== "output" && (
-                      <button
-                        className="delete-layer-btn"
-                        onClick={() => deleteNode(selectedNode.id)}
-                        title="Delete Layer"
-                      >
-                        <i className="fas fa-trash"></i>
-                      </button>
-                    )}
+                  <button
+                    className="delete-layer-btn"
+                    onClick={() => deleteNode(selectedNode.id)}
+                    title="Delete Layer"
+                  >
+                    <i className="fas fa-trash"></i>
+                  </button>
                 </div>
                 <div className="layer-params-content">
                   {/* Layer Name Input - Only for non-custom blocks */}
@@ -7356,8 +7420,30 @@ const NewBuildPage = (): JSX.Element => {
     }
   };
 
+  // Toast notification state
+  const [toast, setToast] = useState<{
+    message: string;
+    type?: ToastType;
+  } | null>(null);
+
+  // Helper to show toast
+  const showToast = (message: string, type: ToastType = "info") => {
+    setToast({ message, type });
+  };
+
+  const handleDeleteEdge = (edgeId: string) => {
+    setEdges((eds) => eds.filter((e) => e.id !== edgeId));
+  };
+
   return (
     <div className="new-build-page">
+      {toast && (
+        <ToastNotification
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
       <div className="new-build-container">
         {/* Validation Error Messages */}
         {showValidationErrors && validationErrors.length > 0 && (
@@ -7428,12 +7514,17 @@ const NewBuildPage = (): JSX.Element => {
           <div className="canvas-container">
             <ReactFlow
               nodes={nodes}
-              edges={edges}
+              edges={edges.map((e) => ({
+                ...e,
+                type: "custom",
+                data: { onDelete: handleDeleteEdge },
+              }))}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
               onNodeClick={onNodeClick}
               nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
               isValidConnection={isValidConnection}
               connectionLineStyle={{ stroke: "#555", strokeWidth: 2 }}
               defaultEdgeOptions={{
