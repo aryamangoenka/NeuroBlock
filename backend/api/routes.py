@@ -10,6 +10,11 @@ from backend.export.notebook import generate_notebook
 from backend.export.pytorch import generate_pytorch_script
 from backend.utils.logging import get_logger
 
+import pickle
+import numpy as np
+from PIL import Image
+import io
+
 # Initialize logger
 logger = get_logger(__name__)
 
@@ -718,4 +723,164 @@ def clear_saved_model():
             return jsonify({"status": "error", "message": "Model file not found."}), 404
     except Exception as e:
         logger.error(f"Error clearing model: {str(e)}", exc_info=True)
-        return jsonify({"status": "error", "message": str(e)}), 500 
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@api_blueprint.route('/predict', methods=['POST'])
+def predict_with_saved_model():
+    """
+    Predict endpoint that uses the existing saved model and config, not a file upload.
+    Expects JSON with:
+      - input_data: dict of {feature: value}
+      - (optional) dataset_name: to select the dataset/model if needed
+    """
+    try:
+        data = request.get_json()
+        if not data or 'input_data' not in data:
+            return jsonify({'error': 'Missing input_data'}), 400
+        input_data = data['input_data']
+        dataset_name = data.get('dataset_name')
+
+        # Get model and scaler paths from config
+        model_path = current_app.config.get('TRAINED_MODEL_PATH')
+        scaler_path = model_path.replace('.keras', '_scaler.pkl').replace('.h5', '_scaler.pkl')
+        features_path = model_path.replace('.keras', '_features.json').replace('.h5', '_features.json')
+
+        # Load feature names (from builder.py or saved config)
+        if os.path.exists(features_path):
+            with open(features_path, 'r') as f:
+                features = json.load(f)
+        else:
+            # Fallback: try to infer from dataset_name
+            if not dataset_name:
+                return jsonify({'error': 'No features found and no dataset_name provided'}), 400
+            # Example fallback for Iris
+            if dataset_name == 'Iris':
+                features = ["sepal_length", "sepal_width", "petal_length", "petal_width"]
+            elif dataset_name == 'Breast Cancer':
+                features = [f"feature_{i}" for i in range(30)]
+            elif dataset_name == 'California Housing':
+                features = [
+                    "MedInc", "HouseAge", "AveRooms", "AveBedrms",
+                    "Population", "AveOccup", "Latitude", "Longitude"
+                ]
+            else:
+                return jsonify({'error': 'Unknown dataset and no features found'}), 400
+
+        # Convert input to array in correct order
+        input_array = np.array([float(input_data[feature]) for feature in features])
+        if len(input_array.shape) == 1:
+            input_array = input_array.reshape(1, -1)
+
+        # Load scaler if exists
+        if os.path.exists(scaler_path):
+            with open(scaler_path, 'rb') as f:
+                scaler = pickle.load(f)
+            input_array = scaler.transform(input_array)
+
+        # Load model
+        model = tf.keras.models.load_model(model_path)
+        prediction = model.predict(input_array)
+
+        # Try to infer classification/regression from model output
+        if prediction.shape[1] == 1:
+            # Binary classification or regression
+            pred_value = float(prediction[0][0])
+            if 0 <= pred_value <= 1:
+                # Binary classification
+                pred_class = int(pred_value > 0.5)
+                confidence = pred_value if pred_class else 1 - pred_value
+                result = {
+                    'prediction': pred_class,
+                    'confidence': confidence
+                }
+            else:
+                # Regression
+                result = {
+                    'prediction': pred_value,
+                    'confidence': None
+                }
+        else:
+            # Multi-class classification
+            pred_class = int(np.argmax(prediction[0]))
+            confidence = float(prediction[0][pred_class])
+            result = {
+                'prediction': pred_class,
+                'confidence': confidence
+            }
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@api_blueprint.route('/predict/features', methods=['GET'])
+def get_prediction_features():
+    dataset_name = request.args.get('dataset_name')
+    if not dataset_name:
+        return jsonify({'error': 'dataset_name is required'}), 400
+
+    model_path = current_app.config.get('TRAINED_MODEL_PATH')
+    features_path = model_path.replace('.keras', '_features.json').replace('.h5', '_features.json')
+
+    if os.path.exists(features_path):
+        with open(features_path, 'r') as f:
+            features_info = json.load(f)
+        return jsonify({
+            'feature_names': features_info.get('feature_names', []),
+            'feature_types': features_info.get('feature_types', []),
+            'class_labels': features_info.get('class_labels', None)
+        })
+    else:
+        # Fallback for known datasets
+        if dataset_name == 'Iris':
+            return jsonify({
+                'feature_names': ["sepal_length", "sepal_width", "petal_length", "petal_width"],
+                'feature_types': ["float", "float", "float", "float"],
+                'class_labels': ["setosa", "versicolor", "virginica"]
+            })
+        elif dataset_name == 'Breast Cancer':
+            return jsonify({
+                'feature_names': [f"feature_{i}" for i in range(30)],
+                'feature_types': ["float"] * 30,
+                'class_labels': ["malignant", "benign"]
+            })
+        elif dataset_name == 'California Housing':
+            return jsonify({
+                'feature_names': [
+                    "MedInc", "HouseAge", "AveRooms", "AveBedrms",
+                    "Population", "AveOccup", "Latitude", "Longitude"
+                ],
+                'feature_types': ["float"] * 8,
+                'class_labels': None
+            })
+        else:
+            return jsonify({'error': 'Unknown dataset and no features found'}), 400 
+
+@api_blueprint.route('/predict/image', methods=['POST'])
+def predict_image():
+    dataset_name = request.form.get('dataset_name') or request.args.get('dataset_name')
+    if not dataset_name:
+        return jsonify({'error': 'dataset_name is required'}), 400
+    if 'image' not in request.files:
+        return jsonify({'error': 'No image file provided'}), 400
+    image_file = request.files['image']
+    try:
+        # Load image
+        img = Image.open(image_file.stream)
+        if dataset_name == 'MNIST':
+            img = img.convert('L').resize((28, 28))  # Grayscale
+            img_array = np.array(img).astype('float32') / 255.0
+            img_array = img_array.reshape(1, 28, 28, 1)
+        elif dataset_name == 'CIFAR-10':
+            img = img.convert('RGB').resize((32, 32))
+            img_array = np.array(img).astype('float32') / 255.0
+            img_array = img_array.reshape(1, 32, 32, 3)
+        else:
+            return jsonify({'error': 'Unsupported image dataset'}), 400
+        # Load model
+        model_path = current_app.config.get('TRAINED_MODEL_PATH')
+        model = tf.keras.models.load_model(model_path)
+        prediction = model.predict(img_array)
+        pred_class = int(np.argmax(prediction[0]))
+        confidence = float(prediction[0][pred_class])
+        return jsonify({'prediction': pred_class, 'confidence': confidence})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500 

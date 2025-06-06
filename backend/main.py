@@ -86,6 +86,8 @@ host = "0.0.0.0"
 port = int(os.environ.get("PORT", 8080))
 debug = app.config.get('DEBUG', False)
 
+print(f"[ENV CHECK] FLASK_CONFIG={os.environ.get('FLASK_CONFIG', 'default')}, DEBUG={debug}")
+
 logger.info("Starting server", extra={
     "context": {
         "host": host,

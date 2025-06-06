@@ -59,6 +59,7 @@ import {
   getAvailableDatasets,
 } from "../utils/customDatasetApi";
 import ToastNotification, { ToastType } from "../components/ToastNotification";
+import Validation from "../components/Validation";
 void getCustomDatasets;
 // Register Chart.js components
 ChartJS.register(
@@ -159,6 +160,9 @@ const NewBuildPage = (): JSX.Element => {
     trainingProgress,
     setTrainingProgress,
   } = useNewBuildPageContext();
+
+  // Add trainingComplete state
+  const [trainingComplete, setTrainingComplete] = useState<boolean>(false);
 
   // Socket.io reference
   const socketRef = useRef<Socket | null>(null);
@@ -541,6 +545,7 @@ const NewBuildPage = (): JSX.Element => {
         JSON.stringify(data, null, 2)
       );
       setIsTraining(false);
+      setTrainingComplete(true); // Set training as complete
 
       // Check for confusion matrix data
       if (data.metrics && data.metrics.confusion_matrix) {
@@ -7363,7 +7368,7 @@ const NewBuildPage = (): JSX.Element => {
       case "train":
         return (
           <div className="train-metrics-tab-content">
-            {/* Visualization Dropdown and Content */}
+            {/* Visualization Controls */}
             <div className="visualization-controls">
               <label htmlFor="visualization-select">
                 Select Visualization:
@@ -7389,6 +7394,13 @@ const NewBuildPage = (): JSX.Element => {
             <div className="visualization-content">{renderVisualization()}</div>
             {/* Training Metrics Below Visualization */}
             {renderTrainingMetrics()}
+            {/* Validation component at the top */}
+            <div className="validation-section">
+              <Validation
+                datasetName={selectedDataset}
+                isTrainingComplete={trainingComplete}
+              />
+            </div>
           </div>
         );
       default:
