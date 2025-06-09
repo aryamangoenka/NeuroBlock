@@ -163,9 +163,23 @@ class DatasetRegistry:
                 # For regression, ensure target is float
                 y = y.astype(np.float32).reshape(-1, 1)
             
-            # Normalize features
+            # Normalize features and save scaler for validation use
             scaler = StandardScaler()
             X = scaler.fit_transform(X)
+            
+            # Save the scaler for validation predictions
+            try:
+                from backend.utils.session_manager import get_session_id, get_session_datasets_dir
+                session_id = get_session_id() if session_id is None else session_id
+                datasets_dir = get_session_datasets_dir(session_id)
+                scaler_path = os.path.join(datasets_dir, f'{dataset_name}_scaler.pkl')
+                
+                import pickle
+                with open(scaler_path, 'wb') as f:
+                    pickle.dump(scaler, f)
+                logger.info(f"Saved scaler for custom dataset '{dataset_name}' to: {scaler_path}")
+            except Exception as e:
+                logger.warning(f"Could not save scaler for dataset '{dataset_name}': {str(e)}")
             
             # Split into train/test sets
             test_size = 0.2
@@ -312,10 +326,6 @@ class DatasetRegistry:
         Raises:
             ValueError: If dataset_name is not registered
         """
-        # Auto-discover custom datasets if not already done
-        if dataset_name not in self.loaders:
-            self._discover_custom_datasets()
-        
         # Try exact match first
         if dataset_name in self.loaders:
             return self.loaders[dataset_name]
@@ -327,8 +337,136 @@ class DatasetRegistry:
                 logger.info(f"Found case-insensitive match: '{dataset_name}' -> '{registered_name}'")
                 return loader
         
-        # No match found
-        error_msg = f"Unknown dataset: {dataset_name}. Available datasets: {', '.join(self.loaders.keys())}"
+        # Not found in registry - try to discover custom datasets from current session
+        logger.info(f"Dataset '{dataset_name}' not in registry, searching session for custom datasets...")
+        try:
+            from backend.utils.session_manager import get_session_datasets_dir, get_session_id
+            
+            # Try to get session ID and datasets directory
+            try:
+                session_id = get_session_id()
+                datasets_dir = get_session_datasets_dir(session_id)
+            except RuntimeError:
+                # No session context - search all sessions
+                logger.warning("No session context, searching all sessions for custom datasets")
+                datasets_dir = None
+                session_id = None
+            
+            # Search for custom dataset
+            if datasets_dir and os.path.exists(datasets_dir):
+                # Search in current session
+                for filename in os.listdir(datasets_dir):
+                    if filename.endswith('_metadata.json'):
+                        try:
+                            metadata_file = os.path.join(datasets_dir, filename)
+                            with open(metadata_file, 'r') as f:
+                                metadata = json.load(f)
+                            
+                            dataset_metadata_name = metadata.get('name', 'Unknown')
+                            
+                            # Check exact and case-insensitive matches
+                            if (dataset_metadata_name == dataset_name or 
+                                dataset_metadata_name.lower() == dataset_name_lower):
+                                
+                                # Found the dataset - register it
+                                dataset_file = os.path.join(datasets_dir, f'{dataset_metadata_name}.npz')
+                                
+                                if os.path.exists(dataset_file):
+                                    dataset_config = {
+                                        'name': dataset_metadata_name,
+                                        'file_path': dataset_file,
+                                        'metadata_path': metadata_file,
+                                        'task_type': metadata.get('task_type', 'classification'),
+                                        'feature_count': len(metadata.get('feature_columns', [])),
+                                        'class_labels': metadata.get('class_labels')
+                                    }
+                                    
+                                    # Register the dataset
+                                    self.register_custom_dataset(dataset_config, session_id)
+                                    logger.info(f"Successfully discovered and registered custom dataset: '{dataset_metadata_name}'")
+                                    
+                                    # Return the loader
+                                    return self.loaders[dataset_metadata_name]
+                                    
+                        except Exception as e:
+                            logger.warning(f"Error processing metadata file {filename}: {str(e)}")
+                            continue
+            
+            # If not found in current session, search all sessions and find the most recent
+            if not datasets_dir or session_id is None:
+                logger.info(f"Searching all sessions for dataset '{dataset_name}'...")
+                project_root = current_app.config.get('PROJECT_ROOT', '') if hasattr(current_app, 'config') else ''
+                all_sessions_dir = os.path.join(project_root, 'datasets', 'sessions') if project_root else 'sessions'
+                
+                found_datasets = []  # Store all matches with timestamps
+                
+                if os.path.exists(all_sessions_dir):
+                    for session_folder in os.listdir(all_sessions_dir):
+                        session_datasets_dir = os.path.join(all_sessions_dir, session_folder)
+                        
+                        if not os.path.isdir(session_datasets_dir):
+                            continue
+                            
+                        for filename in os.listdir(session_datasets_dir):
+                            if filename.endswith('_metadata.json'):
+                                try:
+                                    metadata_file = os.path.join(session_datasets_dir, filename)
+                                    with open(metadata_file, 'r') as f:
+                                        metadata = json.load(f)
+                                    
+                                    dataset_metadata_name = metadata.get('name', 'Unknown')
+                                    
+                                    # Check exact and case-insensitive matches
+                                    if (dataset_metadata_name == dataset_name or 
+                                        dataset_metadata_name.lower() == dataset_name_lower):
+                                        
+                                        # Found a matching dataset - check if data file exists
+                                        dataset_file = os.path.join(session_datasets_dir, f'{dataset_metadata_name}.npz')
+                                        
+                                        if os.path.exists(dataset_file):
+                                            found_datasets.append({
+                                                'metadata': metadata,
+                                                'metadata_file': metadata_file,
+                                                'dataset_file': dataset_file,
+                                                'session_folder': session_folder,
+                                                'created_at': metadata.get('created_at', ''),
+                                                'feature_count': len(metadata.get('feature_columns', []))
+                                            })
+                                            
+                                except Exception as e:
+                                    logger.warning(f"Error processing metadata file {filename} in session {session_folder}: {str(e)}")
+                                    continue
+                    
+                    # If we found multiple datasets, use the most recent one
+                    if found_datasets:
+                        # Sort by creation time (most recent first)
+                        found_datasets.sort(key=lambda x: x['created_at'], reverse=True)
+                        best_match = found_datasets[0]
+                        
+                        logger.info(f"Found {len(found_datasets)} datasets named '{dataset_name}', using most recent from {best_match['created_at']}")
+                        
+                        dataset_config = {
+                            'name': dataset_name,
+                            'file_path': best_match['dataset_file'],
+                            'metadata_path': best_match['metadata_file'],
+                            'task_type': best_match['metadata'].get('task_type', 'classification'),
+                            'feature_count': best_match['feature_count'],
+                            'class_labels': best_match['metadata'].get('class_labels')
+                        }
+                        
+                        # Register the most recent dataset
+                        self.register_custom_dataset(dataset_config, best_match['session_folder'])
+                        logger.info(f"Successfully discovered and registered most recent custom dataset: '{dataset_name}' from session: {best_match['session_folder']}")
+                        
+                        # Return the loader
+                        return self.loaders[dataset_name]
+                                    
+        except Exception as e:
+            logger.error(f"Error during custom dataset discovery: {str(e)}")
+        
+        # No match found after discovery attempt
+        available_datasets = list(self.loaders.keys())
+        error_msg = f"Unknown dataset: {dataset_name}. Available datasets: {', '.join(available_datasets)}"
         logger.error(error_msg)
         raise ValueError(error_msg)
         
@@ -339,9 +477,20 @@ class DatasetRegistry:
         Returns:
             list: Names of available datasets
         """
-        # Auto-discover custom datasets
-        self._discover_custom_datasets()
-        return list(self.loaders.keys())
+        # Start with current registry
+        available_datasets = list(self.loaders.keys())
+        
+        # Also include discovered custom datasets
+        try:
+            custom_datasets = self.get_custom_datasets()
+            for dataset in custom_datasets:
+                dataset_name = dataset.get('name')
+                if dataset_name and dataset_name not in available_datasets:
+                    available_datasets.append(dataset_name)
+        except Exception as e:
+            logger.warning(f"Could not get custom datasets for available list: {str(e)}")
+        
+        return available_datasets
 
 # Initialize the dataset registry
 dataset_registry = DatasetRegistry()

@@ -401,21 +401,89 @@ def create_custom_dataset():
         X = df_processed[feature_columns]
         y = df_processed[target_column]
         
-        # Basic preprocessing for categorical variables
+        # Enhanced feature type detection using improved ML-based heuristics
+        from backend.utils.data_quality import enhanced_feature_type_detection
+        feature_types, type_quality_info = enhanced_feature_type_detection(df_processed, feature_columns)
+        
+        # Log quality information about feature type detection
+        if type_quality_info['type_changes']:
+            for change in type_quality_info['type_changes']:
+                logger.info(f"Feature type refined for '{change['column']}': {change['original']} -> {change['detected']} (confidence: {change['confidence']:.2f})")
+        
+        if type_quality_info['warnings']:
+            for warning in type_quality_info['warnings']:
+                logger.warning(f"Feature type detection: {warning}")
+
+        # Basic preprocessing for categorical variables with mapping preservation
+        categorical_mappings = {}
         categorical_columns = X.select_dtypes(include=['object']).columns
         if len(categorical_columns) > 0:
-            # Simple label encoding for categorical variables
+            # Label encoding with mapping preservation for categorical variables
             for col in categorical_columns:
-                X[col] = pd.Categorical(X[col]).codes
-                
-        # For classification, encode target if it's categorical
-        if task_type == 'classification' and y.dtype == 'object':
-            y_encoded = pd.Categorical(y)
-            processed_data['class_labels'] = y_encoded.categories.tolist()
-            y = y_encoded.codes
+                categorical_data = pd.Categorical(X[col])
+                categorical_mappings[col] = {
+                    'original_values': categorical_data.categories.tolist(),
+                    'value_to_code': {str(val): idx for idx, val in enumerate(categorical_data.categories)}
+                }
+                X[col] = categorical_data.codes
+                logger.info(f"Encoded categorical feature '{col}': {categorical_mappings[col]}")
+        
+        # Save categorical mappings in metadata
+        processed_data['categorical_mappings'] = categorical_mappings
+        
+        # Handle target encoding based on task type and data type
+        if task_type == 'classification':
+            if y.dtype == 'object':
+                # Categorical target - encode it
+                y_encoded = pd.Categorical(y)
+                processed_data['class_labels'] = y_encoded.categories.tolist()
+                y = y_encoded.codes
+                logger.info(f"Encoded categorical target '{target_column}': {len(processed_data['class_labels'])} classes")
+            else:
+                # Numeric target but user selected classification
+                # Check if it looks like discrete classes
+                unique_values = sorted(y.unique())
+                if len(unique_values) <= 20 and all(isinstance(val, (int, np.integer)) for val in unique_values):
+                    # Looks like discrete integer classes - treat as classification
+                    processed_data['class_labels'] = [str(val) for val in unique_values]
+                    y = pd.Categorical(y, categories=unique_values).codes
+                    logger.info(f"Numeric target '{target_column}' treated as {len(unique_values)} discrete classes")
+                else:
+                    # Too many unique values or floating point - should be regression
+                    logger.warning(f"Target '{target_column}' has {len(unique_values)} unique numeric values - this looks like regression, not classification!")
+                    logger.warning(f"Consider changing task type to 'regression' for better results")
+                    # Convert to discrete classes anyway since user chose classification
+                    processed_data['class_labels'] = [str(val) for val in unique_values]
+                    y = pd.Categorical(y, categories=unique_values).codes
         else:
+            # Regression - ensure target is numeric
+            if y.dtype == 'object':
+                logger.warning(f"Target '{target_column}' is categorical but task type is regression - this may not work well")
             processed_data['class_labels'] = None
-            
+
+        # Save the feature types in metadata
+        processed_data['feature_types'] = feature_types
+        
+        # Perform comprehensive data quality validation
+        from backend.utils.data_quality import DataQualityValidator
+        quality_assessment = DataQualityValidator.validate_data_quality(
+            X.values, 
+            y.values if hasattr(y, 'values') else y, 
+            processed_data
+        )
+        
+        # Add quality assessment to metadata
+        processed_data['data_quality'] = quality_assessment
+        
+        # Log quality assessment
+        logger.info(f"Data quality assessment for '{dataset_name}': {quality_assessment['quality_level']} (score: {quality_assessment['quality_score']}/100)")
+        if quality_assessment['warnings']:
+            for warning in quality_assessment['warnings']:
+                logger.warning(f"Data quality: {warning}")
+        if quality_assessment['recommendations']:
+            for rec in quality_assessment['recommendations']:
+                logger.info(f"Recommendation: {rec}")
+        
         # Save the dataset
         datasets_dir = get_session_datasets_dir()
         os.makedirs(datasets_dir, exist_ok=True)

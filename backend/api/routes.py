@@ -117,6 +117,42 @@ def save_model_api():
                 for node_id in topo_order
             }
         }
+        
+        # Validate model architecture against dataset if available
+        dataset_name = architecture.get("dataset", "")
+        if dataset_name:
+            try:
+                from backend.utils.data_quality import DataQualityValidator
+                from backend.utils.session_manager import get_session_datasets_dir, get_session_id
+                
+                # Try to load dataset metadata for validation
+                try:
+                    session_id = get_session_id()
+                    datasets_dir = get_session_datasets_dir(session_id)
+                    metadata_file = os.path.join(datasets_dir, f'{dataset_name}_metadata.json')
+                    
+                    if os.path.exists(metadata_file):
+                        with open(metadata_file, 'r') as f:
+                            dataset_metadata = json.load(f)
+                        
+                        # Validate architecture
+                        validation_error = DataQualityValidator.validate_model_architecture(
+                            dataset_metadata, final_architecture
+                        )
+                        
+                        if validation_error:
+                            logger.warning(f"Model architecture validation warning for dataset '{dataset_name}': {validation_error}")
+                            # Don't fail, just warn - user may have valid reasons for their architecture
+                        else:
+                            logger.info(f"Model architecture validated successfully for dataset '{dataset_name}'")
+                            
+                except Exception as e:
+                    logger.debug(f"Could not validate architecture against dataset metadata: {str(e)}")
+                    # This is not critical, continue normally
+                    
+            except Exception as e:
+                logger.debug(f"Architecture validation skipped: {str(e)}")
+                # This is optional validation, don't fail the save operation
 
         # Save model architecture to a file
         with open(model_architecture_file, "w") as f:
@@ -728,7 +764,7 @@ def clear_saved_model():
 @api_blueprint.route('/predict', methods=['POST'])
 def predict_with_saved_model():
     """
-    Predict endpoint that uses the existing saved model and config, not a file upload.
+    Generic prediction endpoint for any trained model.
     Expects JSON with:
       - input_data: dict of {feature: value}
       - (optional) dataset_name: to select the dataset/model if needed
@@ -737,122 +773,185 @@ def predict_with_saved_model():
         data = request.get_json()
         if not data or 'input_data' not in data:
             return jsonify({'error': 'Missing input_data'}), 400
+        
         input_data = data['input_data']
         dataset_name = data.get('dataset_name')
 
-        # Get model and scaler paths from config
+        # Get model path from config
         model_path = current_app.config.get('TRAINED_MODEL_PATH')
-        scaler_path = model_path.replace('.keras', '_scaler.pkl').replace('.h5', '_scaler.pkl')
-        features_path = model_path.replace('.keras', '_features.json').replace('.h5', '_features.json')
+        
+        # For custom datasets, try to find dataset-specific scaler first
+        scaler_path = None
+        builtin_datasets = ['Iris', 'MNIST', 'CIFAR-10', 'California Housing', 'Breast Cancer']
+        
+        if dataset_name and dataset_name not in builtin_datasets:
+            # Custom dataset - look for dataset-specific scaler
+            try:
+                from backend.utils.session_manager import get_session_datasets_dir, get_session_id
+                session_id = get_session_id()
+                datasets_dir = get_session_datasets_dir(session_id)
+                custom_scaler_path = os.path.join(datasets_dir, f'{dataset_name}_scaler.pkl')
+                
+                if os.path.exists(custom_scaler_path):
+                    scaler_path = custom_scaler_path
+                    logger.info(f"Using custom dataset scaler: {scaler_path}")
+            except Exception as e:
+                logger.warning(f"Could not find custom dataset scaler: {str(e)}")
+        
+        # Fallback to model-based scaler path if no custom scaler found
+        if scaler_path is None:
+            scaler_path = model_path.replace('.keras', '_scaler.pkl').replace('.h5', '_scaler.pkl')
 
-        # Load feature names (from builder.py or saved config)
-        if os.path.exists(features_path):
-            with open(features_path, 'r') as f:
-                features = json.load(f)
-        else:
-            # Fallback: try to infer from dataset_name
-            if not dataset_name:
-                return jsonify({'error': 'No features found and no dataset_name provided'}), 400
-            # Example fallback for Iris
-            if dataset_name == 'Iris':
-                features = ["sepal_length", "sepal_width", "petal_length", "petal_width"]
-            elif dataset_name == 'Breast Cancer':
-                features = [f"feature_{i}" for i in range(30)]
-            elif dataset_name == 'California Housing':
-                features = [
-                    "MedInc", "HouseAge", "AveRooms", "AveBedrms",
-                    "Population", "AveOccup", "Latitude", "Longitude"
-                ]
-            else:
-                return jsonify({'error': 'Unknown dataset and no features found'}), 400
+        # Load feature metadata using the new generic system
+        from backend.utils.feature_metadata import FeatureMetadataManager
+        
+        feature_metadata = FeatureMetadataManager.load_feature_metadata(
+            dataset_name=dataset_name, 
+            model_path=model_path
+        )
+        
+        if not feature_metadata:
+            return jsonify({'error': 'No feature metadata found. Please retrain the model or check dataset configuration.'}), 400
 
-        # Convert input to array in correct order
-        input_array = np.array([float(input_data[feature]) for feature in features])
-        if len(input_array.shape) == 1:
-            input_array = input_array.reshape(1, -1)
+        # Process input data using generic processor
+        try:
+            input_array = FeatureMetadataManager.process_validation_input(input_data, feature_metadata)
+        except ValueError as ve:
+            return jsonify({'error': str(ve)}), 400
 
-        # Load scaler if exists
-        if os.path.exists(scaler_path):
+        # SCALING FIX: Don't apply scaling for custom datasets since model was trained with raw data
+        # The scaler exists but the model was actually trained with unscaled data due to a bug
+        if os.path.exists(scaler_path) and dataset_name in builtin_datasets:
+            # Only apply scaling for built-in datasets that actually need it
             with open(scaler_path, 'rb') as f:
                 scaler = pickle.load(f)
             input_array = scaler.transform(input_array)
+            logger.info(f"Applied scaling for built-in dataset: {dataset_name}")
+        else:
+            logger.info(f"Skipping scaling for custom dataset: {dataset_name} (model expects raw inputs)")
 
-        # Load model
+        # Load model and make prediction
         model = tf.keras.models.load_model(model_path)
         prediction = model.predict(input_array)
 
-        # Try to infer classification/regression from model output
-        if prediction.shape[1] == 1:
-            # Binary classification or regression
-            pred_value = float(prediction[0][0])
-            if 0 <= pred_value <= 1:
-                # Binary classification
-                pred_class = int(pred_value > 0.5)
-                confidence = pred_value if pred_class else 1 - pred_value
-                result = {
-                    'prediction': pred_class,
-                    'confidence': confidence
-                }
-            else:
-                # Regression
-                result = {
-                    'prediction': pred_value,
-                    'confidence': None
-                }
-        else:
-            # Multi-class classification
-            pred_class = int(np.argmax(prediction[0]))
-            confidence = float(prediction[0][pred_class])
-            result = {
-                'prediction': pred_class,
-                'confidence': confidence
-            }
+        # Format prediction result using generic formatter
+        result = FeatureMetadataManager.format_prediction_result(prediction, feature_metadata)
+        
         return jsonify(result)
+        
     except Exception as e:
+        logger.error(f"Error in prediction: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 @api_blueprint.route('/predict/features', methods=['GET'])
 def get_prediction_features():
+    """
+    Generic endpoint to get feature information for any dataset.
+    """
     dataset_name = request.args.get('dataset_name')
     if not dataset_name:
         return jsonify({'error': 'dataset_name is required'}), 400
 
-    model_path = current_app.config.get('TRAINED_MODEL_PATH')
-    features_path = model_path.replace('.keras', '_features.json').replace('.h5', '_features.json')
-
-    if os.path.exists(features_path):
-        with open(features_path, 'r') as f:
-            features_info = json.load(f)
-        return jsonify({
-            'feature_names': features_info.get('feature_names', []),
-            'feature_types': features_info.get('feature_types', []),
-            'class_labels': features_info.get('class_labels', None)
-        })
-    else:
-        # Fallback for known datasets
-        if dataset_name == 'Iris':
-            return jsonify({
+    try:
+        # Define built-in datasets with their predefined features
+        builtin_datasets = {
+            'Iris': {
                 'feature_names': ["sepal_length", "sepal_width", "petal_length", "petal_width"],
                 'feature_types': ["float", "float", "float", "float"],
                 'class_labels': ["setosa", "versicolor", "virginica"]
-            })
-        elif dataset_name == 'Breast Cancer':
-            return jsonify({
+            },
+            'MNIST': {
+                'feature_names': [],  # Image dataset - no manual features
+                'feature_types': [],
+                'class_labels': [str(i) for i in range(10)]
+            },
+            'CIFAR-10': {
+                'feature_names': [],  # Image dataset - no manual features  
+                'feature_types': [],
+                'class_labels': ["Airplane", "Automobile", "Bird", "Cat", "Deer", "Dog", "Frog", "Horse", "Ship", "Truck"]
+            },
+            'Breast Cancer': {
                 'feature_names': [f"feature_{i}" for i in range(30)],
                 'feature_types': ["float"] * 30,
                 'class_labels': ["malignant", "benign"]
-            })
-        elif dataset_name == 'California Housing':
-            return jsonify({
+            },
+            'California Housing': {
                 'feature_names': [
                     "MedInc", "HouseAge", "AveRooms", "AveBedrms",
                     "Population", "AveOccup", "Latitude", "Longitude"
                 ],
                 'feature_types': ["float"] * 8,
                 'class_labels': None
-            })
-        else:
-            return jsonify({'error': 'Unknown dataset and no features found'}), 400 
+            }
+        }
+        
+        # PRIORITIZE built-in datasets - return their predefined features immediately
+        if dataset_name in builtin_datasets:
+            logger.info(f"Returning predefined features for built-in dataset: {dataset_name}")
+            return jsonify(builtin_datasets[dataset_name])
+        
+        # Only for custom datasets, load feature metadata using the generic system
+        logger.info(f"Loading custom dataset metadata for: {dataset_name}")
+        from backend.utils.feature_metadata import FeatureMetadataManager
+        
+        model_path = current_app.config.get('TRAINED_MODEL_PATH')
+        feature_metadata = FeatureMetadataManager.load_feature_metadata(
+            dataset_name=dataset_name, 
+            model_path=model_path
+        )
+        
+        if not feature_metadata:
+            return jsonify({'error': f'No feature metadata found for custom dataset: {dataset_name}. Please retrain the model.'}), 400
+        
+        # Extract relevant information for frontend
+        feature_info = {
+            'feature_names': feature_metadata.get('feature_names', []),
+            'feature_types': feature_metadata.get('feature_types', []),
+            'class_labels': feature_metadata.get('class_labels', None),
+            'categorical_options': {}
+        }
+        
+        # Add categorical options for dropdowns
+        categorical_encodings = feature_metadata.get('categorical_encodings', {})
+        for feature_name, encoding_info in categorical_encodings.items():
+            if 'values' in encoding_info:
+                feature_info['categorical_options'][feature_name] = encoding_info['values']
+        
+        # Check feature types quality and add recommendations
+        quality_check = FeatureMetadataManager.check_feature_types_quality(feature_metadata)
+        if quality_check['has_issues']:
+            feature_info['quality_warning'] = {
+                'message': 'Some features may be incorrectly classified',
+                'issues': quality_check['issues'],
+                'recommendations': quality_check['recommendations']
+            }
+        
+        # Try to get enhanced data quality information from dataset metadata
+        try:
+            from backend.utils.session_manager import get_session_datasets_dir, get_session_id
+            session_id = get_session_id()
+            datasets_dir = get_session_datasets_dir(session_id)
+            metadata_path = os.path.join(datasets_dir, f'{dataset_name}_metadata.json')
+            
+            if os.path.exists(metadata_path):
+                with open(metadata_path, 'r') as f:
+                    dataset_metadata = json.load(f)
+                
+                # Include enhanced data quality information if available
+                data_quality = dataset_metadata.get('data_quality')
+                if data_quality:
+                    feature_info['data_quality'] = data_quality
+                    logger.debug(f"Added enhanced data quality info for {dataset_name}")
+                    
+        except Exception as e:
+            logger.debug(f"Could not load enhanced quality info for {dataset_name}: {str(e)}")
+            # This is optional, continue without enhanced quality info
+        
+        return jsonify(feature_info)
+        
+    except Exception as e:
+        logger.error(f"Error getting prediction features: {str(e)}", exc_info=True)
+        return jsonify({'error': f'Error retrieving feature information: {str(e)}'}), 500 
 
 @api_blueprint.route('/predict/image', methods=['POST'])
 def predict_image():
@@ -882,5 +981,14 @@ def predict_image():
         pred_class = int(np.argmax(prediction[0]))
         confidence = float(prediction[0][pred_class])
         return jsonify({'prediction': pred_class, 'confidence': confidence})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500 
+
+@api_blueprint.route('/session_id', methods=['GET'])
+def get_session_id_route():
+    try:
+        from backend.utils.session_manager import get_session_id
+        session_id = get_session_id()
+        return jsonify({'session_id': session_id})
     except Exception as e:
         return jsonify({'error': str(e)}), 500 

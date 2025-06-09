@@ -125,6 +125,14 @@ def register_socket_events(socketio):
                 emit("training_error", {"error": f"Invalid loss function: {training_config['lossFunction']}"})
                 return
 
+            # For custom datasets, clear any existing registration to ensure we get the most recent version
+            from backend.dataset_loader import dataset_registry
+            builtin_datasets = ["Iris", "MNIST", "CIFAR-10", "California Housing", "Breast Cancer"]
+            if dataset not in builtin_datasets and dataset in dataset_registry.loaders:
+                logger.info(f"Clearing cached custom dataset registration for: {dataset}", 
+                           extra={"context": {"client_id": client_id}})
+                del dataset_registry.loaders[dataset]
+            
             # Load and preprocess the dataset using load_dataset
             logger.info(f"Loading dataset: {dataset}", 
                        extra={"context": {"client_id": client_id}})
@@ -374,6 +382,54 @@ def register_socket_events(socketio):
                 "success": True
             })
             
+            # Save feature metadata for custom datasets
+            try:
+                # Check if this is a custom dataset and save feature metadata
+                from backend.utils.feature_metadata import FeatureMetadataManager
+                from backend.utils.session_manager import get_session_datasets_dir, get_session_id
+                
+                # Check if dataset is custom by looking for it in built-in datasets
+                builtin_datasets = ["Iris", "MNIST", "CIFAR-10", "California Housing", "Breast Cancer"]
+                if dataset not in builtin_datasets:
+                    logger.info(f"Saving feature metadata for custom dataset: {dataset}",
+                               extra={"context": {"client_id": client_id}})
+                    
+                    # Load original dataset metadata
+                    try:
+                        session_id = get_session_id()
+                        datasets_dir = get_session_datasets_dir(session_id)
+                        metadata_path = os.path.join(datasets_dir, f'{dataset}_metadata.json')
+                        
+                        if os.path.exists(metadata_path):
+                            with open(metadata_path, 'r') as f:
+                                original_metadata = json.load(f)
+                            
+                            # Extract and save feature metadata using the training data
+                            feature_metadata = FeatureMetadataManager.extract_and_save_feature_metadata(
+                                dataset_name=dataset,
+                                X=x_train.numpy() if hasattr(x_train, 'numpy') else x_train,
+                                y=y_train.numpy() if hasattr(y_train, 'numpy') else y_train,
+                                metadata_dict=original_metadata,
+                                model_path=TRAINED_MODEL_PATH
+                            )
+                            
+                            if feature_metadata:
+                                logger.info("Feature metadata saved successfully for custom dataset",
+                                           extra={"context": {"client_id": client_id}})
+                            else:
+                                logger.warning("Failed to save feature metadata for custom dataset",
+                                             extra={"context": {"client_id": client_id}})
+                        else:
+                            logger.warning(f"Original metadata not found for custom dataset: {dataset}",
+                                         extra={"context": {"client_id": client_id}})
+                    except Exception as metadata_error:
+                        logger.warning(f"Could not save feature metadata: {str(metadata_error)}",
+                                     extra={"context": {"client_id": client_id}})
+                
+            except Exception as e:
+                logger.warning(f"Error in feature metadata handling: {str(e)}",
+                             extra={"context": {"client_id": client_id}})
+
             # Save the model with custom_objects for Lambda layers
             try:
                 logger.info("Saving trained model", 
