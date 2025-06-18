@@ -58,6 +58,33 @@ const checkDatasetSelected = () => {
   });
 };
 
+// Function to check if model is saved
+const checkModelSaved = () => {
+  // This will return a promise that resolves with true/false
+  return new Promise((resolve) => {
+    console.log("Checking if model is saved...");
+
+    // Create and dispatch an event to check model save status
+    const checkEvent = new CustomEvent("checkModelSaved", {
+      detail: {
+        callback: (isSaved: boolean) => {
+          console.log(`Model save check result: ${isSaved}`);
+          resolve(isSaved);
+        },
+      },
+    });
+
+    console.log("Dispatching checkModelSaved event");
+    window.dispatchEvent(checkEvent);
+
+    // Set a timeout in case the event isn't handled
+    setTimeout(() => {
+      console.warn("Model save check timed out");
+      resolve(false);
+    }, 2000); // Increased timeout to 2 seconds
+  });
+};
+
 const NavBar: React.FC = () => {
   const [isTraining, setIsTraining] = useState<boolean>(false);
   const [hasSelectedDataset, setHasSelectedDataset] = useState<boolean>(false);
@@ -161,11 +188,21 @@ const NavBar: React.FC = () => {
     window.dispatchEvent(event);
   };
 
-  const handleTrainModelClick = () => {
+  const handleTrainModelClick = async () => {
     if (!hasSelectedDataset) {
       showToast(
         "No dataset selected! Please select a dataset before training.",
         "error"
+      );
+      return;
+    }
+
+    // Check if model is saved before training
+    const modelSaved = await checkModelSaved();
+    if (!modelSaved) {
+      showToast(
+        "Make sure you hit save before training! Please save your model first.",
+        "warning"
       );
       return;
     }
@@ -224,6 +261,20 @@ const NavBar: React.FC = () => {
             <i className="fas fa-question-circle"></i>
             <span>Tutorial</span>
           </NavLink>
+
+          <button
+            className="feedback-button"
+            title="Share your feedback with us"
+            onClick={() =>
+              window.open(
+                "https://docs.google.com/forms/d/e/1FAIpQLScNwElcccthfnQKwpuw8_OpujpL85jBLXM9z_dVhNdZDbinbg/viewform?usp=sharing&ouid=115794469754924516205",
+                "_blank"
+              )
+            }
+          >
+            <i className="fas fa-comment-dots"></i>
+            <span>Feedback</span>
+          </button>
 
           <button
             className="save-model-button"

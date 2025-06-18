@@ -199,19 +199,36 @@ export async function previewDataset(file: File): Promise<DatasetPreview> {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await makeApiRequest<{ success: boolean; data: DatasetPreview; message: string }>('/preview', {
-    method: 'POST',
-    body: formData,
-  });
+  try {
+    const response = await makeApiRequest<{ success: boolean; data: DatasetPreview; message: string }>('/preview', {
+      method: 'POST',
+      body: formData,
+    });
 
-  if (!response.success) {
-    throw new CustomDatasetApiError('Failed to preview dataset', 500, response);
+    if (!response.success) {
+      throw new CustomDatasetApiError('Failed to preview dataset', 500, response);
+    }
+
+    console.log('🔍 Raw preview response data:', response.data);
+    
+    // The backend returns the data nested under 'data', so we extract it
+    return response.data;
+  } catch (error) {
+    if (error instanceof CustomDatasetApiError) {
+      // Check if the error is related to openpyxl
+      if (error.message.includes('openpyxl')) {
+        throw new CustomDatasetApiError(
+          'To process Excel files, please install the openpyxl package by running: pip install openpyxl',
+          400
+        );
+      }
+      throw error;
+    }
+    throw new CustomDatasetApiError(
+      `Failed to preview dataset: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      500
+    );
   }
-
-  console.log('🔍 Raw preview response data:', response.data);
-  
-  // The backend returns the data nested under 'data', so we extract it
-  return response.data;
 }
 
 /**

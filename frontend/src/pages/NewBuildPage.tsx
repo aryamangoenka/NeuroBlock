@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, JSX } from "react";
+import React, { useState, useRef, useEffect, JSX, useCallback } from "react";
 import "../styles/components/NewBuildPage.scss";
 import { useNewBuildPageContext } from "../context/NewBuildPageContext";
 import ReactFlow, {
@@ -318,6 +318,14 @@ const NewBuildPage = (): JSX.Element => {
   // State to track if the model has been saved
   const [isModelSaved, setIsModelSaved] = useState<boolean>(false);
 
+  // State to track layer sizes (input/output dimensions)
+  const [layerSizes, setLayerSizes] = useState<
+    Record<string, { inputSize: string; outputSize: string }>
+  >({});
+
+  // Ref to track if we're in the middle of a save operation
+  const isSavingRef = useRef(false);
+
   // Export functionality state - the export section has been removed from the right sidebar,
   // but these state variables are still needed for export functionality from the navbar
   const [exportStatusMessage, setExportStatusMessage] = useState<string>("");
@@ -325,9 +333,18 @@ const NewBuildPage = (): JSX.Element => {
   // First, let's add a state variable for the W&B URL
   const [wandbUrl, setWandbUrl] = useState<string | null>(null);
 
-  // Reset isModelSaved when nodes or edges change
+  // Reset isModelSaved when nodes or edges change, but only if not currently saving
   useEffect(() => {
-    setIsModelSaved(false);
+    if (!isSavingRef.current) {
+      console.log(
+        "🔄 Resetting isModelSaved to false due to nodes/edges change"
+      );
+      setIsModelSaved(false);
+    } else {
+      console.log(
+        "💾 Skipping isModelSaved reset - save operation in progress"
+      );
+    }
   }, [nodes, edges]);
 
   // Fetch custom datasets on component mount
@@ -999,21 +1016,23 @@ const NewBuildPage = (): JSX.Element => {
         return ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
       case "CIFAR-10":
         return [
-          "Airplane",
-          "Car",
-          "Bird",
-          "Cat",
-          "Deer",
-          "Dog",
-          "Frog",
-          "Horse",
-          "Ship",
-          "Truck",
+          "airplane",
+          "automobile",
+          "bird",
+          "cat",
+          "deer",
+          "dog",
+          "frog",
+          "horse",
+          "ship",
+          "truck",
         ];
       case "Iris":
         return ["Setosa", "Versicolor", "Virginica"];
       case "Breast Cancer":
         return ["Benign", "Malignant"];
+      case "California Housing":
+        return ["Price"];
       default:
         return [];
     }
@@ -1230,6 +1249,9 @@ const NewBuildPage = (): JSX.Element => {
       return;
     }
 
+    // Set saving flag to prevent isModelSaved from being reset
+    isSavingRef.current = true;
+
     // Get the latest training config from localStorage
     const storedConfig = localStorage.getItem("trainingConfig");
     const latestTrainingConfig = storedConfig
@@ -1245,6 +1267,7 @@ const NewBuildPage = (): JSX.Element => {
         "No dataset selected! Please select a dataset before saving.",
         "error"
       );
+      isSavingRef.current = false; // Reset flag on error
       return;
     }
 
@@ -1272,6 +1295,7 @@ const NewBuildPage = (): JSX.Element => {
         )}`,
         "error"
       );
+      isSavingRef.current = false; // Reset flag on error
       return;
     }
 
@@ -1334,6 +1358,7 @@ const NewBuildPage = (): JSX.Element => {
         const errorMessage =
           errorData.error || "Unknown error occurred while saving the model";
         showToast(`Saving failed: ${errorMessage}`, "error");
+        isSavingRef.current = false; // Reset flag on error
         return;
       }
 
@@ -1346,6 +1371,9 @@ const NewBuildPage = (): JSX.Element => {
         (data.message.includes("saved successfully") ||
           data.message.includes("Model architecture saved"))
       ) {
+        console.log(
+          "✅ Model saved successfully, setting isModelSaved to true"
+        );
         setIsModelSaved(true);
 
         // Display success message
@@ -1360,6 +1388,9 @@ const NewBuildPage = (): JSX.Element => {
           "info"
         );
       }
+
+      // Reset saving flag after successful save
+      isSavingRef.current = false;
     } catch (error) {
       console.error("Error saving model:", error);
 
@@ -1379,11 +1410,29 @@ const NewBuildPage = (): JSX.Element => {
         }`,
         "error"
       );
+
+      // Reset saving flag on error
+      isSavingRef.current = false;
     }
   };
 
   // Start training the model
   const handleStartTraining = async () => {
+    // Check if model is saved first
+    console.log(
+      "🔍 Checking isModelSaved in handleStartTraining:",
+      isModelSaved
+    );
+    if (!isModelSaved) {
+      console.log("❌ Model not saved, preventing training");
+      showToast(
+        "Please save the model before training. Click 'Save Model' first.",
+        "error"
+      );
+      return;
+    }
+
+    console.log("✅ Model is saved, proceeding with training");
     // Skip full validation and just check critical requirements using preValidateModel
     const validationIssue = preValidateModel();
     if (validationIssue) {
@@ -5142,7 +5191,7 @@ const NewBuildPage = (): JSX.Element => {
                           value={selectedNode.data.stride?.[0] || "2"}
                           onChange={(e) =>
                             updateParameter("stride", [
-                              parseInt(e.target.value) || 2,
+                              +e.target.value,
                               selectedNode.data.stride?.[1] || 2,
                             ])
                           }
@@ -5180,7 +5229,7 @@ const NewBuildPage = (): JSX.Element => {
                           onChange={(e) =>
                             updateParameter("stride", [
                               selectedNode.data.stride?.[0] || 2,
-                              parseInt(e.target.value) || 2,
+                              +e.target.value,
                             ])
                           }
                           className="number-input"
@@ -5920,6 +5969,15 @@ const NewBuildPage = (): JSX.Element => {
         return;
       }
 
+      // Check if model is saved
+      if (!isModelSaved) {
+        showToast(
+          "Please save the model before training. Click 'Save Model' first.",
+          "error"
+        );
+        return;
+      }
+
       // Check if already training
       if (isTraining) {
         console.log("Already training, ignoring train request");
@@ -5945,7 +6003,7 @@ const NewBuildPage = (): JSX.Element => {
     return () => {
       window.removeEventListener("trainModel", trainModelHandler);
     };
-  }, [selectedDataset, isTraining, nodes, edges]); // Include relevant dependencies
+  }, [selectedDataset, isTraining, nodes, edges, isModelSaved]); // Include relevant dependencies
 
   // Display export status message if it exists
   useEffect(() => {
@@ -5993,6 +6051,50 @@ const NewBuildPage = (): JSX.Element => {
       );
     };
   }, [selectedDataset, isModelSaved, isTraining]);
+
+  // Ref to track current isModelSaved state for event handlers
+  const isModelSavedRef = useRef<boolean>(false);
+
+  // Update ref whenever isModelSaved changes
+  useEffect(() => {
+    isModelSavedRef.current = isModelSaved;
+  }, [isModelSaved]);
+
+  // Listen for checkModelSaved event from NavBar
+  useEffect(() => {
+    const checkModelSavedHandler = (event: CustomEvent) => {
+      const currentIsModelSaved = isModelSavedRef.current;
+      console.log(
+        "📋 checkModelSaved event received, current isModelSaved:",
+        currentIsModelSaved
+      );
+      const callback = event.detail?.callback;
+      if (callback && typeof callback === "function") {
+        console.log(
+          "📋 Calling callback with isModelSaved:",
+          currentIsModelSaved
+        );
+        callback(currentIsModelSaved);
+      } else {
+        console.warn("📋 No callback provided in checkModelSaved event");
+      }
+    };
+
+    console.log("📋 Adding checkModelSaved event listener");
+    window.addEventListener(
+      "checkModelSaved",
+      checkModelSavedHandler as EventListener
+    );
+
+    // Cleanup function
+    return () => {
+      console.log("📋 Removing checkModelSaved event listener");
+      window.removeEventListener(
+        "checkModelSaved",
+        checkModelSavedHandler as EventListener
+      );
+    };
+  }, []); // Removed isModelSaved dependency to prevent multiple listeners
 
   // Render the training metrics that will be displayed on the right
   const renderTrainingMetrics = () => {
@@ -6566,6 +6668,41 @@ const NewBuildPage = (): JSX.Element => {
                         placeholder="Layer Name"
                         className="layer-name-input"
                       />
+                    </div>
+                  )}
+
+                  {/* Layer Size Information */}
+                  {layerSizes[selectedNode.id] && (
+                    <div className="layer-size-info">
+                      <div className="size-section">
+                        <div className="size-header">
+                          <i className="fas fa-arrow-right"></i>
+                          <span>Input Size</span>
+                        </div>
+                        <div className="size-display">
+                          <span
+                            className={`size-value ${
+                              layerSizes[selectedNode.id].inputSize ===
+                              "Disconnected"
+                                ? "disconnected"
+                                : ""
+                            }`}
+                          >
+                            {layerSizes[selectedNode.id].inputSize}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="size-section">
+                        <div className="size-header">
+                          <i className="fas fa-arrow-right"></i>
+                          <span>Output Size</span>
+                        </div>
+                        <div className="size-display">
+                          <span className="size-value">
+                            {layerSizes[selectedNode.id].outputSize}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -7446,6 +7583,224 @@ const NewBuildPage = (): JSX.Element => {
   const handleDeleteEdge = (edgeId: string) => {
     setEdges((eds) => eds.filter((e) => e.id !== edgeId));
   };
+
+  // Function to calculate layer sizes based on architecture and dataset
+  const calculateLayerSizes = useCallback((): void => {
+    if (!selectedDataset || nodes.length === 0) {
+      setLayerSizes({});
+      return;
+    }
+
+    // Get dataset input shape
+    const getDatasetInputShape = (dataset: string): number[] => {
+      switch (dataset) {
+        case "MNIST":
+          return [28, 28, 1]; // (height, width, channels)
+        case "CIFAR-10":
+          return [32, 32, 3]; // (height, width, channels)
+        case "Iris":
+          return [4]; // 4 features
+        case "Breast Cancer":
+          return [30]; // 30 features
+        case "California Housing":
+          return [8]; // 8 features
+        default:
+          return [1]; // Default fallback
+      }
+    };
+
+    // Get dataset output size
+    const getDatasetOutputSize = (dataset: string): number => {
+      switch (dataset) {
+        case "MNIST":
+        case "CIFAR-10":
+          return 10; // 10 classes
+        case "Iris":
+          return 3; // 3 classes
+        case "Breast Cancer":
+          return 1; // Binary classification
+        case "California Housing":
+          return 1; // Regression
+        default:
+          return 1; // Default fallback
+      }
+    };
+
+    const inputShape = getDatasetInputShape(selectedDataset);
+    const outputSize = getDatasetOutputSize(selectedDataset);
+
+    // Create a map to track current tensor shapes through the network
+    const tensorShapes: Record<string, number[]> = {};
+    const newLayerSizes: Record<
+      string,
+      { inputSize: string; outputSize: string }
+    > = {};
+
+    // Sort nodes by their position in the network (topological sort)
+    const sortedNodes = [...nodes].sort((a, b) => {
+      const aPos = a.position?.y || 0;
+      const bPos = b.position?.y || 0;
+      return aPos - bPos;
+    });
+
+    // Initialize input layer
+    const inputNode = sortedNodes.find((node) => node.type === "input");
+    if (inputNode) {
+      tensorShapes[inputNode.id] = inputShape;
+      newLayerSizes[inputNode.id] = {
+        inputSize: "N/A",
+        outputSize: `(${inputShape.join(", ")})`,
+      };
+    }
+
+    // Process each layer in order
+    for (const node of sortedNodes) {
+      if (node.type === "input") continue;
+
+      // Find input connections to this node
+      const inputEdges = edges.filter((edge) => edge.target === node.id);
+      const inputNodeIds = inputEdges.map((edge) => edge.source);
+
+      // Get input shape from the first connected node
+      let currentShape = inputShape; // Default fallback
+      if (inputNodeIds.length > 0) {
+        const firstInputId = inputNodeIds[0];
+        currentShape = tensorShapes[firstInputId] || inputShape;
+      }
+
+      // Calculate output shape based on layer type
+      let outputShape: number[] = [...currentShape];
+
+      switch (node.type) {
+        case "dense":
+          const neurons = node.data?.neurons || 1;
+          if (currentShape.length === 1) {
+            // 1D input (tabular data)
+            outputShape = [neurons];
+          } else {
+            // Multi-dimensional input (image data) - flatten first
+
+            outputShape = [neurons];
+          }
+
+          break;
+
+        case "convolution":
+          const filters = node.data?.filters || 32;
+          const kernelSize = node.data?.kernelSize || [3, 3];
+          const stride = node.data?.stride || [1, 1];
+          const padding = node.data?.padding || "same";
+
+          if (currentShape.length >= 3) {
+            // Image data: (height, width, channels)
+            const [h, w] = currentShape;
+            let newH = h,
+              newW = w;
+
+            if (padding === "same") {
+              newH = h;
+              newW = w;
+            } else {
+              // "valid" padding
+              newH = Math.floor((h - kernelSize[0]) / stride[0]) + 1;
+              newW = Math.floor((w - kernelSize[1]) / stride[1]) + 1;
+            }
+
+            outputShape = [newH, newW, filters];
+          } else if (currentShape.length === 2) {
+            // Handle 2D case (no channels)
+            const [h, w] = currentShape;
+            let newH = h,
+              newW = w;
+
+            if (padding === "same") {
+              newH = h;
+              newW = w;
+            } else {
+              // "valid" padding
+              newH = Math.floor((h - kernelSize[0]) / stride[0]) + 1;
+              newW = Math.floor((w - kernelSize[1]) / stride[1]) + 1;
+            }
+
+            outputShape = [newH, newW, filters];
+          } else {
+            // Handle 1D case
+            outputShape = [...currentShape];
+          }
+          break;
+
+        case "maxpooling":
+          const poolSize = node.data?.poolSize || [2, 2];
+          const poolStride = node.data?.stride || [2, 2];
+
+          if (currentShape.length >= 3) {
+            const [h, w, c] = currentShape;
+            const newH = Math.floor((h - poolSize[0]) / poolStride[0]) + 1;
+            const newW = Math.floor((w - poolSize[1]) / poolStride[1]) + 1;
+            outputShape = [newH, newW, c];
+          } else if (currentShape.length === 2) {
+            // Handle 2D case (no channels)
+            const [h, w] = currentShape;
+            const newH = Math.floor((h - poolSize[0]) / poolStride[0]) + 1;
+            const newW = Math.floor((w - poolSize[1]) / poolStride[1]) + 1;
+            outputShape = [newH, newW];
+          } else {
+            // Handle 1D case
+            outputShape = [...currentShape];
+          }
+          break;
+
+        case "flatten":
+          const flattenedSize = currentShape.reduce((a, b) => a * b, 1);
+          outputShape = [flattenedSize];
+          break;
+
+        case "dropout":
+        case "batchnormalization":
+        case "activation":
+          // These layers don't change the shape
+          outputShape = [...currentShape];
+          break;
+
+        case "output":
+          outputShape = [outputSize];
+          break;
+
+        default:
+          // For unknown layer types, keep the same shape
+          outputShape = [...currentShape];
+          break;
+      }
+
+      // Store the output shape for this node
+      tensorShapes[node.id] = outputShape;
+
+      // Format the shapes for display
+      const formatShape = (shape: number[]): string => {
+        if (shape.length === 1) {
+          return shape[0].toString();
+        } else if (shape.length === 2) {
+          return `(${shape[0]}, ${shape[1]})`;
+        } else if (shape.length === 3) {
+          return `(${shape[0]}, ${shape[1]}, ${shape[2]})`;
+        } else {
+          return `(${shape.join(", ")})`;
+        }
+      };
+
+      newLayerSizes[node.id] = {
+        inputSize: formatShape(currentShape),
+        outputSize: formatShape(outputShape),
+      };
+    }
+
+    setLayerSizes(newLayerSizes);
+  }, [selectedDataset, nodes, edges]);
+
+  // Calculate layer sizes when nodes, edges, or dataset changes
+  useEffect(() => {
+    calculateLayerSizes();
+  }, [calculateLayerSizes]);
 
   return (
     <div className="new-build-page">

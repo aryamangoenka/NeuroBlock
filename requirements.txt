@@ -82,3 +82,13 @@ flask_socketio
 eventlet==0.35.2
 wandb
 openpyxl>=3.1.0
+numpy>=1.19.2
+pandas>=1.2.0
+scikit-learn>=0.24.0
+tensorflow>=2.4.0
+flask>=2.0.0
+flask-cors>=3.0.0
+python-dotenv>=0.15.0
+gunicorn>=20.1.0
+Pillow>=8.0.0  # For image processing
+opencv-python>=4.5.0  # Optional, for additional image processing features 

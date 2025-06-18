@@ -100,6 +100,15 @@
         }
     }
 
+    .feedback-button {
+        @extend .navbar-btn;
+        background: #6a4c93;
+        
+        &:hover {
+            background: color.scale(#6a4c93, $lightness: -10%);
+        }
+    }
+
     .save-model-button {
         @extend .navbar-btn;
         background: #fcbf49;
@@ -221,6 +230,10 @@
     }
     
     .tutorial-button span {
+        display: none;
+    }
+    
+    .feedback-button span {
         display: none;
     }
     
