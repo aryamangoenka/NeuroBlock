@@ -149,7 +149,7 @@ const NewBuildPage = (): JSX.Element => {
     setNodes,
     edges,
     setEdges,
-    validationErrors,
+
     setValidationErrors,
     selectedDataset,
     setSelectedDataset,
@@ -237,7 +237,7 @@ const NewBuildPage = (): JSX.Element => {
   // Add these state variables with the other useState declarations
   const [showValidationErrors, setShowValidationErrors] =
     useState<boolean>(false);
-
+  void showValidationErrors;
   // Chart data state variables
   const [labels, setLabels] = useState<string[]>([]);
   const [lossData, setLossData] = useState<number[]>([]);
@@ -1272,8 +1272,12 @@ const NewBuildPage = (): JSX.Element => {
     }
 
     // Get validation issues but don't block saving on warnings
-    const errors = validateLayerParameters();
-    console.log("Validation results:", errors);
+    const parameterErrors = validateLayerParameters();
+    const sizeErrors = validateInputOutputSizes();
+    const errors = [...parameterErrors, ...sizeErrors];
+    console.log("Parameter validation results:", parameterErrors);
+    console.log("Size validation results:", sizeErrors);
+    console.log("Combined validation results:", errors);
 
     // Filter critical errors (those marked with [Critical])
     const criticalErrors = errors.filter((error) =>
@@ -3356,6 +3360,7 @@ const NewBuildPage = (): JSX.Element => {
     const targetNode = nodes.find((n) => n.id === connection.target);
 
     if (!sourceNode || !targetNode) return false;
+    if (!sourceNode.type || !targetNode.type) return false;
 
     // Rule 1: Input layers can only be sources, never targets
     if (targetNode.type === "input") {
@@ -3379,16 +3384,25 @@ const NewBuildPage = (): JSX.Element => {
       return false;
     }
 
-    // 🎯 FLEXIBLE CONNECTION POLICY: Allow all other connections!
-    // Templates and manual architectures should be fully editable
+    // Rule 4: Allow flexible layer connections
+    // All layer types can be sources - activation, dropout, batchnorm, flatten etc. can all pass data forward
+
+    // Rule 5: Prevent connections to layers that don't accept inputs
+    const nonInputLayers = ["input"];
+    if (targetNode.type && nonInputLayers.includes(targetNode.type)) {
+      console.log(`❌ Cannot connect to ${targetNode.type} layer`);
+      return false;
+    }
+
+    // 🎯 SMART CONNECTION POLICY: Allow valid connections while preventing impossible ones!
     // - Allow skip connections (ResNet, Transformer, etc.)
-    // - Allow backward connections (activation layers, custom architectures)
-    // - Allow multiple inputs to any layer (Add layers, complex architectures)
+    // - Allow backward connections for valid architectures
+    // - Allow multiple inputs to layers that support it (Add layers, complex architectures)
     // - Allow output→activation connections (final activation layers)
-    // - Allow any creative architecture the user wants to build!
+    // - Allow any creative but valid architecture the user wants to build!
 
     console.log(
-      `✅ Allowing flexible connection: ${sourceNode.type} → ${targetNode.type}`
+      `✅ Allowing valid connection: ${sourceNode.type} → ${targetNode.type}`
     );
     return true;
   };
@@ -5804,7 +5818,12 @@ const NewBuildPage = (): JSX.Element => {
     matrix: number[][];
     labels: string[];
   }) => {
-    const maxValue = Math.max(...matrix.flat());
+    // Calculate total number of samples
+    const totalSamples = matrix.flat().reduce((sum, value) => sum + value, 0);
+
+    // Calculate maximum proportion for opacity scaling
+    const maxProportion =
+      totalSamples > 0 ? Math.max(...matrix.flat()) / totalSamples : 0;
 
     return (
       <div className="confusion-matrix-container">
@@ -5828,8 +5847,15 @@ const NewBuildPage = (): JSX.Element => {
               <tr key={`row-${rowIndex}`}>
                 <td className="matrix-header">{labels[rowIndex]}</td>
                 {row.map((value, colIndex) => {
-                  // Calculate opacity based on value
-                  const opacity = maxValue > 0 ? value / maxValue : 0;
+                  // Calculate proportion as percentage
+                  const proportion =
+                    totalSamples > 0 ? value / totalSamples : 0;
+                  const percentage = (proportion * 100).toFixed(1);
+
+                  // Calculate opacity based on proportion for visual intensity
+                  const opacity =
+                    maxProportion > 0 ? proportion / maxProportion : 0;
+
                   return (
                     <td
                       key={`cell-${rowIndex}-${colIndex}`}
@@ -5838,8 +5864,9 @@ const NewBuildPage = (): JSX.Element => {
                         backgroundColor: `rgba(76, 175, 80, ${opacity})`,
                         color: opacity > 0.5 ? "#fff" : "#000",
                       }}
+                      title={`${value} samples (${percentage}%)`}
                     >
-                      {value}
+                      {percentage}%
                     </td>
                   );
                 })}
@@ -7584,14 +7611,22 @@ const NewBuildPage = (): JSX.Element => {
     setEdges((eds) => eds.filter((e) => e.id !== edgeId));
   };
 
-  // Function to calculate layer sizes based on architecture and dataset
-  const calculateLayerSizes = useCallback((): void => {
+  // Function to validate input/output sizes throughout the network and populate layerSizes for UI
+  const validateInputOutputSizes = useCallback((): ValidationErrors => {
+    const errors: ValidationErrors = [];
+
+    // Check if dataset is selected
     if (!selectedDataset || nodes.length === 0) {
       setLayerSizes({});
-      return;
+      if (!selectedDataset) {
+        errors.push(
+          "[Critical] Please select a dataset before validating sizes"
+        );
+      }
+      return errors;
     }
 
-    // Get dataset input shape
+    // Get dataset specifications
     const getDatasetInputShape = (dataset: string): number[] => {
       switch (dataset) {
         case "MNIST":
@@ -7609,7 +7644,6 @@ const NewBuildPage = (): JSX.Element => {
       }
     };
 
-    // Get dataset output size
     const getDatasetOutputSize = (dataset: string): number => {
       switch (dataset) {
         case "MNIST":
@@ -7626,181 +7660,422 @@ const NewBuildPage = (): JSX.Element => {
       }
     };
 
-    const inputShape = getDatasetInputShape(selectedDataset);
-    const outputSize = getDatasetOutputSize(selectedDataset);
+    const expectedInputShape = getDatasetInputShape(selectedDataset);
+    const expectedOutputSize = getDatasetOutputSize(selectedDataset);
 
-    // Create a map to track current tensor shapes through the network
-    const tensorShapes: Record<string, number[]> = {};
+    // Find input and output layers
+    const inputLayer = nodes.find((node) => node.type === "input");
+    const outputLayer = nodes.find((node) => node.type === "output");
+
+    if (!inputLayer) {
+      errors.push("[Critical] Input layer is required for size validation");
+      return errors;
+    }
+
+    if (!outputLayer) {
+      errors.push("[Critical] Output layer is required for size validation");
+      return errors;
+    }
+
+    // Build graph for topological traversal
+    const adjacencyList = new Map<string, string[]>();
+    const incomingEdges = new Map<string, string[]>();
+
+    edges.forEach((edge) => {
+      if (!adjacencyList.has(edge.source)) {
+        adjacencyList.set(edge.source, []);
+      }
+      adjacencyList.get(edge.source)!.push(edge.target);
+
+      if (!incomingEdges.has(edge.target)) {
+        incomingEdges.set(edge.target, []);
+      }
+      incomingEdges.get(edge.target)!.push(edge.source);
+    });
+
+    // Track tensor shapes through the network
+    const tensorShapes = new Map<string, number[]>();
     const newLayerSizes: Record<
       string,
       { inputSize: string; outputSize: string }
     > = {};
 
-    // Sort nodes by their position in the network (topological sort)
-    const sortedNodes = [...nodes].sort((a, b) => {
-      const aPos = a.position?.y || 0;
-      const bPos = b.position?.y || 0;
-      return aPos - bPos;
-    });
+    // Initialize input layer shape
+    tensorShapes.set(inputLayer.id, expectedInputShape);
 
-    // Initialize input layer
-    const inputNode = sortedNodes.find((node) => node.type === "input");
-    if (inputNode) {
-      tensorShapes[inputNode.id] = inputShape;
-      newLayerSizes[inputNode.id] = {
-        inputSize: "N/A",
-        outputSize: `(${inputShape.join(", ")})`,
-      };
+    // Format the shapes for display
+    const formatShape = (shape: number[]): string => {
+      if (shape.length === 1) {
+        return shape[0].toString();
+      } else if (shape.length === 2) {
+        return `(${shape[0]}, ${shape[1]})`;
+      } else if (shape.length === 3) {
+        return `(${shape[0]}, ${shape[1]}, ${shape[2]})`;
+      } else {
+        return `(${shape.join(", ")})`;
+      }
+    };
+
+    // Add input layer to UI display
+    newLayerSizes[inputLayer.id] = {
+      inputSize: "N/A",
+      outputSize: formatShape(expectedInputShape),
+    };
+
+    // Topological sort to process layers in correct order
+    const visited = new Set<string>();
+    const tempVisited = new Set<string>();
+    const sortedNodes: Node[] = [];
+
+    const topologicalSort = (nodeId: string): boolean => {
+      if (tempVisited.has(nodeId)) {
+        errors.push(
+          `[Critical] Circular dependency detected at node ${nodeId}`
+        );
+        return false;
+      }
+      if (visited.has(nodeId)) return true;
+
+      tempVisited.add(nodeId);
+      const neighbors = adjacencyList.get(nodeId) || [];
+
+      for (const neighbor of neighbors) {
+        if (!topologicalSort(neighbor)) return false;
+      }
+
+      tempVisited.delete(nodeId);
+      visited.add(nodeId);
+
+      const node = nodes.find((n) => n.id === nodeId);
+      if (node) sortedNodes.unshift(node);
+
+      return true;
+    };
+
+    // Start topological sort from all nodes with no incoming edges
+    // Sort node IDs to ensure consistent ordering regardless of visual arrangement
+    const sortedNodeIds = nodes.map((n) => n.id).sort();
+
+    for (const nodeId of sortedNodeIds) {
+      if (
+        !incomingEdges.has(nodeId) ||
+        incomingEdges.get(nodeId)!.length === 0
+      ) {
+        if (!topologicalSort(nodeId)) return errors;
+      }
     }
 
-    // Process each layer in order
+    // Process remaining nodes (in case of disconnected components)
+    // Use the same stable ID-based ordering
+    for (const nodeId of sortedNodeIds) {
+      if (!visited.has(nodeId)) {
+        if (!topologicalSort(nodeId)) return errors;
+      }
+    }
+
+    // Validate shapes through the network
     for (const node of sortedNodes) {
       if (node.type === "input") continue;
 
-      // Find input connections to this node
-      const inputEdges = edges.filter((edge) => edge.target === node.id);
-      const inputNodeIds = inputEdges.map((edge) => edge.source);
+      // Get input shapes from predecessor nodes
+      const predecessors = incomingEdges.get(node.id) || [];
 
-      // Get input shape from the first connected node
-      let currentShape = inputShape; // Default fallback
-      if (inputNodeIds.length > 0) {
-        const firstInputId = inputNodeIds[0];
-        currentShape = tensorShapes[firstInputId] || inputShape;
+      if (predecessors.length === 0 && node.type !== "input") {
+        errors.push(`[Critical] Layer ${node.id} has no input connections`);
+        continue;
       }
 
-      // Calculate output shape based on layer type
-      let outputShape: number[] = [...currentShape];
+      // For multiple inputs, use the first one's shape (could be enhanced for more complex merging)
+      const inputShape =
+        predecessors.length > 0
+          ? tensorShapes.get(predecessors[0]) || expectedInputShape
+          : expectedInputShape;
 
-      switch (node.type) {
-        case "dense":
-          const neurons = node.data?.neurons || 1;
-          if (currentShape.length === 1) {
-            // 1D input (tabular data)
-            outputShape = [neurons];
-          } else {
-            // Multi-dimensional input (image data) - flatten first
+      let outputShape: number[] = [...inputShape];
 
-            outputShape = [neurons];
-          }
-
-          break;
-
-        case "convolution":
-          const filters = node.data?.filters || 32;
-          const kernelSize = node.data?.kernelSize || [3, 3];
-          const stride = node.data?.stride || [1, 1];
-          const padding = node.data?.padding || "same";
-
-          if (currentShape.length >= 3) {
-            // Image data: (height, width, channels)
-            const [h, w] = currentShape;
-            let newH = h,
-              newW = w;
-
-            if (padding === "same") {
-              newH = h;
-              newW = w;
-            } else {
-              // "valid" padding
-              newH = Math.floor((h - kernelSize[0]) / stride[0]) + 1;
-              newW = Math.floor((w - kernelSize[1]) / stride[1]) + 1;
+      try {
+        // Calculate output shape based on layer type
+        switch (node.type) {
+          case "dense":
+            const neurons = parseInt(node.data?.neurons) || 1;
+            if (neurons <= 0) {
+              errors.push(
+                `[Critical] Dense layer ${node.id}: Invalid number of neurons (${neurons})`
+              );
+              continue;
             }
 
-            outputShape = [newH, newW, filters];
-          } else if (currentShape.length === 2) {
-            // Handle 2D case (no channels)
-            const [h, w] = currentShape;
-            let newH = h,
-              newW = w;
-
-            if (padding === "same") {
-              newH = h;
-              newW = w;
+            // Dense layers expect flattened input or 1D input
+            if (inputShape.length > 1) {
+              outputShape = [neurons];
+              // Note: In practice, there should be a flatten layer before dense
+              if (
+                !predecessors.some((predId) => {
+                  const predNode = nodes.find((n) => n.id === predId);
+                  return (
+                    predNode?.type === "flatten" ||
+                    predNode?.type === "globalaveragepool"
+                  );
+                })
+              ) {
+                errors.push(
+                  `Warning: Dense layer ${
+                    node.id
+                  } receives multi-dimensional input (${inputShape.join(
+                    "×"
+                  )}). Consider adding a Flatten layer before it.`
+                );
+              }
             } else {
-              // "valid" padding
-              newH = Math.floor((h - kernelSize[0]) / stride[0]) + 1;
-              newW = Math.floor((w - kernelSize[1]) / stride[1]) + 1;
+              outputShape = [neurons];
+            }
+            break;
+
+          case "convolution":
+            const filters = parseInt(node.data?.filters) || 32;
+            const kernelSize = node.data?.kernelSize || [3, 3];
+            const stride = node.data?.stride || [1, 1];
+            const padding = node.data?.padding || "same";
+
+            if (inputShape.length < 2) {
+              errors.push(
+                `[Critical] Convolution layer ${node.id}: Requires at least 2D input, got ${inputShape.length}D`
+              );
+              continue;
             }
 
-            outputShape = [newH, newW, filters];
-          } else {
-            // Handle 1D case
-            outputShape = [...currentShape];
-          }
-          break;
+            if (inputShape.length === 2) {
+              // Assume single channel for 2D input
+              const [h, w] = inputShape;
+              let newH, newW;
 
-        case "maxpooling":
-          const poolSize = node.data?.poolSize || [2, 2];
-          const poolStride = node.data?.stride || [2, 2];
+              if (padding === "same") {
+                newH = Math.ceil(h / stride[0]);
+                newW = Math.ceil(w / stride[1]);
+              } else {
+                newH = Math.floor((h - kernelSize[0]) / stride[0]) + 1;
+                newW = Math.floor((w - kernelSize[1]) / stride[1]) + 1;
+              }
 
-          if (currentShape.length >= 3) {
-            const [h, w, c] = currentShape;
-            const newH = Math.floor((h - poolSize[0]) / poolStride[0]) + 1;
-            const newW = Math.floor((w - poolSize[1]) / poolStride[1]) + 1;
-            outputShape = [newH, newW, c];
-          } else if (currentShape.length === 2) {
-            // Handle 2D case (no channels)
-            const [h, w] = currentShape;
-            const newH = Math.floor((h - poolSize[0]) / poolStride[0]) + 1;
-            const newW = Math.floor((w - poolSize[1]) / poolStride[1]) + 1;
-            outputShape = [newH, newW];
-          } else {
-            // Handle 1D case
-            outputShape = [...currentShape];
-          }
-          break;
+              if (newH <= 0 || newW <= 0) {
+                errors.push(
+                  `[Critical] Convolution layer ${node.id}: Output dimensions would be invalid (${newH}×${newW})`
+                );
+                continue;
+              }
 
-        case "flatten":
-          const flattenedSize = currentShape.reduce((a, b) => a * b, 1);
-          outputShape = [flattenedSize];
-          break;
+              outputShape = [newH, newW, filters];
+            } else if (inputShape.length >= 3) {
+              const [h, w] = inputShape;
+              let newH, newW;
 
-        case "dropout":
-        case "batchnormalization":
-        case "activation":
-          // These layers don't change the shape
-          outputShape = [...currentShape];
-          break;
+              if (padding === "same") {
+                newH = Math.ceil(h / stride[0]);
+                newW = Math.ceil(w / stride[1]);
+              } else {
+                newH = Math.floor((h - kernelSize[0]) / stride[0]) + 1;
+                newW = Math.floor((w - kernelSize[1]) / stride[1]) + 1;
+              }
 
-        case "output":
-          outputShape = [outputSize];
-          break;
+              if (newH <= 0 || newW <= 0) {
+                errors.push(
+                  `[Critical] Convolution layer ${node.id}: Output dimensions would be invalid (${newH}×${newW}×${filters})`
+                );
+                continue;
+              }
 
-        default:
-          // For unknown layer types, keep the same shape
-          outputShape = [...currentShape];
-          break;
-      }
+              outputShape = [newH, newW, filters];
+            }
+            break;
 
-      // Store the output shape for this node
-      tensorShapes[node.id] = outputShape;
+          case "maxpooling":
+            const poolSize = node.data?.poolSize || [2, 2];
+            const poolStride = node.data?.stride || [2, 2];
 
-      // Format the shapes for display
-      const formatShape = (shape: number[]): string => {
-        if (shape.length === 1) {
-          return shape[0].toString();
-        } else if (shape.length === 2) {
-          return `(${shape[0]}, ${shape[1]})`;
-        } else if (shape.length === 3) {
-          return `(${shape[0]}, ${shape[1]}, ${shape[2]})`;
-        } else {
-          return `(${shape.join(", ")})`;
+            if (inputShape.length < 2) {
+              errors.push(
+                `[Critical] MaxPooling layer ${node.id}: Requires at least 2D input, got ${inputShape.length}D`
+              );
+              continue;
+            }
+
+            if (inputShape.length === 2) {
+              const [h, w] = inputShape;
+              const newH = Math.floor((h - poolSize[0]) / poolStride[0]) + 1;
+              const newW = Math.floor((w - poolSize[1]) / poolStride[1]) + 1;
+
+              if (newH <= 0 || newW <= 0) {
+                errors.push(
+                  `[Critical] MaxPooling layer ${node.id}: Output dimensions would be invalid (${newH}×${newW})`
+                );
+                continue;
+              }
+
+              outputShape = [newH, newW];
+            } else if (inputShape.length >= 3) {
+              const [h, w, c] = inputShape;
+              const newH = Math.floor((h - poolSize[0]) / poolStride[0]) + 1;
+              const newW = Math.floor((w - poolSize[1]) / poolStride[1]) + 1;
+
+              if (newH <= 0 || newW <= 0) {
+                errors.push(
+                  `[Critical] MaxPooling layer ${node.id}: Output dimensions would be invalid (${newH}×${newW}×${c})`
+                );
+                continue;
+              }
+
+              outputShape = [newH, newW, c];
+            }
+            break;
+
+          case "flatten":
+            const flattenedSize = inputShape.reduce((a, b) => a * b, 1);
+            outputShape = [flattenedSize];
+            break;
+
+          case "globalaveragepool":
+            if (inputShape.length >= 3) {
+              // Global average pooling reduces spatial dimensions to 1
+              outputShape = [inputShape[inputShape.length - 1]]; // Keep only channel dimension
+            } else {
+              errors.push(
+                `[Critical] GlobalAveragePooling layer ${node.id}: Requires at least 3D input (H×W×C), got ${inputShape.length}D`
+              );
+              continue;
+            }
+            break;
+
+          case "dropout":
+          case "batchnormalization":
+          case "activation":
+            // These layers don't change the shape
+            outputShape = [...inputShape];
+            break;
+
+          case "output":
+            // The output layer should produce the expected number of outputs for the dataset
+            // The input can be any size - it's the responsibility of previous layers to provide correct input
+            // Just set the output shape to the expected output size
+            outputShape = [expectedOutputSize];
+            break;
+
+          case "resnetblock":
+            // ResNet blocks typically preserve spatial dimensions
+            const blockFilters = parseInt(node.data?.filters) || 64;
+            const blockStride = node.data?.stride || [1, 1];
+
+            if (inputShape.length >= 3) {
+              const [h, w] = inputShape;
+              const newH = Math.ceil(h / blockStride[0]);
+              const newW = Math.ceil(w / blockStride[1]);
+              outputShape = [newH, newW, blockFilters];
+            } else {
+              errors.push(
+                `[Critical] ResNet block ${node.id}: Requires 3D input (H×W×C), got ${inputShape.length}D`
+              );
+              continue;
+            }
+            break;
+
+          case "customblock":
+            // For custom blocks, we'd need to analyze the internal layers
+            // For now, assume they preserve the input shape
+            outputShape = [...inputShape];
+            errors.push(
+              `Warning: Custom block ${node.id}: Size validation for custom blocks is not fully implemented. Please verify manually.`
+            );
+            break;
+
+          default:
+            // Unknown layer type - preserve shape
+            outputShape = [...inputShape];
+            errors.push(
+              `Warning: Unknown layer type ${node.type} in ${node.id}: Assuming shape preservation.`
+            );
+            break;
         }
-      };
 
-      newLayerSizes[node.id] = {
-        inputSize: formatShape(currentShape),
-        outputSize: formatShape(outputShape),
-      };
+        // Store the calculated output shape
+        tensorShapes.set(node.id, outputShape);
+
+        // Add to UI layer sizes display
+        newLayerSizes[node.id] = {
+          inputSize: formatShape(inputShape),
+          outputSize: formatShape(outputShape),
+        };
+      } catch (error) {
+        errors.push(
+          `[Critical] Error calculating output shape for layer ${node.id}: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
+      }
     }
 
+    // Additional validations
+
+    // Check for common size mismatch patterns
+    const denseNodes = nodes.filter((node) => node.type === "dense");
+    const convNodes = nodes.filter((node) => node.type === "convolution");
+
+    if (denseNodes.length > 0 && convNodes.length > 0) {
+      // Check if there's a flatten/global pool between conv and dense layers
+      let hasProperTransition = false;
+
+      for (const denseNode of denseNodes) {
+        const densePreds = incomingEdges.get(denseNode.id) || [];
+        for (const predId of densePreds) {
+          const predNode = nodes.find((n) => n.id === predId);
+          if (
+            predNode &&
+            (predNode.type === "flatten" ||
+              predNode.type === "globalaveragepool")
+          ) {
+            hasProperTransition = true;
+            break;
+          }
+        }
+        if (hasProperTransition) break;
+      }
+
+      if (!hasProperTransition) {
+        errors.push(
+          "Warning: When using both convolutional and dense layers, include a Flatten or GlobalAveragePooling layer between them to properly transition from 2D/3D to 1D data."
+        );
+      }
+    }
+
+    // Dataset-specific validations
+    if (selectedDataset === "MNIST" || selectedDataset === "CIFAR-10") {
+      const hasConvOrResNet = nodes.some(
+        (n) => n.type === "convolution" || n.type === "resnetblock"
+      );
+      if (!hasConvOrResNet) {
+        errors.push(
+          `Suggestion: ${selectedDataset} dataset (image data) typically benefits from convolutional layers or ResNet blocks.`
+        );
+      }
+    } else if (
+      ["Iris", "Breast Cancer", "California Housing"].includes(selectedDataset)
+    ) {
+      const hasConv = nodes.some((n) => n.type === "convolution");
+      if (hasConv) {
+        errors.push(
+          `Warning: ${selectedDataset} dataset (tabular data) typically doesn't require convolutional layers.`
+        );
+      }
+    }
+
+    // Update the layer sizes state for UI display
     setLayerSizes(newLayerSizes);
+
+    return errors;
   }, [selectedDataset, nodes, edges]);
 
   // Calculate layer sizes when nodes, edges, or dataset changes
   useEffect(() => {
-    calculateLayerSizes();
-  }, [calculateLayerSizes]);
+    validateInputOutputSizes();
+  }, [validateInputOutputSizes]);
 
   return (
     <div className="new-build-page">
@@ -7812,30 +8087,7 @@ const NewBuildPage = (): JSX.Element => {
         />
       )}
       <div className="new-build-container">
-        {/* Validation Error Messages */}
-        {showValidationErrors && validationErrors.length > 0 && (
-          <div className="validation-errors-container">
-            <div className="validation-errors-header">
-              <i className="fas fa-exclamation-triangle"></i>
-              <h3>Validation Errors</h3>
-              <button
-                className="close-validation-errors"
-                onClick={() => setShowValidationErrors(false)}
-              >
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <ul className="validation-errors-list">
-              {validationErrors &&
-                validationErrors.map((error: string, index: number) => (
-                  <li key={index} className="validation-error-item">
-                    <i className="fas fa-times-circle"></i>
-                    <span>{error}</span>
-                  </li>
-                ))}
-            </ul>
-          </div>
-        )}
+        {/* Validation Error Messages - Removed, using toast notifications only */}
 
         {/* Custom Layer Modal */}
         <CustomLayerModal
