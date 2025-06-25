@@ -143,43 +143,73 @@ class DatasetRegistry:
                 metadata = json.load(f)
             
             task_type = metadata.get('task_type', 'classification')
+            dataset_type = metadata.get('dataset_type', 'tabular')
             
-            # Preprocessing based on task type
-            if task_type == 'classification':
+            # Handle image datasets differently from tabular datasets
+            if dataset_type == 'image':
+                logger.info(f"Loading image dataset '{dataset_name}': {X.shape}")
+                
+                # For image datasets, X is already in proper shape (N, H, W, C)
+                # No need to flatten or apply StandardScaler normalization
+                # Images are already normalized to [0,1] range during preprocessing
+                
+                # Ensure proper data types
+                X = X.astype(np.float32)
+                
                 # For classification, ensure labels are properly encoded
-                class_labels = metadata.get('class_labels')
-                
-                # One-hot encode for classification
-                n_classes = len(np.unique(y))
-                
-                # Always one-hot encode for consistency with model output
-                # This ensures the target shape matches the model output shape
-                encoder = OneHotEncoder(sparse_output=False)
-                y = encoder.fit_transform(y.reshape(-1, 1))
-                
-                logger.info(f"One-hot encoded labels for '{dataset_name}': {n_classes} classes, shape: {y.shape}")
+                if task_type == 'classification':
+                    class_labels = metadata.get('class_labels')
+                    n_classes = len(np.unique(y))
                     
-            elif task_type == 'regression':
-                # For regression, ensure target is float
-                y = y.astype(np.float32).reshape(-1, 1)
-            
-            # Normalize features and save scaler for validation use
-            scaler = StandardScaler()
-            X = scaler.fit_transform(X)
-            
-            # Save the scaler for validation predictions
-            try:
-                from backend.utils.session_manager import get_session_id, get_session_datasets_dir
-                session_id = get_session_id() if session_id is None else session_id
-                datasets_dir = get_session_datasets_dir(session_id)
-                scaler_path = os.path.join(datasets_dir, f'{dataset_name}_scaler.pkl')
+                    # One-hot encode for classification
+                    encoder = OneHotEncoder(sparse_output=False)
+                    y = encoder.fit_transform(y.reshape(-1, 1))
+                    
+                    logger.info(f"One-hot encoded labels for image dataset '{dataset_name}': {n_classes} classes, shape: {y.shape}")
                 
-                import pickle
-                with open(scaler_path, 'wb') as f:
-                    pickle.dump(scaler, f)
-                logger.info(f"Saved scaler for custom dataset '{dataset_name}' to: {scaler_path}")
-            except Exception as e:
-                logger.warning(f"Could not save scaler for dataset '{dataset_name}': {str(e)}")
+                # No scaler needed for image datasets (already normalized)
+                scaler_path = None
+                
+            else:
+                # Handle tabular datasets (existing logic)
+                logger.info(f"Loading tabular dataset '{dataset_name}': {X.shape}")
+                
+                # Preprocessing based on task type
+                if task_type == 'classification':
+                    # For classification, ensure labels are properly encoded
+                    class_labels = metadata.get('class_labels')
+                    
+                    # One-hot encode for classification
+                    n_classes = len(np.unique(y))
+                    
+                    # Always one-hot encode for consistency with model output
+                    # This ensures the target shape matches the model output shape
+                    encoder = OneHotEncoder(sparse_output=False)
+                    y = encoder.fit_transform(y.reshape(-1, 1))
+                    
+                    logger.info(f"One-hot encoded labels for '{dataset_name}': {n_classes} classes, shape: {y.shape}")
+                        
+                elif task_type == 'regression':
+                    # For regression, ensure target is float
+                    y = y.astype(np.float32).reshape(-1, 1)
+                
+                # Normalize features and save scaler for validation use
+                scaler = StandardScaler()
+                X = scaler.fit_transform(X)
+                
+                # Save the scaler for validation predictions
+                try:
+                    from backend.utils.session_manager import get_session_id, get_session_datasets_dir
+                    session_id = get_session_id() if session_id is None else session_id
+                    datasets_dir = get_session_datasets_dir(session_id)
+                    scaler_path = os.path.join(datasets_dir, f'{dataset_name}_scaler.pkl')
+                    
+                    import pickle
+                    with open(scaler_path, 'wb') as f:
+                        pickle.dump(scaler, f)
+                    logger.info(f"Saved scaler for custom dataset '{dataset_name}' to: {scaler_path}")
+                except Exception as e:
+                    logger.warning(f"Could not save scaler for dataset '{dataset_name}': {str(e)}")
             
             # Split into train/test sets
             test_size = 0.2

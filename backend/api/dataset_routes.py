@@ -10,6 +10,7 @@ import shutil
 from datetime import datetime
 from backend.utils.logging import get_logger
 from backend.utils.session_manager import get_session_datasets_dir, get_session_id
+from backend.utils.image_processor import ImageProcessor
 
 # Initialize logger
 logger = get_logger(__name__)
@@ -18,13 +19,18 @@ logger = get_logger(__name__)
 dataset_blueprint = Blueprint('datasets', __name__, url_prefix='/api/datasets')
 
 # Configuration constants
-MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
+MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB (increased for image archives)
 MAX_ROWS = 100000  # 100K rows
-ALLOWED_EXTENSIONS = {'.csv', '.xlsx', '.xls'}
+ALLOWED_EXTENSIONS = {'.csv', '.xlsx', '.xls', '.zip', '.tar', '.tar.gz', '.tgz'}
+IMAGE_ARCHIVE_EXTENSIONS = {'.zip', '.tar', '.tar.gz', '.tgz'}
 
 def allowed_file(filename):
     """Check if the file extension is allowed."""
     return any(filename.lower().endswith(ext) for ext in ALLOWED_EXTENSIONS)
+
+def is_image_archive(filename):
+    """Check if the file is an image archive."""
+    return any(filename.lower().endswith(ext) for ext in IMAGE_ARCHIVE_EXTENSIONS)
 
 def get_file_size(file):
     """Get file size in bytes."""
@@ -155,15 +161,104 @@ def analyze_dataframe(df, filename):
         logger.error(f"Error analyzing dataframe: {str(e)}")
         raise
 
+def analyze_image_archive(file, filename, target_size=(224, 224), channels=3):
+    """Analyze image archive and return comprehensive information."""
+    try:
+        # Save uploaded file temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as temp_file:
+            file.seek(0)
+            shutil.copyfileobj(file, temp_file)
+            temp_file_path = temp_file.name
+        
+        try:
+            # Create image processor
+            processor = ImageProcessor(target_size=target_size, channels=channels)
+            
+            # Process the dataset to get structure info (without full processing)
+            with tempfile.TemporaryDirectory() as temp_dir:
+                extract_path = processor.extract_archive(temp_file_path, temp_dir)
+                class_folders = processor.find_image_folders(extract_path)
+                
+                if not class_folders:
+                    raise ValueError("No images found in the archive")
+                
+                # Count images and create preview info
+                total_images = 0
+                class_info = {}
+                sample_images = []
+                
+                for class_name, image_paths in class_folders.items():
+                    class_count = len(image_paths)
+                    total_images += class_count
+                    class_info[class_name] = class_count
+                    
+                    # Get sample image info (first image from each class)
+                    if image_paths:
+                        sample_path = image_paths[0]
+                        try:
+                            from PIL import Image
+                            with Image.open(sample_path) as img:
+                                sample_images.append({
+                                    'class': class_name,
+                                    'filename': os.path.basename(sample_path),
+                                    'size': img.size,
+                                    'mode': img.mode
+                                })
+                        except Exception as e:
+                            logger.warning(f"Could not read sample image {sample_path}: {str(e)}")
+                
+                # Create analysis similar to tabular data format
+                class_names = sorted(class_folders.keys())
+                
+                return {
+                    'filename': filename,
+                    'dataset_type': 'image',
+                    'shape': [total_images, len(class_names)],
+                    'image_shape': [target_size[1], target_size[0], channels],  # [height, width, channels]
+                    'columns': ['image_data', 'class'],  # Conceptual columns
+                    'data_types': {'image_data': 'image', 'class': 'categorical'},
+                    'missing_values': {'image_data': 0, 'class': 0},
+                    'missing_percentages': {'image_data': 0.0, 'class': 0.0},
+                    'sample_data': sample_images[:5],  # First 5 sample images
+                    'numeric_statistics': {},  # Not applicable for images
+                    'categorical_info': {
+                        'class': {
+                            'unique_count': len(class_names),
+                            'top_values': class_info
+                        }
+                    },
+                    'class_distribution': class_info,
+                    'total_images': total_images,
+                    'num_classes': len(class_names),
+                    'class_names': class_names,
+                    'target_size': target_size,
+                    'channels': channels,
+                    'row_limit_exceeded': False,  # Not applicable for images
+                    'analysis_timestamp': datetime.now().isoformat()
+                }
+                
+        finally:
+            # Clean up temporary file
+            os.unlink(temp_file_path)
+            
+    except Exception as e:
+        logger.error(f"Error analyzing image archive: {str(e)}")
+        raise
+
 @dataset_blueprint.route('/preview', methods=['POST'])
 def preview_dataset():
     """
     Accept file upload and return data preview with comprehensive analysis.
+    Supports both single file uploads and folder uploads.
     """
     logger.info("Dataset preview endpoint called")
     
     try:
-        # Check if file is present
+        # Check if it's a folder upload (multiple files)
+        if 'files' in request.files:
+            return preview_folder_dataset()
+        
+        # Check if file is present (single file)
         if 'file' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
             
@@ -188,15 +283,37 @@ def preview_dataset():
         # Secure filename
         filename = secure_filename(file.filename)
         
-        # Read and analyze the file
-        df = safe_read_file(file, filename)
-        analysis = analyze_dataframe(df, filename)
+        # Check if it's an image archive or tabular data
+        if is_image_archive(filename):
+            # Handle image archive
+            logger.info(f"Processing image archive: {filename}")
+            
+            # Get optional parameters for image processing
+            target_size = request.form.get('target_size', '224,224')
+            channels = int(request.form.get('channels', '3'))
+            
+            # Parse target size
+            try:
+                if isinstance(target_size, str):
+                    width, height = map(int, target_size.split(','))
+                    target_size = (width, height)
+            except (ValueError, AttributeError):
+                target_size = (224, 224)
+            
+            analysis = analyze_image_archive(file, filename, target_size, channels)
+            message = 'Image dataset preview generated successfully'
+        else:
+            # Handle tabular data
+            logger.info(f"Processing tabular dataset: {filename}")
+            df = safe_read_file(file, filename)
+            analysis = analyze_dataframe(df, filename)
+            message = 'Dataset preview generated successfully'
         
         logger.info(f"Successfully analyzed dataset: {filename}, shape: {analysis['shape']}")
         
         return jsonify({
             'success': True,
-            'message': 'Dataset preview generated successfully',
+            'message': message,
             'data': analysis
         }), 200
         
@@ -207,6 +324,334 @@ def preview_dataset():
     except Exception as e:
         logger.error(f"Error in preview_dataset: {str(e)}", exc_info=True)
         return jsonify({'error': f'Failed to process file: {str(e)}'}), 500
+
+def preview_folder_dataset():
+    """
+    Handle folder upload preview by analyzing multiple files with directory structure.
+    """
+    logger.info("Folder dataset preview endpoint called")
+    
+    try:
+        files = request.files.getlist('files')
+        file_paths = request.form.getlist('file_paths')
+        
+        if not files:
+            return jsonify({'error': 'No files provided'}), 400
+            
+        # Filter for image files only
+        image_files = []
+        image_paths = []
+        supported_formats = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
+        
+        for i, file in enumerate(files):
+            file_ext = os.path.splitext(file.filename.lower())[1]
+            if file_ext in supported_formats:
+                image_files.append(file)
+                path = file_paths[i] if i < len(file_paths) else file.filename
+                image_paths.append(path)
+        
+        if not image_files:
+            return jsonify({'error': 'No image files found in folder'}), 400
+            
+        # Check total size
+        total_size = sum(get_file_size(file) for file in image_files)
+        if total_size > MAX_FILE_SIZE:
+            return jsonify({
+                'error': f'Total folder size ({total_size / (1024*1024):.1f}MB) exceeds maximum allowed size ({MAX_FILE_SIZE / (1024*1024)}MB)'
+            }), 400
+            
+        # Analyze folder structure
+        analysis = analyze_folder_structure(image_files, image_paths)
+        
+        logger.info(f"Successfully analyzed folder: {len(image_files)} images, {len(analysis['class_names'])} classes")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Folder dataset preview generated successfully',
+            'data': analysis
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error in preview_folder_dataset: {str(e)}", exc_info=True)
+        return jsonify({'error': f'Failed to process folder: {str(e)}'}), 500
+
+def analyze_folder_structure(files, file_paths):
+    """
+    Analyze folder structure from uploaded files and their paths.
+    """
+    try:
+        class_distribution = {}
+        sample_images = []
+        total_images = len(files)
+        
+        # Get optional parameters for image processing
+        target_size = request.form.get('target_size', '224,224')
+        channels = int(request.form.get('channels', '3'))
+        
+        # Parse target size
+        try:
+            if isinstance(target_size, str):
+                width, height = map(int, target_size.split(','))
+                target_size = (width, height)
+        except (ValueError, AttributeError):
+            target_size = (224, 224)
+        
+        # Analyze file paths to determine classes
+        for i, (file, path) in enumerate(zip(files, file_paths)):
+            # Extract class name from path
+            path_parts = path.split('/')
+            if len(path_parts) > 1:
+                class_name = path_parts[-2]  # Parent folder name
+            else:
+                class_name = 'default'
+            
+            if class_name not in class_distribution:
+                class_distribution[class_name] = 0
+                
+                # Add sample image info
+                if len(sample_images) < 5:
+                    sample_images.append({
+                        'class': class_name,
+                        'filename': file.filename,
+                        'size': [target_size[0], target_size[1]],
+                        'mode': 'RGB' if channels == 3 else 'L'
+                    })
+            
+            class_distribution[class_name] += 1
+        
+        class_names = sorted(class_distribution.keys())
+        
+        if len(class_names) == 0:
+            raise ValueError("No valid class folders detected")
+        
+        return {
+            'filename': 'folder_upload',
+            'dataset_type': 'image',
+            'shape': [total_images, len(class_names)],
+            'image_shape': [target_size[1], target_size[0], channels],  # [height, width, channels]
+            'columns': ['image_data', 'class'],
+            'data_types': {'image_data': 'image', 'class': 'categorical'},
+            'missing_values': {'image_data': 0, 'class': 0},
+            'missing_percentages': {'image_data': 0.0, 'class': 0.0},
+            'sample_data': sample_images,
+            'numeric_statistics': {},
+            'categorical_info': {
+                'class': {
+                    'unique_count': len(class_names),
+                    'top_values': class_distribution
+                }
+            },
+            'class_distribution': class_distribution,
+            'total_images': total_images,
+            'num_classes': len(class_names),
+            'class_names': class_names,
+            'target_size': target_size,
+            'channels': channels,
+            'row_limit_exceeded': False,
+            'analysis_timestamp': datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error analyzing folder structure: {str(e)}")
+        raise
+
+def create_folder_dataset(config, dataset_name):
+    """
+    Create dataset from folder upload (multiple files).
+    """
+    logger.info(f"Creating folder dataset: {dataset_name}")
+    
+    try:
+        files = request.files.getlist('files')
+        file_paths = request.form.getlist('file_paths')
+        
+        if not files:
+            return jsonify({'error': 'No files provided'}), 400
+        
+        # Filter for image files only
+        image_files = []
+        image_paths = []
+        supported_formats = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
+        
+        for i, file in enumerate(files):
+            file_ext = os.path.splitext(file.filename.lower())[1]
+            if file_ext in supported_formats:
+                image_files.append(file)
+                path = file_paths[i] if i < len(file_paths) else file.filename
+                image_paths.append(path)
+        
+        if not image_files:
+            return jsonify({'error': 'No image files found in folder'}), 400
+        
+        # Check total size
+        total_size = sum(get_file_size(file) for file in image_files)
+        if total_size > MAX_FILE_SIZE:
+            return jsonify({'error': 'Total folder size exceeds maximum allowed size'}), 400
+        
+        # Get image processing parameters
+        target_size = config.get('target_size', '224,224')
+        channels = config.get('channels', 3)
+        
+        # Parse target size if it's a string
+        if isinstance(target_size, str):
+            try:
+                width, height = map(int, target_size.split(','))
+                target_size = (width, height)
+            except ValueError:
+                target_size = (224, 224)
+        
+        # Process folder images
+        X, y, processed_data = process_folder_images(image_files, image_paths, dataset_name, target_size, channels)
+        
+        # Save the dataset
+        datasets_dir = get_session_datasets_dir()
+        os.makedirs(datasets_dir, exist_ok=True)
+        
+        # Save processed data
+        dataset_file = os.path.join(datasets_dir, f'{dataset_name}.npz')
+        np.savez(dataset_file, X=X, y=y)
+        
+        # Save metadata
+        metadata_file = os.path.join(datasets_dir, f'{dataset_name}_metadata.json')
+        processed_data['file_path'] = dataset_file
+        processed_data['processed_shape'] = [int(x) for x in X.shape]  # Convert to int
+        
+        with open(metadata_file, 'w') as f:
+            json.dump(processed_data, f, indent=2)
+        
+        # Register the dataset with the DatasetRegistry
+        try:
+            from backend.dataset_loader import register_custom_dataset
+            
+            feature_count = int(np.prod(X.shape[1:]))  # Total pixels - convert to int
+            
+            dataset_config = {
+                'name': dataset_name,
+                'file_path': dataset_file,
+                'metadata_path': metadata_file,
+                'task_type': processed_data['task_type'],
+                'feature_count': feature_count,
+                'class_labels': processed_data.get('class_labels')
+            }
+            
+            register_custom_dataset(dataset_config)
+            logger.info(f"Successfully registered folder dataset '{dataset_name}' with DatasetRegistry")
+            
+        except Exception as e:
+            logger.warning(f"Could not register dataset with DatasetRegistry: {str(e)}")
+        
+        logger.info(f"Folder dataset created successfully: {dataset_name}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Folder dataset created successfully',
+            'dataset': {
+                'name': dataset_name,
+                'shape': processed_data['processed_shape'],
+                'task_type': processed_data['task_type'],
+                'feature_count': feature_count,
+                'class_labels': processed_data.get('class_labels'),
+                'dataset_type': 'image'
+            }
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error in create_folder_dataset: {str(e)}", exc_info=True)
+        return jsonify({'error': f'Failed to create folder dataset: {str(e)}'}), 500
+
+def process_folder_images(files, file_paths, dataset_name, target_size=(224, 224), channels=3):
+    """
+    Process multiple image files from folder upload into a dataset.
+    """
+    try:
+        # Create image processor
+        processor = ImageProcessor(target_size=target_size, channels=channels)
+        
+        # Organize files by class
+        class_files = {}
+        for file, path in zip(files, file_paths):
+            # Extract class name from path
+            path_parts = path.split('/')
+            if len(path_parts) > 1:
+                class_name = path_parts[-2]  # Parent folder name
+            else:
+                class_name = 'default'
+            
+            if class_name not in class_files:
+                class_files[class_name] = []
+            class_files[class_name].append(file)
+        
+        if not class_files:
+            raise ValueError("No class folders detected")
+        
+        # Process images
+        all_images = []
+        all_labels = []
+        class_names = sorted(class_files.keys())
+        
+        logger.info(f"Found {len(class_names)} classes: {class_names}")
+        
+        for class_idx, class_name in enumerate(class_names):
+            class_file_list = class_files[class_name]
+            logger.info(f"Processing class '{class_name}': {len(class_file_list)} images")
+            
+            for file in class_file_list:
+                try:
+                    # Save file temporarily for processing
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as temp_file:
+                        file.seek(0)
+                        shutil.copyfileobj(file, temp_file)
+                        temp_file_path = temp_file.name
+                    
+                    try:
+                        processed_img = processor.process_image(temp_file_path)
+                        all_images.append(processed_img)
+                        all_labels.append(class_idx)
+                    finally:
+                        # Clean up temporary file
+                        os.unlink(temp_file_path)
+                        
+                except Exception as e:
+                    logger.warning(f"Skipping image {file.filename}: {str(e)}")
+                    continue
+        
+        if not all_images:
+            raise ValueError("No images could be processed successfully")
+        
+        # Convert to numpy arrays
+        X = np.array(all_images)
+        y = np.array(all_labels)
+        
+        # Calculate dataset statistics
+        total_images = len(all_images)
+        images_per_class = {class_names[i]: int(np.sum(y == i)) for i in range(len(class_names))}  # Convert to int
+        
+        # Create metadata
+        metadata = {
+            'name': dataset_name,
+            'task_type': 'classification',
+            'dataset_type': 'image',
+            'target_column': 'class',
+            'feature_columns': [],  # Images don't have named features
+            'original_filename': 'folder_upload',
+            'shape': [int(total_images), int(len(class_names))],  # Convert to int
+            'image_shape': [int(x) for x in X.shape[1:]],  # Convert to int
+            'created_at': datetime.now().isoformat(),
+            'class_labels': class_names,
+            'feature_types': ['image'],
+            'images_per_class': images_per_class,
+            'total_images': int(total_images),  # Convert to int
+            'target_size': [int(x) for x in target_size],  # Convert to int
+            'channels': int(channels)  # Convert to int
+        }
+        
+        logger.info(f"Successfully processed {total_images} images from {len(class_names)} classes")
+        
+        return X, y, metadata
+        
+    except Exception as e:
+        logger.error(f"Error processing folder images: {str(e)}")
+        raise
 
 @dataset_blueprint.route('/validate', methods=['POST'])
 def validate_preprocessing():
@@ -330,15 +775,11 @@ def validate_preprocessing():
 def create_custom_dataset():
     """
     Create final dataset with user configuration and save it.
+    Supports both single file uploads and folder uploads.
     """
     logger.info("Create custom dataset endpoint called")
     
     try:
-        # Check if file and config are present
-        if 'file' not in request.files:
-            return jsonify({'error': 'No file provided'}), 400
-            
-        file = request.files['file']
         config_json = request.form.get('config')
         
         if not config_json:
@@ -348,7 +789,19 @@ def create_custom_dataset():
             config = json.loads(config_json)
         except json.JSONDecodeError:
             return jsonify({'error': 'Invalid JSON configuration'}), 400
+        
+        dataset_name = config.get('dataset_name', f'custom_dataset_{datetime.now().strftime("%Y%m%d_%H%M%S")}')
+        
+        # Check if it's a folder upload (multiple files)
+        if 'files' in request.files:
+            return create_folder_dataset(config, dataset_name)
+        
+        # Check if single file is present
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
             
+        file = request.files['file']
+        
         # Validate file
         if file.filename == '' or not allowed_file(file.filename):
             return jsonify({'error': 'Invalid file'}), 400
@@ -358,144 +811,197 @@ def create_custom_dataset():
         if file_size > MAX_FILE_SIZE:
             return jsonify({'error': 'File size exceeds maximum allowed size'}), 400
             
-        # Read the file
+        # Secure filename and determine dataset type
         filename = secure_filename(file.filename)
-        df = safe_read_file(file, filename)
         
-        # Apply preprocessing based on configuration
-        dataset_name = config.get('dataset_name', f'custom_dataset_{datetime.now().strftime("%Y%m%d_%H%M%S")}')
-        target_column = config['target_column']
-        feature_columns = config['feature_columns']
-        task_type = config['task_type']
-        
-        # Create processed dataset
-        processed_data = {
-            'name': dataset_name,
-            'task_type': task_type,
-            'target_column': target_column,
-            'feature_columns': feature_columns,
-            'original_filename': filename,
-            'shape': df.shape,
-            'created_at': datetime.now().isoformat()
-        }
-        
-        # Handle missing values if specified
-        missing_value_strategy = config.get('missing_value_strategy', 'drop')
-        if missing_value_strategy == 'drop':
-            df_processed = df.dropna(subset=[target_column] + feature_columns)
-        elif missing_value_strategy == 'fill_mean':
-            df_processed = df.copy()
-            numeric_cols = df_processed.select_dtypes(include=[np.number]).columns
-            df_processed[numeric_cols] = df_processed[numeric_cols].fillna(df_processed[numeric_cols].mean())
-        elif missing_value_strategy == 'fill_mode':
-            df_processed = df.copy()
-            for col in feature_columns + [target_column]:
-                if col in df_processed.columns:
-                    mode_value = df_processed[col].mode()
-                    if len(mode_value) > 0:
-                        df_processed[col] = df_processed[col].fillna(mode_value[0])
-        else:
-            df_processed = df.copy()
+        # Check if it's an image archive or tabular data
+        if is_image_archive(filename):
+            # Handle image dataset creation
+            logger.info(f"Creating image dataset: {dataset_name}")
             
-        # Extract features and target
-        X = df_processed[feature_columns]
-        y = df_processed[target_column]
-        
-        # Enhanced feature type detection using improved ML-based heuristics
-        from backend.utils.data_quality import enhanced_feature_type_detection
-        feature_types, type_quality_info = enhanced_feature_type_detection(df_processed, feature_columns)
-        
-        # Log quality information about feature type detection
-        if type_quality_info['type_changes']:
-            for change in type_quality_info['type_changes']:
-                logger.info(f"Feature type refined for '{change['column']}': {change['original']} -> {change['detected']} (confidence: {change['confidence']:.2f})")
-        
-        if type_quality_info['warnings']:
-            for warning in type_quality_info['warnings']:
-                logger.warning(f"Feature type detection: {warning}")
-
-        # Basic preprocessing for categorical variables with mapping preservation
-        categorical_mappings = {}
-        categorical_columns = X.select_dtypes(include=['object']).columns
-        if len(categorical_columns) > 0:
-            # Label encoding with mapping preservation for categorical variables
-            for col in categorical_columns:
-                categorical_data = pd.Categorical(X[col])
-                categorical_mappings[col] = {
-                    'original_values': categorical_data.categories.tolist(),
-                    'value_to_code': {str(val): idx for idx, val in enumerate(categorical_data.categories)}
-                }
-                X[col] = categorical_data.codes
-                logger.info(f"Encoded categorical feature '{col}': {categorical_mappings[col]}")
-        
-        # Save categorical mappings in metadata
-        processed_data['categorical_mappings'] = categorical_mappings
-        
-        # Handle target encoding based on task type and data type
-        if task_type == 'classification':
-            if y.dtype == 'object':
-                # Categorical target - encode it
-                y_encoded = pd.Categorical(y)
-                processed_data['class_labels'] = y_encoded.categories.tolist()
-                y = y_encoded.codes
-                logger.info(f"Encoded categorical target '{target_column}': {len(processed_data['class_labels'])} classes")
-            else:
-                # Numeric target but user selected classification
-                # Check if it looks like discrete classes
-                unique_values = sorted(y.unique())
-                if len(unique_values) <= 20 and all(isinstance(val, (int, np.integer)) for val in unique_values):
-                    # Looks like discrete integer classes - treat as classification
-                    processed_data['class_labels'] = [str(val) for val in unique_values]
-                    y = pd.Categorical(y, categories=unique_values).codes
-                    logger.info(f"Numeric target '{target_column}' treated as {len(unique_values)} discrete classes")
-                else:
-                    # Too many unique values or floating point - should be regression
-                    logger.warning(f"Target '{target_column}' has {len(unique_values)} unique numeric values - this looks like regression, not classification!")
-                    logger.warning(f"Consider changing task type to 'regression' for better results")
-                    # Convert to discrete classes anyway since user chose classification
-                    processed_data['class_labels'] = [str(val) for val in unique_values]
-                    y = pd.Categorical(y, categories=unique_values).codes
+            # Get image processing parameters
+            target_size = config.get('target_size', (224, 224))
+            channels = config.get('channels', 3)
+            
+            # Parse target size if it's a string
+            if isinstance(target_size, str):
+                try:
+                    width, height = map(int, target_size.split(','))
+                    target_size = (width, height)
+                except ValueError:
+                    target_size = (224, 224)
+            
+            # Save uploaded file temporarily
+            with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as temp_file:
+                file.seek(0)
+                shutil.copyfileobj(file, temp_file)
+                temp_file_path = temp_file.name
+            
+            try:
+                # Process the image dataset
+                processor = ImageProcessor(target_size=target_size, channels=channels)
+                processed_result = processor.process_dataset(temp_file_path, dataset_name)
+                
+                X = processed_result['X']
+                y = processed_result['y']
+                processed_data = processed_result['metadata']
+                
+                logger.info(f"Successfully processed image dataset: {X.shape[0]} images, {len(processed_data['class_labels'])} classes")
+                
+            finally:
+                # Clean up temporary file
+                os.unlink(temp_file_path)
+                
         else:
-            # Regression - ensure target is numeric
-            if y.dtype == 'object':
-                logger.warning(f"Target '{target_column}' is categorical but task type is regression - this may not work well")
-            processed_data['class_labels'] = None
+            # Handle tabular dataset creation
+            logger.info(f"Creating tabular dataset: {dataset_name}")
+            
+            df = safe_read_file(file, filename)
+            
+            # Apply preprocessing based on configuration
+            target_column = config['target_column']
+            feature_columns = config['feature_columns']
+            task_type = config['task_type']
+            
+            # Create processed dataset metadata
+            processed_data = {
+                'name': dataset_name,
+                'task_type': task_type,
+                'target_column': target_column,
+                'feature_columns': feature_columns,
+                'original_filename': filename,
+                'shape': df.shape,
+                'created_at': datetime.now().isoformat(),
+                'dataset_type': 'tabular'
+            }
+            
+            # Handle missing values if specified
+            missing_value_strategy = config.get('missing_value_strategy', 'drop')
+            if missing_value_strategy == 'drop':
+                df_processed = df.dropna(subset=[target_column] + feature_columns)
+            elif missing_value_strategy == 'fill_mean':
+                df_processed = df.copy()
+                numeric_cols = df_processed.select_dtypes(include=[np.number]).columns
+                df_processed[numeric_cols] = df_processed[numeric_cols].fillna(df_processed[numeric_cols].mean())
+            elif missing_value_strategy == 'fill_mode':
+                df_processed = df.copy()
+                for col in feature_columns + [target_column]:
+                    if col in df_processed.columns:
+                        mode_value = df_processed[col].mode()
+                        if len(mode_value) > 0:
+                            df_processed[col] = df_processed[col].fillna(mode_value[0])
+            else:
+                df_processed = df.copy()
+                
+            # Extract features and target
+            X = df_processed[feature_columns]
+            y = df_processed[target_column]
+            
+            # Enhanced feature type detection using improved ML-based heuristics
+            from backend.utils.data_quality import enhanced_feature_type_detection
+            feature_types, type_quality_info = enhanced_feature_type_detection(df_processed, feature_columns)
+            
+            # Log quality information about feature type detection
+            if type_quality_info['type_changes']:
+                for change in type_quality_info['type_changes']:
+                    logger.info(f"Feature type refined for '{change['column']}': {change['original']} -> {change['detected']} (confidence: {change['confidence']:.2f})")
+            
+            if type_quality_info['warnings']:
+                for warning in type_quality_info['warnings']:
+                    logger.warning(f"Feature type detection: {warning}")
 
-        # Save the feature types in metadata
-        processed_data['feature_types'] = feature_types
+            # Basic preprocessing for categorical variables with mapping preservation
+            categorical_mappings = {}
+            categorical_columns = X.select_dtypes(include=['object']).columns
+            if len(categorical_columns) > 0:
+                # Label encoding with mapping preservation for categorical variables
+                for col in categorical_columns:
+                    categorical_data = pd.Categorical(X[col])
+                    categorical_mappings[col] = {
+                        'original_values': categorical_data.categories.tolist(),
+                        'value_to_code': {str(val): idx for idx, val in enumerate(categorical_data.categories)}
+                    }
+                    X[col] = categorical_data.codes
+                    logger.info(f"Encoded categorical feature '{col}': {categorical_mappings[col]}")
+            
+            # Save categorical mappings in metadata
+            processed_data['categorical_mappings'] = categorical_mappings
+            
+            # Handle target encoding based on task type and data type
+            if task_type == 'classification':
+                if y.dtype == 'object':
+                    # Categorical target - encode it
+                    y_encoded = pd.Categorical(y)
+                    processed_data['class_labels'] = y_encoded.categories.tolist()
+                    y = y_encoded.codes
+                    logger.info(f"Encoded categorical target '{target_column}': {len(processed_data['class_labels'])} classes")
+                else:
+                    # Numeric target but user selected classification
+                    # Check if it looks like discrete classes
+                    unique_values = sorted(y.unique())
+                    if len(unique_values) <= 20 and all(isinstance(val, (int, np.integer)) for val in unique_values):
+                        # Looks like discrete integer classes - treat as classification
+                        processed_data['class_labels'] = [str(val) for val in unique_values]
+                        y = pd.Categorical(y, categories=unique_values).codes
+                        logger.info(f"Numeric target '{target_column}' treated as {len(unique_values)} discrete classes")
+                    else:
+                        # Too many unique values or floating point - should be regression
+                        logger.warning(f"Target '{target_column}' has {len(unique_values)} unique numeric values - this looks like regression, not classification!")
+                        logger.warning(f"Consider changing task type to 'regression' for better results")
+                        # Convert to discrete classes anyway since user chose classification
+                        processed_data['class_labels'] = [str(val) for val in unique_values]
+                        y = pd.Categorical(y, categories=unique_values).codes
+            else:
+                # Regression - ensure target is numeric
+                if y.dtype == 'object':
+                    logger.warning(f"Target '{target_column}' is categorical but task type is regression - this may not work well")
+                processed_data['class_labels'] = None
+
+            # Save the feature types in metadata
+            processed_data['feature_types'] = feature_types
+            
+            # Perform comprehensive data quality validation for tabular data
+            from backend.utils.data_quality import DataQualityValidator
+            quality_assessment = DataQualityValidator.validate_data_quality(
+                X.values, 
+                y.values if hasattr(y, 'values') else y, 
+                processed_data
+            )
+            
+            # Add quality assessment to metadata
+            processed_data['data_quality'] = quality_assessment
+            
+            # Log quality assessment
+            logger.info(f"Data quality assessment for '{dataset_name}': {quality_assessment['quality_level']} (score: {quality_assessment['quality_score']}/100)")
+            if quality_assessment['warnings']:
+                for warning in quality_assessment['warnings']:
+                    logger.warning(f"Data quality: {warning}")
+            if quality_assessment['recommendations']:
+                for rec in quality_assessment['recommendations']:
+                    logger.info(f"Recommendation: {rec}")
         
-        # Perform comprehensive data quality validation
-        from backend.utils.data_quality import DataQualityValidator
-        quality_assessment = DataQualityValidator.validate_data_quality(
-            X.values, 
-            y.values if hasattr(y, 'values') else y, 
-            processed_data
-        )
-        
-        # Add quality assessment to metadata
-        processed_data['data_quality'] = quality_assessment
-        
-        # Log quality assessment
-        logger.info(f"Data quality assessment for '{dataset_name}': {quality_assessment['quality_level']} (score: {quality_assessment['quality_score']}/100)")
-        if quality_assessment['warnings']:
-            for warning in quality_assessment['warnings']:
-                logger.warning(f"Data quality: {warning}")
-        if quality_assessment['recommendations']:
-            for rec in quality_assessment['recommendations']:
-                logger.info(f"Recommendation: {rec}")
-        
-        # Save the dataset
+        # Common saving logic for both image and tabular datasets
         datasets_dir = get_session_datasets_dir()
         os.makedirs(datasets_dir, exist_ok=True)
         
         # Save processed data
         dataset_file = os.path.join(datasets_dir, f'{dataset_name}.npz')
-        np.savez(dataset_file, X=X.values, y=y.values if hasattr(y, 'values') else y)
+        if hasattr(X, 'values'):
+            # Tabular data (pandas DataFrame)
+            np.savez(dataset_file, X=X.values, y=y.values if hasattr(y, 'values') else y)
+        else:
+            # Image data (numpy array)
+            np.savez(dataset_file, X=X, y=y)
         
         # Save metadata
         metadata_file = os.path.join(datasets_dir, f'{dataset_name}_metadata.json')
         processed_data['file_path'] = dataset_file
-        processed_data['processed_shape'] = [X.shape[0], X.shape[1]]
+        
+        # Set processed shape based on data type
+        if processed_data.get('dataset_type') == 'image':
+            processed_data['processed_shape'] = [int(x) for x in X.shape]  # Convert to int
+        else:
+            processed_data['processed_shape'] = [int(X.shape[0]), int(X.shape[1]) if len(X.shape) > 1 else 1]  # Convert to int
         
         with open(metadata_file, 'w') as f:
             json.dump(processed_data, f, indent=2)
@@ -504,13 +1010,19 @@ def create_custom_dataset():
         try:
             from backend.dataset_loader import register_custom_dataset
             
+            # Determine feature count based on dataset type
+            if processed_data.get('dataset_type') == 'image':
+                feature_count = int(np.prod(X.shape[1:]))  # Total pixels - convert to int
+            else:
+                feature_count = len(processed_data.get('feature_columns', []))
+            
             dataset_config = {
                 'name': dataset_name,
                 'file_path': dataset_file,
                 'metadata_path': metadata_file,
-                'task_type': task_type,
-                'feature_count': len(feature_columns),
-                'class_labels': processed_data['class_labels']
+                'task_type': processed_data['task_type'],
+                'feature_count': feature_count,
+                'class_labels': processed_data.get('class_labels')
             }
             
             register_custom_dataset(dataset_config)
@@ -528,9 +1040,10 @@ def create_custom_dataset():
             'dataset': {
                 'name': dataset_name,
                 'shape': processed_data['processed_shape'],
-                'task_type': task_type,
-                'feature_count': len(feature_columns),
-                'class_labels': processed_data['class_labels']
+                'task_type': processed_data['task_type'],
+                'feature_count': feature_count if 'feature_count' in locals() else 0,
+                'class_labels': processed_data.get('class_labels'),
+                'dataset_type': processed_data.get('dataset_type', 'tabular')
             }
         }), 200
         

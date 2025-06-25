@@ -1,0 +1,136 @@
+.mnist-prediction-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+  .drawing-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+
+    h4 {
+      font-size: 1.1rem;
+      color: #1e293b;
+      margin: 0;
+      text-align: center;
+    }
+
+    .drawing-controls {
+      display: flex;
+      gap: 1rem;
+      margin-top: 0.5rem;
+
+      .clear-button {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: #f1f5f9;
+        border: none;
+        border-radius: 6px;
+        color: #64748b;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover:not(:disabled) {
+          background: #e2e8f0;
+          color: #475569;
+        }
+
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        i {
+          font-size: 0.9rem;
+        }
+      }
+    }
+  }
+
+  .prediction-section {
+    width: 100%;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 8px;
+
+    .loading-state {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: #64748b;
+
+      i {
+        font-size: 1.1rem;
+        color: #0ea5e9;
+      }
+    }
+
+    .error-state {
+      color: #ef4444;
+      font-size: 0.9rem;
+      text-align: center;
+      padding: 0.5rem;
+      background: #fee2e2;
+      border-radius: 6px;
+      width: 100%;
+    }
+
+    .prediction-result {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+
+      .predicted-digit {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 1.1rem;
+
+        span {
+          color: #64748b;
+        }
+
+        strong {
+          color: #0ea5e9;
+          font-size: 1.5rem;
+        }
+      }
+
+      .confidence {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+
+        span {
+          color: #64748b;
+        }
+
+        strong {
+          color: #10b981;
+        }
+      }
+    }
+
+    .empty-state {
+      color: #94a3b8;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+  }
+} 

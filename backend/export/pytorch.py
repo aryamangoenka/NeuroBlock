@@ -500,6 +500,7 @@ def _generate_pytorch_custom_dataset_code(dataset_name, batch_size):
 """
     
     task_type = metadata.get('task_type', 'classification')
+    dataset_type = metadata.get('dataset_type', 'tabular')
     class_labels = metadata.get('class_labels', [])
     feature_columns = metadata.get('feature_columns', [])
     target_column = metadata.get('target_column', 'target')
@@ -517,47 +518,121 @@ y = data['y']
 
 # Dataset info:
 # - Task type: {task_type}
-# - Features: {len(feature_columns)} ({', '.join(feature_columns)})
-# - Target: {target_column}
+# - Dataset type: {dataset_type}
 """
     
-    if class_labels:
-        code += f"# - Classes: {len(class_labels)} ({', '.join(map(str, class_labels))})\n"
-    
-    code += f"""# - Processed shape: {processed_shape}
+    if dataset_type == 'image':
+        # Handle image datasets
+        target_size = metadata.get('target_size', [224, 224])
+        channels = metadata.get('channels', 3)
+        
+        code += f"""# - Image size: {target_size[0]}x{target_size[1]}
+# - Channels: {channels}
+# - Classes: {len(class_labels)} ({', '.join(map(str, class_labels))})
 
-# Preprocessing (same as used during training)
+# Image preprocessing (already normalized to [0,1] range)
+# Images are already in proper shape (N, H, W, C)
+print(f'Image data shape: {{X.shape}}')
+print(f'Image value range: [{{X.min():.3f}}, {{X.max():.3f}}]')
 """
-    
-    if task_type == 'classification':
-        if len(class_labels) > 2:
-            # Multi-class classification - use class indices for PyTorch CrossEntropyLoss
-            code += f"""# For multi-class classification, use class indices (not one-hot)
+        
+        if task_type == 'classification':
+            if len(class_labels) > 2:
+                # Multi-class classification - use class indices for PyTorch CrossEntropyLoss
+                code += f"""
+# For multi-class classification, use class indices (not one-hot)
 # PyTorch CrossEntropyLoss expects class indices, not one-hot encoded labels
 y_processed = y  # Assuming y contains class indices
 """
-        else:
-            # Binary classification - use single values for BCEWithLogitsLoss
-            code += f"""# For binary classification, use single values (not one-hot)
+            else:
+                # Binary classification - use single values for BCEWithLogitsLoss
+                code += f"""
+# For binary classification, use single values (not one-hot)
 # PyTorch BCEWithLogitsLoss expects single values, not one-hot encoded labels
 y_processed = y.astype(np.float32)
 """
-    else:
-        # Regression
-        code += f"""# For regression, use labels as-is
-y_processed = y.reshape(-1, 1) if len(y.shape) == 1 else y
-y_processed = y_processed.astype(np.float32)
-"""
-    
-    code += f"""
+        
+        code += f"""
 # Split the data (80% train, 20% test)
 x_train, x_test, y_train, y_test = train_test_split(
     X, y_processed, test_size=0.2, random_state=42"""
-    
-    if task_type == 'classification':
-        code += ", stratify=y_processed"
-    
-    code += f""")
+        
+        if task_type == 'classification':
+            code += ", stratify=y_processed"
+        
+        code += f""")
+
+# Convert to PyTorch tensors (no additional preprocessing needed for images)
+# PyTorch expects (N, C, H, W) format, so we need to transpose from (N, H, W, C)
+X_train = torch.tensor(x_train, dtype=torch.float32).permute(0, 3, 1, 2)
+X_test = torch.tensor(x_test, dtype=torch.float32).permute(0, 3, 1, 2)
+"""
+        
+        if task_type == 'classification':
+            if len(class_labels) > 2:
+                code += "y_train = torch.tensor(y_train, dtype=torch.long)  # Class indices for CrossEntropyLoss\n"
+                code += "y_test = torch.tensor(y_test, dtype=torch.long)\n"
+            else:
+                code += "y_train = torch.tensor(y_train, dtype=torch.float32).unsqueeze(1)  # Single values for BCEWithLogitsLoss\n"
+                code += "y_test = torch.tensor(y_test, dtype=torch.float32).unsqueeze(1)\n"
+        
+        code += f"""
+# Create TensorDatasets
+train_dataset = TensorDataset(X_train, y_train)
+test_dataset = TensorDataset(X_test, y_test)
+
+# Create DataLoaders
+train_loader = DataLoader(train_dataset, batch_size={batch_size}, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size={batch_size}, shuffle=False)
+
+print(f'Dataset loaded: {{X_train.shape[0]}} training samples, {{X_test.shape[0]}} test samples')
+print(f'Image shape (PyTorch format C,H,W): {{X_train.shape[1:]}}')
+print(f'Target shape: {{y_train.shape[1:] if len(y_train.shape) > 1 else "scalar"}}')
+"""
+        
+    else:
+        # Handle tabular datasets (existing logic)
+        code += f"""# - Features: {len(feature_columns)} ({', '.join(feature_columns)})
+# - Target: {target_column}
+"""
+        
+        if class_labels:
+            code += f"# - Classes: {len(class_labels)} ({', '.join(map(str, class_labels))})\n"
+        
+        code += f"""# - Processed shape: {processed_shape}
+
+# Preprocessing (same as used during training)
+"""
+        
+        if task_type == 'classification':
+            if len(class_labels) > 2:
+                # Multi-class classification - use class indices for PyTorch CrossEntropyLoss
+                code += f"""# For multi-class classification, use class indices (not one-hot)
+# PyTorch CrossEntropyLoss expects class indices, not one-hot encoded labels
+y_processed = y  # Assuming y contains class indices
+"""
+            else:
+                # Binary classification - use single values for BCEWithLogitsLoss
+                code += f"""# For binary classification, use single values (not one-hot)
+# PyTorch BCEWithLogitsLoss expects single values, not one-hot encoded labels
+y_processed = y.astype(np.float32)
+"""
+        else:
+            # Regression
+            code += f"""# For regression, use labels as-is
+y_processed = y.reshape(-1, 1) if len(y.shape) == 1 else y
+y_processed = y_processed.astype(np.float32)
+"""
+        
+        code += f"""
+# Split the data (80% train, 20% test)
+x_train, x_test, y_train, y_test = train_test_split(
+    X, y_processed, test_size=0.2, random_state=42"""
+        
+        if task_type == 'classification':
+            code += ", stratify=y_processed"
+        
+        code += f""")
 
 # Standardize features (same as used during training)
 scaler = StandardScaler()
@@ -568,19 +643,19 @@ x_test = scaler.transform(x_test)
 X_train = torch.tensor(x_train, dtype=torch.float32)
 X_test = torch.tensor(x_test, dtype=torch.float32)
 """
-    
-    if task_type == 'classification':
-        if len(class_labels) > 2:
-            code += "y_train = torch.tensor(y_train, dtype=torch.long)  # Class indices for CrossEntropyLoss\n"
-            code += "y_test = torch.tensor(y_test, dtype=torch.long)\n"
+        
+        if task_type == 'classification':
+            if len(class_labels) > 2:
+                code += "y_train = torch.tensor(y_train, dtype=torch.long)  # Class indices for CrossEntropyLoss\n"
+                code += "y_test = torch.tensor(y_test, dtype=torch.long)\n"
+            else:
+                code += "y_train = torch.tensor(y_train, dtype=torch.float32).unsqueeze(1)  # Single values for BCEWithLogitsLoss\n"
+                code += "y_test = torch.tensor(y_test, dtype=torch.float32).unsqueeze(1)\n"
         else:
-            code += "y_train = torch.tensor(y_train, dtype=torch.float32).unsqueeze(1)  # Single values for BCEWithLogitsLoss\n"
-            code += "y_test = torch.tensor(y_test, dtype=torch.float32).unsqueeze(1)\n"
-    else:
-        code += "y_train = torch.tensor(y_train, dtype=torch.float32)\n"
-        code += "y_test = torch.tensor(y_test, dtype=torch.float32)\n"
-    
-    code += f"""
+            code += "y_train = torch.tensor(y_train, dtype=torch.float32)\n"
+            code += "y_test = torch.tensor(y_test, dtype=torch.float32)\n"
+        
+        code += f"""
 # Create TensorDatasets
 train_dataset = TensorDataset(X_train, y_train)
 test_dataset = TensorDataset(X_test, y_test)

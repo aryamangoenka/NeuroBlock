@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, JSX, useCallback } from "react";
 import "../styles/components/NewBuildPage.scss";
 import { useNewBuildPageContext } from "../context/NewBuildPageContext";
+import MNISTPrediction from "../components/MNISTPrediction";
+import "../styles/components/MNISTPrediction.scss";
 import ReactFlow, {
   addEdge,
   Background,
@@ -59,7 +61,7 @@ import {
   getAvailableDatasets,
 } from "../utils/customDatasetApi";
 import ToastNotification, { ToastType } from "../components/ToastNotification";
-import Validation from "../components/Validation";
+
 void getCustomDatasets;
 // Register Chart.js components
 ChartJS.register(
@@ -193,6 +195,9 @@ const NewBuildPage = (): JSX.Element => {
 
   // State for custom datasets
   const [customDatasets, setCustomDatasets] = useState<string[]>([]);
+  const [customDatasetMetadata, setCustomDatasetMetadata] = useState<
+    Record<string, any>
+  >({});
 
   // State for socket connection
   const [socketConnected, setSocketConnected] = useState(false);
@@ -358,12 +363,21 @@ const NewBuildPage = (): JSX.Element => {
         console.log("🔧 Built-in datasets:", availableDatasets.built_in);
         console.log("⭐ Custom datasets:", availableDatasets.custom);
 
-        // Extract only custom dataset names for the dropdown
+        // Extract custom dataset names for the dropdown
         const customDatasetNames = availableDatasets.custom.map(
           (dataset) => dataset.name
         );
         setCustomDatasets(customDatasetNames);
+
+        // Store full metadata for input/output size calculations
+        const metadataMap: Record<string, any> = {};
+        availableDatasets.custom.forEach((dataset) => {
+          metadataMap[dataset.name] = dataset;
+        });
+        setCustomDatasetMetadata(metadataMap);
+
         console.log("✅ Fetched custom datasets:", customDatasetNames);
+        console.log("📊 Custom dataset metadata:", metadataMap);
       } catch (error) {
         console.error("❌ Failed to fetch custom datasets:", error);
         setCustomDatasets([]);
@@ -388,7 +402,16 @@ const NewBuildPage = (): JSX.Element => {
         (dataset) => dataset.name
       );
       setCustomDatasets(customDatasetNames);
+
+      // Update metadata as well
+      const metadataMap: Record<string, any> = {};
+      availableDatasets.custom.forEach((dataset) => {
+        metadataMap[dataset.name] = dataset;
+      });
+      setCustomDatasetMetadata(metadataMap);
+
       console.log("✅ Refreshed custom datasets:", customDatasetNames);
+      console.log("📊 Refreshed custom dataset metadata:", metadataMap);
     } catch (error) {
       console.error("❌ Failed to refresh custom datasets:", error);
     }
@@ -400,12 +423,24 @@ const NewBuildPage = (): JSX.Element => {
     const defaultOptions = [{ value: "loss", label: "Loss" }];
 
     // Classification datasets show accuracy, regression datasets don't
-    const isClassificationDataset = [
+    const builtInClassificationDatasets = [
       "MNIST",
       "CIFAR-10",
       "Iris",
       "Breast Cancer",
-    ].includes(selectedDataset || "");
+    ];
+
+    let isClassificationDataset = builtInClassificationDatasets.includes(
+      selectedDataset || ""
+    );
+
+    // Check if it's a custom classification dataset
+    if (!isClassificationDataset && selectedDataset) {
+      const customDataset = customDatasetMetadata[selectedDataset];
+      if (customDataset && customDataset.task_type === "classification") {
+        isClassificationDataset = true;
+      }
+    }
 
     if (isClassificationDataset) {
       // Add accuracy at the beginning for classification datasets
@@ -438,6 +473,22 @@ const NewBuildPage = (): JSX.Element => {
         { value: "residual_plot", label: "Residual Plot" },
       ],
     };
+
+    // Add confusion matrix for custom classification datasets
+    if (selectedDataset && !datasetOptions[selectedDataset]) {
+      const customDataset = customDatasetMetadata[selectedDataset];
+      if (customDataset) {
+        if (customDataset.task_type === "classification") {
+          datasetOptions[selectedDataset] = [
+            { value: "confusion_matrix", label: "Confusion Matrix" },
+          ];
+        } else if (customDataset.task_type === "regression") {
+          datasetOptions[selectedDataset] = [
+            { value: "residual_plot", label: "Residual Plot" },
+          ];
+        }
+      }
+    }
 
     // Combine default options with dataset-specific options
     const options = selectedDataset
@@ -1011,6 +1062,7 @@ const NewBuildPage = (): JSX.Element => {
 
   // Helper function to get class labels for different datasets
   const getClassLabels = (datasetName: string): string[] => {
+    // Check built-in datasets first
     switch (datasetName) {
       case "MNIST":
         return ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
@@ -1034,6 +1086,15 @@ const NewBuildPage = (): JSX.Element => {
       case "California Housing":
         return ["Price"];
       default:
+        // Check if it's a custom dataset
+        const customDataset = customDatasetMetadata[datasetName];
+        if (
+          customDataset &&
+          customDataset.class_labels &&
+          Array.isArray(customDataset.class_labels)
+        ) {
+          return customDataset.class_labels;
+        }
         return [];
     }
   };
@@ -5830,7 +5891,7 @@ const NewBuildPage = (): JSX.Element => {
         <table className="confusion-matrix-table">
           <thead>
             <tr>
-              <th style={{ width: "40px" }}></th>
+              <th></th>
               {labels.map((label, index) => (
                 <th
                   key={`header-${index}`}
@@ -5856,15 +5917,25 @@ const NewBuildPage = (): JSX.Element => {
                   const opacity =
                     maxProportion > 0 ? proportion / maxProportion : 0;
 
+                  // Determine if this is a correct prediction
+                  const isCorrectPrediction = rowIndex === colIndex;
+                  const bgColor = isCorrectPrediction
+                    ? `rgba(34, 197, 94, ${opacity})` // Green for correct predictions
+                    : `rgba(239, 68, 68, ${opacity})`; // Red for incorrect predictions
+
+                  // Determine if we should use small cells (for larger datasets)
+                  const useSmallCells = labels.length > 5;
+
                   return (
                     <td
                       key={`cell-${rowIndex}-${colIndex}`}
-                      className="matrix-cell"
+                      className={`matrix-cell ${
+                        useSmallCells ? "small-cell" : ""
+                      }`}
                       style={{
-                        backgroundColor: `rgba(76, 175, 80, ${opacity})`,
+                        backgroundColor: bgColor,
                         color: opacity > 0.5 ? "#fff" : "#000",
                       }}
-                      title={`${value} samples (${percentage}%)`}
                     >
                       {percentage}%
                     </td>
@@ -7558,13 +7629,21 @@ const NewBuildPage = (): JSX.Element => {
             <div className="visualization-content">{renderVisualization()}</div>
             {/* Training Metrics Below Visualization */}
             {renderTrainingMetrics()}
-            {/* Validation component at the top */}
-            <div className="validation-section">
-              <Validation
-                datasetName={selectedDataset}
-                isTrainingComplete={trainingComplete}
-              />
-            </div>
+
+            {/* Add MNIST Prediction Interface */}
+            {selectedDataset === "MNIST" && (
+              <div className="mnist-prediction-wrapper">
+                <h3>Test Your Model</h3>
+                {trainingComplete ? (
+                  <MNISTPrediction isTrainingComplete={trainingComplete} />
+                ) : (
+                  <div className="empty-state">
+                    <i className="fas fa-clock"></i>
+                    <p>Please complete model training before testing</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         );
       default:
@@ -7628,6 +7707,7 @@ const NewBuildPage = (): JSX.Element => {
 
     // Get dataset specifications
     const getDatasetInputShape = (dataset: string): number[] => {
+      // Check if it's a built-in dataset
       switch (dataset) {
         case "MNIST":
           return [28, 28, 1]; // (height, width, channels)
@@ -7640,11 +7720,43 @@ const NewBuildPage = (): JSX.Element => {
         case "California Housing":
           return [8]; // 8 features
         default:
+          // Check if it's a custom dataset
+          const customDataset = customDatasetMetadata[dataset];
+          if (customDataset) {
+            // Handle image datasets differently from tabular datasets
+            if (customDataset.dataset_type === "image") {
+              // For image datasets, use the actual image shape from metadata
+              const imageShape = customDataset.image_shape;
+              if (
+                imageShape &&
+                Array.isArray(imageShape) &&
+                imageShape.length >= 2
+              ) {
+                return imageShape; // [height, width, channels]
+              }
+              // Fallback to target_size if image_shape is not available
+              const targetSize = customDataset.target_size;
+              const channels = customDataset.channels || 3;
+              if (
+                targetSize &&
+                Array.isArray(targetSize) &&
+                targetSize.length >= 2
+              ) {
+                return [targetSize[0], targetSize[1], channels];
+              }
+              // Default image shape fallback
+              return [224, 224, 3];
+            } else {
+              // For tabular datasets, use feature_count as input shape
+              return [customDataset.feature_count];
+            }
+          }
           return [1]; // Default fallback
       }
     };
 
     const getDatasetOutputSize = (dataset: string): number => {
+      // Check if it's a built-in dataset
       switch (dataset) {
         case "MNIST":
         case "CIFAR-10":
@@ -7656,6 +7768,23 @@ const NewBuildPage = (): JSX.Element => {
         case "California Housing":
           return 1; // Regression
         default:
+          // Check if it's a custom dataset
+          const customDataset = customDatasetMetadata[dataset];
+          if (customDataset) {
+            if (customDataset.task_type === "regression") {
+              return 1; // Regression always outputs 1 value
+            } else {
+              // Classification - use number of classes
+              if (
+                customDataset.class_labels &&
+                Array.isArray(customDataset.class_labels)
+              ) {
+                return customDataset.class_labels.length;
+              }
+              // If no class labels info, assume binary classification
+              return 2;
+            }
+          }
           return 1; // Default fallback
       }
     };
@@ -8046,7 +8175,30 @@ const NewBuildPage = (): JSX.Element => {
     }
 
     // Dataset-specific validations
-    if (selectedDataset === "MNIST" || selectedDataset === "CIFAR-10") {
+    const builtInImageDatasets = ["MNIST", "CIFAR-10"];
+    const builtInTabularDatasets = [
+      "Iris",
+      "Breast Cancer",
+      "California Housing",
+    ];
+
+    let isImageDataset = builtInImageDatasets.includes(selectedDataset || "");
+    let isTabularDataset = builtInTabularDatasets.includes(
+      selectedDataset || ""
+    );
+
+    // Check if it's a custom dataset and determine its type based on feature count
+    if (!isImageDataset && !isTabularDataset && selectedDataset) {
+      const customDataset = customDatasetMetadata[selectedDataset];
+      if (customDataset) {
+        // Custom datasets with many features or specific shapes might be images
+        // For now, assume all custom datasets are tabular unless specified otherwise
+        // This could be enhanced in the future with dataset type metadata
+        isTabularDataset = true;
+      }
+    }
+
+    if (isImageDataset) {
       const hasConvOrResNet = nodes.some(
         (n) => n.type === "convolution" || n.type === "resnetblock"
       );
@@ -8055,9 +8207,7 @@ const NewBuildPage = (): JSX.Element => {
           `Suggestion: ${selectedDataset} dataset (image data) typically benefits from convolutional layers or ResNet blocks.`
         );
       }
-    } else if (
-      ["Iris", "Breast Cancer", "California Housing"].includes(selectedDataset)
-    ) {
+    } else if (isTabularDataset) {
       const hasConv = nodes.some((n) => n.type === "convolution");
       if (hasConv) {
         errors.push(
@@ -8070,7 +8220,7 @@ const NewBuildPage = (): JSX.Element => {
     setLayerSizes(newLayerSizes);
 
     return errors;
-  }, [selectedDataset, nodes, edges]);
+  }, [selectedDataset, nodes, edges, customDatasetMetadata]);
 
   // Calculate layer sizes when nodes, edges, or dataset changes
   useEffect(() => {

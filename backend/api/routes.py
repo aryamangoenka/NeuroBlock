@@ -964,6 +964,8 @@ def predict_image():
     try:
         # Load image
         img = Image.open(image_file.stream)
+        
+        # Handle built-in image datasets
         if dataset_name == 'MNIST':
             img = img.convert('L').resize((28, 28))  # Grayscale
             img_array = np.array(img).astype('float32') / 255.0
@@ -973,15 +975,82 @@ def predict_image():
             img_array = np.array(img).astype('float32') / 255.0
             img_array = img_array.reshape(1, 32, 32, 3)
         else:
-            return jsonify({'error': 'Unsupported image dataset'}), 400
-        # Load model
+            # Handle custom image datasets
+            try:
+                # Load custom dataset metadata to get image processing parameters
+                from backend.utils.session_manager import get_session_datasets_dir, get_session_id
+                session_id = get_session_id()
+                datasets_dir = get_session_datasets_dir(session_id)
+                metadata_path = os.path.join(datasets_dir, f'{dataset_name}_metadata.json')
+                
+                if not os.path.exists(metadata_path):
+                    return jsonify({'error': f'Custom dataset {dataset_name} metadata not found'}), 400
+                
+                with open(metadata_path, 'r') as f:
+                    metadata = json.load(f)
+                
+                # Check if it's an image dataset
+                if metadata.get('dataset_type') != 'image':
+                    return jsonify({'error': f'Dataset {dataset_name} is not an image dataset'}), 400
+                
+                # Get image processing parameters from metadata
+                target_size = metadata.get('target_size', [224, 224])
+                channels = metadata.get('channels', 3)
+                
+                # Process image according to dataset configuration
+                if channels == 1:
+                    img = img.convert('L').resize(tuple(target_size))  # Grayscale
+                else:
+                    img = img.convert('RGB').resize(tuple(target_size))  # RGB
+                
+                img_array = np.array(img).astype('float32') / 255.0
+                
+                # Reshape for model input
+                if channels == 1:
+                    img_array = img_array.reshape(1, target_size[0], target_size[1], 1)
+                else:
+                    img_array = img_array.reshape(1, target_size[0], target_size[1], channels)
+                
+                logger.info(f"Processed custom image for dataset '{dataset_name}': shape {img_array.shape}")
+                
+            except Exception as e:
+                logger.error(f"Error processing custom image dataset '{dataset_name}': {str(e)}")
+                return jsonify({'error': f'Error processing image for custom dataset: {str(e)}'}), 400
+        
+        # Load model and make prediction
         model_path = current_app.config.get('TRAINED_MODEL_PATH')
         model = tf.keras.models.load_model(model_path)
         prediction = model.predict(img_array)
         pred_class = int(np.argmax(prediction[0]))
         confidence = float(prediction[0][pred_class])
-        return jsonify({'prediction': pred_class, 'confidence': confidence})
+        
+        # Get class labels for better result formatting
+        class_labels = None
+        if dataset_name in ['MNIST']:
+            class_labels = [str(i) for i in range(10)]
+        elif dataset_name == 'CIFAR-10':
+            class_labels = ["Airplane", "Automobile", "Bird", "Cat", "Deer", "Dog", "Frog", "Horse", "Ship", "Truck"]
+        else:
+            # For custom datasets, try to get class labels from metadata
+            try:
+                if 'metadata' in locals() and metadata.get('class_labels'):
+                    class_labels = metadata['class_labels']
+            except:
+                pass
+        
+        # Format result
+        result = {
+            'prediction': pred_class,
+            'confidence': confidence
+        }
+        
+        if class_labels and pred_class < len(class_labels):
+            result['predicted_class'] = class_labels[pred_class]
+        
+        return jsonify(result)
+        
     except Exception as e:
+        logger.error(f"Error in image prediction: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500 
 
 @api_blueprint.route('/session_id', methods=['GET'])

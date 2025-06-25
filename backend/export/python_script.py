@@ -487,6 +487,7 @@ def _generate_custom_dataset_code(dataset_name, input_shape):
         ]
     
     task_type = metadata.get('task_type', 'classification')
+    dataset_type = metadata.get('dataset_type', 'tabular')
     class_labels = metadata.get('class_labels', [])
     feature_columns = metadata.get('feature_columns', [])
     target_column = metadata.get('target_column', 'target')
@@ -496,7 +497,6 @@ def _generate_custom_dataset_code(dataset_name, input_shape):
         f"# Load custom dataset: {dataset_name}",
         "import numpy as np",
         "from sklearn.model_selection import train_test_split",
-        "from sklearn.preprocessing import StandardScaler, LabelEncoder",
         "",
         f"# Load the custom dataset '{dataset_name}'",
         f"# Note: Update the path below to point to your dataset file",
@@ -509,67 +509,127 @@ def _generate_custom_dataset_code(dataset_name, input_shape):
         "",
         f"# Dataset info:",
         f"# - Task type: {task_type}",
-        f"# - Features: {len(feature_columns)} ({', '.join(feature_columns)})",
-        f"# - Target: {target_column}",
+        f"# - Dataset type: {dataset_type}",
     ]
     
-    if class_labels:
+    if dataset_type == 'image':
+        # Handle image datasets
+        target_size = metadata.get('target_size', [224, 224])
+        channels = metadata.get('channels', 3)
+        
         code.extend([
+            f"# - Image size: {target_size[0]}x{target_size[1]}",
+            f"# - Channels: {channels}",
             f"# - Classes: {len(class_labels)} ({', '.join(map(str, class_labels))})",
+            "",
+            "# Image preprocessing (already normalized to [0,1] range)",
+            "# Images are already in proper shape (N, H, W, C)",
+            "print(f'Image data shape: {X.shape}')",
+            "print(f'Image value range: [{X.min():.3f}, {X.max():.3f}]')",
         ])
-    
-    code.extend([
-        f"# - Processed shape: {processed_shape}",
-        "",
-        "# Preprocessing (same as used during training)",
-    ])
-    
-    if task_type == 'classification':
-        if len(class_labels) > 2:
-            # Multi-class classification - one-hot encode
-            code.extend([
-                "# One-hot encode labels for multi-class classification",
-                f"y_encoded = tf.keras.utils.to_categorical(y, {len(class_labels)})",
-            ])
-        else:
-            # Binary classification - one-hot encode to match training
-            code.extend([
-                "# One-hot encode labels for binary classification (to match training)",
-                "y_encoded = tf.keras.utils.to_categorical(y, 2)",
-            ])
-    else:
-        # Regression
+        
+        if task_type == 'classification':
+            if len(class_labels) > 2:
+                # Multi-class classification - one-hot encode
+                code.extend([
+                    "",
+                    "# One-hot encode labels for multi-class classification",
+                    f"y_encoded = tf.keras.utils.to_categorical(y, {len(class_labels)})",
+                ])
+            else:
+                # Binary classification - one-hot encode to match training
+                code.extend([
+                    "",
+                    "# One-hot encode labels for binary classification (to match training)",
+                    "y_encoded = tf.keras.utils.to_categorical(y, 2)",
+                ])
+        
         code.extend([
-            "# For regression, use labels as-is",
-            "y_encoded = y.reshape(-1, 1) if len(y.shape) == 1 else y",
+            "",
+            "# Split the data (80% train, 20% test)",
+            "x_train, x_test, y_train, y_test = train_test_split(",
+            "    X, y_encoded, test_size=0.2, random_state=42",
         ])
-    
-    code.extend([
-        "",
-        "# Split the data (80% train, 20% test)",
-        "x_train, x_test, y_train, y_test = train_test_split(",
-        "    X, y_encoded, test_size=0.2, random_state=42",
-    ])
-    
-    if task_type == 'classification':
-        code.append("    , stratify=y_encoded")
-    
-    code.extend([
-        ")",
-        "",
-        "# Standardize features (same as used during training)",
-        "scaler = StandardScaler()",
-        "x_train = scaler.fit_transform(x_train)",
-        "x_test = scaler.transform(x_test)",
-        "",
-        f"# Reshape for model input {input_shape}",
-        f"x_train = x_train.reshape(x_train.shape[0], {', '.join(str(dim) for dim in input_shape)})",
-        f"x_test = x_test.reshape(x_test.shape[0], {', '.join(str(dim) for dim in input_shape)})",
-        "",
-        "print(f'Dataset loaded: {x_train.shape[0]} training samples, {x_test.shape[0]} test samples')",
-        "print(f'Feature shape: {x_train.shape[1:]}')",
-        "print(f'Target shape: {y_train.shape[1:] if len(y_train.shape) > 1 else \"scalar\"}')"
-    ])
+        
+        if task_type == 'classification':
+            code.append("    , stratify=y_encoded")
+        
+        code.extend([
+            ")",
+            "",
+            "# No additional preprocessing needed for images (already normalized)",
+            f"# Data is already in correct shape for model: {input_shape}",
+            "",
+            "print(f'Dataset loaded: {x_train.shape[0]} training samples, {x_test.shape[0]} test samples')",
+            "print(f'Image shape: {x_train.shape[1:]}')",
+            "print(f'Target shape: {y_train.shape[1:] if len(y_train.shape) > 1 else \"scalar\"}')"
+        ])
+        
+    else:
+        # Handle tabular datasets (existing logic)
+        code.extend([
+            f"# - Features: {len(feature_columns)} ({', '.join(feature_columns)})",
+            f"# - Target: {target_column}",
+        ])
+        
+        if class_labels:
+            code.extend([
+                f"# - Classes: {len(class_labels)} ({', '.join(map(str, class_labels))})",
+            ])
+        
+        code.extend([
+            f"# - Processed shape: {processed_shape}",
+            "",
+            "# Preprocessing (same as used during training)",
+            "from sklearn.preprocessing import StandardScaler, LabelEncoder",
+        ])
+        
+        if task_type == 'classification':
+            if len(class_labels) > 2:
+                # Multi-class classification - one-hot encode
+                code.extend([
+                    "# One-hot encode labels for multi-class classification",
+                    f"y_encoded = tf.keras.utils.to_categorical(y, {len(class_labels)})",
+                ])
+            else:
+                # Binary classification - one-hot encode to match training
+                code.extend([
+                    "# One-hot encode labels for binary classification (to match training)",
+                    "y_encoded = tf.keras.utils.to_categorical(y, 2)",
+                ])
+        else:
+            # Regression
+            code.extend([
+                "# For regression, use labels as-is",
+                "y_encoded = y.reshape(-1, 1) if len(y.shape) == 1 else y",
+            ])
+        
+        code.extend([
+            "",
+            "# Split the data (80% train, 20% test)",
+            "x_train, x_test, y_train, y_test = train_test_split(",
+            "    X, y_encoded, test_size=0.2, random_state=42",
+        ])
+        
+        if task_type == 'classification':
+            code.append("    , stratify=y_encoded")
+        
+        code.extend([
+            ")",
+            "",
+            "# Standardize features (same as used during training)",
+            "scaler = StandardScaler()",
+            "x_train = scaler.fit_transform(x_train)",
+            "x_test = scaler.transform(x_test)",
+            "",
+            f"# Reshape for model input {input_shape}",
+            f"x_train = x_train.reshape(x_train.shape[0], {', '.join(str(dim) for dim in input_shape)})",
+            f"x_test = x_test.reshape(x_test.shape[0], {', '.join(str(dim) for dim in input_shape)})",
+            "",
+            "print(f'Dataset loaded: {x_train.shape[0]} training samples, {x_test.shape[0]} test samples')",
+            "print(f'Feature shape: {x_train.shape[1:]}')",
+            "print(f'Target shape: {y_train.shape[1:] if len(y_train.shape) > 1 else \"scalar\"}')"
+        ])
     
     return code
 
