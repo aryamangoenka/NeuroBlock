@@ -360,33 +360,29 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
             graph[source].append(target)
             in_degree[target] = in_degree.get(target, 0) + 1
 
-    # Perform topological sort
-    queue = []
-    for node_id, degree in in_degree.items():
-        if degree == 0:
-            queue.append(node_id)
-    
+    # Topological sort using Kahn's algorithm
     topo_order = []
+    queue = [node_id for node_id in in_degree if in_degree[node_id] == 0]
+    
     while queue:
-        node_id = queue.pop(0)
-        topo_order.append(node_id)
+        current = queue.pop(0)
+        topo_order.append(current)
         
-        for neighbor in graph[node_id]:
+        for neighbor in graph[current]:
             in_degree[neighbor] -= 1
             if in_degree[neighbor] == 0:
                 queue.append(neighbor)
 
     if len(topo_order) != len(nodes):
-        error_msg = "Graph contains cycles or disconnected components"
-        logger.error(error_msg)
-        raise ValueError(error_msg)
+        logger.error("Model architecture contains a cycle")
+        raise ValueError("Model architecture contains a cycle")
 
-    # Create a mapping of node IDs to their data
+    # Create a mapping for quick access
     node_map = {node["id"]: node for node in nodes}
 
-    # Check if we need to use functional API
+    # Check for ResNet blocks and skip connections
     has_resnet_blocks = any(node["type"] == "resnetblock" for node in nodes)
-    has_skip_connections = any(len([e for e in edges if e["target"] == node["id"]]) > 1 for node in nodes)
+    has_skip_connections = any(node["type"] == "addlayer" for node in nodes)
     
     if has_resnet_blocks or has_skip_connections:
         logger.info("Using functional API for model with complex connections")
@@ -396,6 +392,9 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
         
         # First, we need to process the architecture to merge activation layers with their preceding layers
         processed_nodes = []
+        merged_activation_layers = set()  # Track which activation layers were merged
+        activation_to_predecessor = {}    # Map activation layer ID to the layer that absorbed it
+        
         i = 0
         while i < len(topo_order):
             node_id = topo_order[i]
@@ -409,6 +408,7 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
             
             # Check if the next node is an activation layer that should be merged
             next_activation = None
+            merged_activation_id = None
             if i + 1 < len(topo_order):
                 next_node_id = topo_order[i + 1]
                 next_node = node_map[next_node_id]
@@ -417,6 +417,9 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
                     next_incoming_edges = [edge for edge in edges if edge["target"] == next_node_id]
                     if len(next_incoming_edges) == 1 and next_incoming_edges[0]["source"] == node_id:
                         next_activation = next_node["data"].get("function", "relu").lower()
+                        merged_activation_id = next_node_id
+                        merged_activation_layers.add(next_node_id)
+                        activation_to_predecessor[next_node_id] = node_id
                         i += 1  # Skip the activation node as we'll merge it
             
             processed_nodes.append({
@@ -426,6 +429,26 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
                 "merged_activation": next_activation
             })
             i += 1
+        
+        # Update edges to redirect connections FROM merged activation layers to their predecessors
+        updated_edges = []
+        for edge in edges:
+            if edge["source"] in merged_activation_layers:
+                # Redirect edge to point from the predecessor layer instead
+                predecessor_id = activation_to_predecessor[edge["source"]]
+                updated_edge = {
+                    "source": predecessor_id,
+                    "target": edge["target"],
+                    "id": edge.get("id", f"{predecessor_id}-{edge['target']}")
+                }
+                updated_edges.append(updated_edge)
+                logger.debug(f"Redirected edge from merged activation {edge['source']} to predecessor {predecessor_id}")
+            elif edge["target"] not in merged_activation_layers:
+                # Keep edges that don't involve merged activation layers
+                updated_edges.append(edge)
+            # Skip edges TO merged activation layers as they're no longer needed
+        
+        edges = updated_edges
         
         # Process nodes in topological order
         for processed_node in processed_nodes:
@@ -540,17 +563,12 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
                     x = Add()(input_layer_func)
             elif layer_type == "output":
                 output_units = determine_output_units(dataset_name)
-                # For output layer, use the merged activation if available, otherwise determine based on dataset
+                # For output layer, use the merged activation if available, otherwise use None
                 if final_activation:
                     output_activation = final_activation
                 else:
-                    # Auto-determine output activation based on dataset if not specified
-                    if dataset_name in ["Iris", "MNIST", "CIFAR-10"]:
-                        output_activation = "softmax"  # Multi-class classification
-                    elif dataset_name == "Breast Cancer":
-                        output_activation = "sigmoid"  # Binary classification
-                    else:
-                        output_activation = None  # Regression
+                    # Don't auto-add activation - let templates handle activation explicitly
+                    output_activation = None
                 
                 x = Dense(
                     units=output_units,
@@ -693,17 +711,12 @@ def build_model_from_architecture(architecture, input_shape, dataset_name):
                     ))
             elif layer_type == "output":
                 output_units = determine_output_units(dataset_name)
-                # For output layer, use the merged activation if available, otherwise determine based on dataset
+                # For output layer, use the merged activation if available, otherwise use None
                 if final_activation:
                     output_activation = final_activation
                 else:
-                    # Auto-determine output activation based on dataset if not specified
-                    if dataset_name in ["Iris", "MNIST", "CIFAR-10"]:
-                        output_activation = "softmax"  # Multi-class classification
-                    elif dataset_name == "Breast Cancer":
-                        output_activation = "sigmoid"  # Binary classification
-                    else:
-                        output_activation = None  # Regression
+                    # Don't auto-add activation - let templates handle activation explicitly
+                    output_activation = None
                 
                 model.add(Dense(
                     units=output_units,

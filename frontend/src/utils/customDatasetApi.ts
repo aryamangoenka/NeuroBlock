@@ -414,7 +414,7 @@ export async function createCustomDataset(
   // Check if it's FormData (folder upload) or File (single file upload)
   const isFormData = fileOrFormData instanceof FormData;
   const isFolder = isFormData;
-
+  void isFolder;
   // Validate inputs
   if (!fileOrFormData) {
     throw new CustomDatasetApiError('No file or folder provided', 400);

@@ -544,7 +544,7 @@ const CustomDatasetModal: React.FC<CustomDatasetModalProps> = ({
                 <input
                   ref={folderInputRef}
                   type="file"
-                  webkitdirectory=""
+                  
                   multiple
                   onChange={handleFolderInputChange}
                   style={{ display: "none" }}
