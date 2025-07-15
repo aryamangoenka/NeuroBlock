@@ -49,6 +49,7 @@ const ConvolutionNode = ({ data }: { data: any }) => (
     <p>Filters: {data.filters}</p>
     <p>Kernel Size: {data.kernelSize?.join("x")}</p>
     <p>Stride: {data.stride?.join("x")}</p>
+    <p>Padding: {data.padding || "valid"}</p>
     <Handle
       type="source"
       position={Position.Right}

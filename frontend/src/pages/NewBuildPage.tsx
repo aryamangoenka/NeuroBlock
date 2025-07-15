@@ -1184,7 +1184,7 @@ const NewBuildPage = (): JSX.Element => {
               ? node.data.kernelSize
               : [3, 3],
             stride: Array.isArray(node.data.stride) ? node.data.stride : [1, 1],
-            padding: node.data.padding || "same",
+            padding: node.data.padding || "valid",
             activation: node.data.activation || "None",
           };
           break;
@@ -1608,10 +1608,10 @@ const NewBuildPage = (): JSX.Element => {
           filters: 32,
           kernelSize: [3, 3],
           stride: [1, 1],
-          padding: "same",
+          padding: "valid",
           activation: "relu",
         },
-        maxpooling: { poolSize: [2, 2], stride: [2, 2], padding: "same" },
+        maxpooling: { poolSize: [2, 2], stride: [2, 2], padding: "valid" },
         globalaveragepool: {},
         flatten: {},
         dropout: { rate: 0.25 },
@@ -1707,8 +1707,13 @@ const NewBuildPage = (): JSX.Element => {
       input: {}, // Input layer has no parameters
       output: { activation: "None" },
       dense: { neurons: 64, activation: "None" },
-      convolution: { filters: 32, kernelSize: [3, 3], stride: [1, 1] },
-      maxpooling: { poolSize: [2, 2], stride: [2, 2], padding: "none" },
+      convolution: {
+        filters: 32,
+        kernelSize: [3, 3],
+        stride: [1, 1],
+        padding: "valid",
+      },
+      maxpooling: { poolSize: [2, 2], stride: [2, 2], padding: "valid" },
       globalaveragepool: {}, // Global average pooling has no parameters
       flatten: {},
       dropout: { rate: 0.2 },
@@ -1806,6 +1811,7 @@ const NewBuildPage = (): JSX.Element => {
             filters: 32,
             kernelSize: [3, 3],
             stride: [1, 1],
+            padding: "valid",
             activation: "None",
           },
           position: { x: 300, y: 200 },
@@ -1908,7 +1914,7 @@ const NewBuildPage = (): JSX.Element => {
         {
           id: "Add-1",
           data: {
-            label: "Add Layer 1",
+            label: "Attention Skip Connection",
           },
           position: { x: 750, y: 150 },
           type: "addlayer",
@@ -1975,7 +1981,7 @@ const NewBuildPage = (): JSX.Element => {
         {
           id: "Add-2",
           data: {
-            label: "Add Layer 2",
+            label: "FFN Skip Connection",
           },
           position: { x: 550, y: 350 },
           type: "addlayer",
@@ -1990,17 +1996,6 @@ const NewBuildPage = (): JSX.Element => {
           },
           position: { x: 350, y: 350 },
           type: "output",
-        },
-
-        // Output activation
-        {
-          id: "Activation-2",
-          data: {
-            label: "Output Activation",
-            function: "softmax",
-          },
-          position: { x: 350, y: 450 },
-          type: "activation",
         },
       ],
       "Fully Connected Regression": [
@@ -2075,6 +2070,7 @@ const NewBuildPage = (): JSX.Element => {
             filters: 32,
             kernelSize: [3, 3],
             stride: [1, 1],
+            padding: "valid",
             activation: "None",
           },
           position: { x: 300, y: 200 },
@@ -3134,7 +3130,6 @@ const NewBuildPage = (): JSX.Element => {
           { id: "e8", source: "Dropout-1", target: "Dense-2" },
           { id: "e9", source: "Dense-2", target: "Add-2" },
           { id: "e10", source: "Add-2", target: "Output-1" },
-          { id: "e11", source: "Output-1", target: "Activation-2" },
           // Skip connections
           { id: "skip1", source: "Input-1", target: "Add-1" },
           { id: "skip2", source: "Add-1", target: "Add-2" },
@@ -5166,83 +5161,80 @@ const NewBuildPage = (): JSX.Element => {
               {/* MaxPooling Layer Parameters */}
               {layerType === "maxpooling" && (
                 <>
-                  <div className="param-item">
+                  <div className="param-subgroup">
                     <label>Pool Size</label>
-                    <div className="dimension-control">
-                      <div className="number-control">
-                        <button
-                          className="control-btn"
-                          onClick={() =>
-                            updateParameter("poolSize", [
-                              (selectedNode.data.poolSize?.[0] || 2) - 1,
-                              selectedNode.data.poolSize?.[1] || 2,
-                            ])
-                          }
-                        >
-                          <i className="fas fa-minus"></i>
-                        </button>
-                        <input
-                          type="number"
-                          min="1"
-                          value={selectedNode.data.poolSize?.[0] || "2"}
-                          onChange={(e) =>
-                            updateParameter("poolSize", [
-                              parseInt(e.target.value) || 2,
-                              selectedNode.data.poolSize?.[1] || 2,
-                            ])
-                          }
-                          className="number-input"
-                        />
-                        <button
-                          className="control-btn"
-                          onClick={() =>
-                            updateParameter("poolSize", [
-                              (selectedNode.data.poolSize?.[0] || 2) + 1,
-                              selectedNode.data.poolSize?.[1] || 2,
-                            ])
-                          }
-                        >
-                          <i className="fas fa-plus"></i>
-                        </button>
-                      </div>
+                    <div className="dimension-input">
+                      <input
+                        type="number"
+                        min="1"
+                        value={getLayerParameter(index, "poolSize", [2, 2])[0]}
+                        onChange={(e) =>
+                          updateLayerParameter(index, "poolSize", [
+                            parseInt(e.target.value) || 2,
+                            getLayerParameter(index, "poolSize", [2, 2])[1],
+                          ])
+                        }
+                        className="param-input"
+                      />
                       <span>×</span>
-                      <div className="number-control">
-                        <button
-                          className="control-btn"
-                          onClick={() =>
-                            updateParameter("poolSize", [
-                              selectedNode.data.poolSize?.[0] || 2,
-                              (selectedNode.data.poolSize?.[1] || 2) - 1,
-                            ])
-                          }
-                        >
-                          <i className="fas fa-minus"></i>
-                        </button>
-                        <input
-                          type="number"
-                          min="1"
-                          value={selectedNode.data.poolSize?.[1] || "2"}
-                          onChange={(e) =>
-                            updateParameter("poolSize", [
-                              selectedNode.data.poolSize?.[0] || 2,
-                              parseInt(e.target.value) || 2,
-                            ])
-                          }
-                          className="number-input"
-                        />
-                        <button
-                          className="control-btn"
-                          onClick={() =>
-                            updateParameter("poolSize", [
-                              selectedNode.data.poolSize?.[0] || 2,
-                              (selectedNode.data.poolSize?.[1] || 2) + 1,
-                            ])
-                          }
-                        >
-                          <i className="fas fa-plus"></i>
-                        </button>
-                      </div>
+                      <input
+                        type="number"
+                        min="1"
+                        value={getLayerParameter(index, "poolSize", [2, 2])[1]}
+                        onChange={(e) =>
+                          updateLayerParameter(index, "poolSize", [
+                            getLayerParameter(index, "poolSize", [2, 2])[0],
+                            parseInt(e.target.value) || 2,
+                          ])
+                        }
+                        className="param-input"
+                      />
                     </div>
+                  </div>
+
+                  <div className="param-subgroup">
+                    <label>Stride</label>
+                    <div className="dimension-input">
+                      <input
+                        type="number"
+                        min="1"
+                        value={getLayerParameter(index, "stride", [2, 2])[0]}
+                        onChange={(e) =>
+                          updateLayerParameter(index, "stride", [
+                            parseInt(e.target.value) || 2,
+                            getLayerParameter(index, "stride", [2, 2])[1],
+                          ])
+                        }
+                        className="param-input"
+                      />
+                      <span>×</span>
+                      <input
+                        type="number"
+                        min="1"
+                        value={getLayerParameter(index, "stride", [2, 2])[1]}
+                        onChange={(e) =>
+                          updateLayerParameter(index, "stride", [
+                            getLayerParameter(index, "stride", [2, 2])[0],
+                            parseInt(e.target.value) || 2,
+                          ])
+                        }
+                        className="param-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="param-subgroup">
+                    <label>Padding</label>
+                    <select
+                      value={getLayerParameter(index, "padding", "valid")}
+                      onChange={(e) =>
+                        updateLayerParameter(index, "padding", e.target.value)
+                      }
+                      className="param-select"
+                    >
+                      <option value="valid">Valid</option>
+                      <option value="same">Same</option>
+                    </select>
                   </div>
 
                   <div className="param-item">
@@ -7044,6 +7036,20 @@ const NewBuildPage = (): JSX.Element => {
                           </div>
                         </div>
                       </div>
+
+                      <div className="param-item">
+                        <label>Padding</label>
+                        <select
+                          value={selectedNode.data.padding || "valid"}
+                          onChange={(e) =>
+                            updateParameter("padding", e.target.value)
+                          }
+                          className="param-select"
+                        >
+                          <option value="valid">Valid</option>
+                          <option value="same">Same</option>
+                        </select>
+                      </div>
                     </>
                   )}
 
@@ -8020,6 +8026,7 @@ const NewBuildPage = (): JSX.Element => {
           case "maxpooling":
             const poolSize = node.data?.poolSize || [2, 2];
             const poolStride = node.data?.stride || [2, 2];
+            const poolPadding = node.data?.padding || "valid";
 
             if (inputShape.length < 2) {
               errors.push(
@@ -8030,8 +8037,15 @@ const NewBuildPage = (): JSX.Element => {
 
             if (inputShape.length === 2) {
               const [h, w] = inputShape;
-              const newH = Math.floor((h - poolSize[0]) / poolStride[0]) + 1;
-              const newW = Math.floor((w - poolSize[1]) / poolStride[1]) + 1;
+              let newH, newW;
+
+              if (poolPadding === "same") {
+                newH = Math.ceil(h / poolStride[0]);
+                newW = Math.ceil(w / poolStride[1]);
+              } else {
+                newH = Math.floor((h - poolSize[0]) / poolStride[0]) + 1;
+                newW = Math.floor((w - poolSize[1]) / poolStride[1]) + 1;
+              }
 
               if (newH <= 0 || newW <= 0) {
                 errors.push(
@@ -8043,8 +8057,15 @@ const NewBuildPage = (): JSX.Element => {
               outputShape = [newH, newW];
             } else if (inputShape.length >= 3) {
               const [h, w, c] = inputShape;
-              const newH = Math.floor((h - poolSize[0]) / poolStride[0]) + 1;
-              const newW = Math.floor((w - poolSize[1]) / poolStride[1]) + 1;
+              let newH, newW;
+
+              if (poolPadding === "same") {
+                newH = Math.ceil(h / poolStride[0]);
+                newW = Math.ceil(w / poolStride[1]);
+              } else {
+                newH = Math.floor((h - poolSize[0]) / poolStride[0]) + 1;
+                newW = Math.floor((w - poolSize[1]) / poolStride[1]) + 1;
+              }
 
               if (newH <= 0 || newW <= 0) {
                 errors.push(
