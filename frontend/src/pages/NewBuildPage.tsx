@@ -176,6 +176,10 @@ const NewBuildPage = (): JSX.Element => {
   const [activeSidebarOption, setActiveSidebarOption] =
     useState<SidebarOption>("layers");
 
+  // State to track if left sidebar is collapsed
+  const [leftSidebarCollapsed, setLeftSidebarCollapsed] =
+    useState<boolean>(false);
+
   // State to track the selected node for parameter editing
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
 
@@ -6511,6 +6515,36 @@ const NewBuildPage = (): JSX.Element => {
   const [activeRightSidebarTab, setActiveRightSidebarTab] =
     useState<RightSidebarTab>("dataset");
 
+  // State to track if right sidebar content is collapsed
+  const [rightSidebarCollapsed, setRightSidebarCollapsed] =
+    useState<boolean>(false);
+
+  // Helper function to handle left sidebar option clicks with collapse functionality
+  const handleLeftSidebarClick = (option: SidebarOption) => {
+    if (activeSidebarOption === option && !leftSidebarCollapsed) {
+      // If clicking the same active option, collapse the sidebar
+      setLeftSidebarCollapsed(true);
+    } else {
+      // If clicking a different option or expanding collapsed sidebar
+      setActiveSidebarOption(option);
+      setLeftSidebarCollapsed(false);
+    }
+  };
+
+  // Helper function to handle right sidebar tab clicks (no longer handles collapse)
+  const handleRightSidebarClick = (tab: RightSidebarTab) => {
+    setActiveRightSidebarTab(tab);
+    // Auto-expand when switching tabs
+    if (rightSidebarCollapsed) {
+      setRightSidebarCollapsed(false);
+    }
+  };
+
+  // Helper function to toggle right sidebar collapse
+  const toggleRightSidebarCollapse = () => {
+    setRightSidebarCollapsed(!rightSidebarCollapsed);
+  };
+
   const renderRightSidebarContent = () => {
     switch (activeRightSidebarTab) {
       case "dataset":
@@ -8267,13 +8301,19 @@ const NewBuildPage = (): JSX.Element => {
           onSave={handleCustomLayerSave}
         />
 
-        <div className="left-panel">
+        <div
+          className={`left-panel ${leftSidebarCollapsed ? "collapsed" : ""}`}
+        >
           <div className="sidebar-nav">
             <div
               className={`sidebar-nav-item ${
                 activeSidebarOption === "layers" ? "active" : ""
+              } ${
+                activeSidebarOption === "layers" && leftSidebarCollapsed
+                  ? "collapsed-active"
+                  : ""
               }`}
-              onClick={() => setActiveSidebarOption("layers")}
+              onClick={() => handleLeftSidebarClick("layers")}
             >
               <i className="fas fa-layer-group"></i>
               <span>Layers</span>
@@ -8281,8 +8321,12 @@ const NewBuildPage = (): JSX.Element => {
             <div
               className={`sidebar-nav-item ${
                 activeSidebarOption === "templates" ? "active" : ""
+              } ${
+                activeSidebarOption === "templates" && leftSidebarCollapsed
+                  ? "collapsed-active"
+                  : ""
               }`}
-              onClick={() => setActiveSidebarOption("templates")}
+              onClick={() => handleLeftSidebarClick("templates")}
             >
               <i className="fas fa-file-code"></i>
               <span>Templates</span>
@@ -8290,14 +8334,20 @@ const NewBuildPage = (): JSX.Element => {
             <div
               className={`sidebar-nav-item ${
                 activeSidebarOption === "activations" ? "active" : ""
+              } ${
+                activeSidebarOption === "activations" && leftSidebarCollapsed
+                  ? "collapsed-active"
+                  : ""
               }`}
-              onClick={() => setActiveSidebarOption("activations")}
+              onClick={() => handleLeftSidebarClick("activations")}
             >
               <i className="fas fa-bolt"></i>
               <span>Activations</span>
             </div>
           </div>
-          <div className="sidebar-content">{renderSidebarContent()}</div>
+          {!leftSidebarCollapsed && (
+            <div className="sidebar-content">{renderSidebarContent()}</div>
+          )}
         </div>
 
         <div className="center-panel">
@@ -8334,38 +8384,50 @@ const NewBuildPage = (): JSX.Element => {
          * Dataset Selection + Comprehensive Layer Parameters (before training)
          * Visualization Section (during and after training)
          */}
-        <div className="right-panel">
+        <div
+          className={`right-panel ${rightSidebarCollapsed ? "collapsed" : ""}`}
+          onDoubleClick={toggleRightSidebarCollapse}
+          title={
+            rightSidebarCollapsed
+              ? "Double-click to expand"
+              : "Double-click to collapse"
+          }
+        >
           <div className="right-sidebar-controls">
-            <div className="right-sidebar-tabs">
-              <button
-                className={`tab-button ${
-                  activeRightSidebarTab === "dataset" ? "active" : ""
-                }`}
-                onClick={() => setActiveRightSidebarTab("dataset")}
-              >
-                <i className="fas fa-database"></i>
-                Dataset
-              </button>
-              <button
-                className={`tab-button ${
-                  activeRightSidebarTab === "parameters" ? "active" : ""
-                }`}
-                onClick={() => setActiveRightSidebarTab("parameters")}
-              >
-                <i className="fas fa-sliders-h"></i>
-                Parameters
-              </button>
-              <button
-                className={`tab-button ${
-                  activeRightSidebarTab === "train" ? "active" : ""
-                }`}
-                onClick={() => setActiveRightSidebarTab("train")}
-              >
-                <i className="fas fa-play-circle"></i>
-                Train
-              </button>
-            </div>
-            {renderRightSidebarContent()}
+            {!rightSidebarCollapsed && (
+              <>
+                <div className="right-sidebar-tabs">
+                  <button
+                    className={`tab-button ${
+                      activeRightSidebarTab === "dataset" ? "active" : ""
+                    }`}
+                    onClick={() => handleRightSidebarClick("dataset")}
+                  >
+                    <i className="fas fa-database"></i>
+                    Dataset
+                  </button>
+                  <button
+                    className={`tab-button ${
+                      activeRightSidebarTab === "parameters" ? "active" : ""
+                    }`}
+                    onClick={() => handleRightSidebarClick("parameters")}
+                  >
+                    <i className="fas fa-sliders-h"></i>
+                    Parameters
+                  </button>
+                  <button
+                    className={`tab-button ${
+                      activeRightSidebarTab === "train" ? "active" : ""
+                    }`}
+                    onClick={() => handleRightSidebarClick("train")}
+                  >
+                    <i className="fas fa-play-circle"></i>
+                    Train
+                  </button>
+                </div>
+                {renderRightSidebarContent()}
+              </>
+            )}
           </div>
         </div>
       </div>

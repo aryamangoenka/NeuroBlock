@@ -133,25 +133,72 @@
 
 /* Handle styling for input/output connections */
 .react-flow__handle {
-  width: 10px;
-  height: 10px;
+  width: 16px;
+  height: 16px;
   background-color: #fff;
-  border: 2px solid #333;
+  border: 3px solid #333;
   border-radius: 50%;
-  transition: transform 0.2s ease;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 10;
   
   &:hover {
-    transform: scale(1.2);
-    background-color: #f0f0f0;
+    transform: scale(1.3);
+    background-color: #4CAF50;
+    border-color: #2196F3;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+  
+  /* Add a larger invisible click area for better usability */
+  &::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
+    border-radius: 50%;
+    cursor: pointer;
   }
 }
 
 .react-flow__handle-left {
-  left: -5px;
+  left: -8px;
 }
 
 .react-flow__handle-right {
-  right: -5px;
+  right: -8px;
+}
+
+/* Enhanced handle visibility when connecting */
+.react-flow__handle.react-flow__handle-connecting {
+  background-color: #FF5722;
+  border-color: #FF9800;
+  transform: scale(1.4);
+  animation: pulse-connect 0.8s infinite ease-in-out;
+}
+
+@keyframes pulse-connect {
+  0%, 100% { 
+    transform: scale(1.4);
+    opacity: 1;
+  }
+  50% { 
+    transform: scale(1.6);
+    opacity: 0.8;
+  }
+}
+
+/* Handle states for better feedback */
+.react-flow__handle.valid {
+  border-color: #4CAF50;
+  background-color: #E8F5E8;
+}
+
+.react-flow__handle.invalid {
+  border-color: #F44336;
+  background-color: #FFEBEE;
 }
 
 /* Input Node */

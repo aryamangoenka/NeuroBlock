@@ -1,5 +1,32 @@
+
 import { Handle, Position } from "reactflow";
 import "../styles/components/CustomNodes.scss";
+
+// Enhanced handle style for better usability
+const enhancedHandleStyle = {
+  background: "#fff",
+  border: "3px solid #333",
+  width: "16px",
+  height: "16px",
+  borderRadius: "50%",
+  cursor: "pointer",
+  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
+  zIndex: 10,
+};
+
+// Source handle (right side) with distinct color
+const sourceHandleStyle = {
+  ...enhancedHandleStyle,
+  background: "#4CAF50",
+  border: "3px solid #2E7D32",
+};
+
+// Target handle (left side) with distinct color
+const targetHandleStyle = {
+  ...enhancedHandleStyle,
+  background: "#2196F3",
+  border: "3px solid #1565C0",
+};
 
 // Export all node components
 export {
@@ -25,14 +52,16 @@ const DenseNode = ({ data }: { data: any }) => (
     <Handle
       type="target"
       position={Position.Left}
-      style={{ background: "#555" }}
+      style={targetHandleStyle}
+      isConnectable={true}
     />
     <h4>{data.label || "Dense Layer"}</h4>
     <p>Neurons: {data.neurons}</p>
     <Handle
       type="source"
       position={Position.Right}
-      style={{ background: "#555" }}
+      style={sourceHandleStyle}
+      isConnectable={true}
     />
   </div>
 );
@@ -43,7 +72,8 @@ const ConvolutionNode = ({ data }: { data: any }) => (
     <Handle
       type="target"
       position={Position.Left}
-      style={{ background: "#555" }}
+      style={targetHandleStyle}
+      isConnectable={true}
     />
     <h4>{data.label || "Convolution Layer"}</h4>
     <p>Filters: {data.filters}</p>
@@ -53,44 +83,49 @@ const ConvolutionNode = ({ data }: { data: any }) => (
     <Handle
       type="source"
       position={Position.Right}
-      style={{ background: "#555" }}
+      style={sourceHandleStyle}
+      isConnectable={true}
     />
   </div>
 );
 
-// MaxPooling Node
+// Max Pooling Node
 const MaxPoolingNode = ({ data }: { data: any }) => (
   <div className="custom-node maxpooling-node">
     <Handle
       type="target"
       position={Position.Left}
-      style={{ background: "#555" }}
+      style={targetHandleStyle}
+      isConnectable={true}
     />
-    <h4>{data.label || "MaxPooling Layer"}</h4>
+    <h4>{data.label || "Max Pooling Layer"}</h4>
     <p>Pool Size: {data.poolSize?.join("x")}</p>
     <p>Stride: {data.stride?.join("x")}</p>
-    <p>Padding: {data.padding}</p>
+    <p>Padding: {data.padding || "valid"}</p>
     <Handle
       type="source"
       position={Position.Right}
-      style={{ background: "#555" }}
+      style={sourceHandleStyle}
+      isConnectable={true}
     />
   </div>
 );
 
-// GlobalAveragePooling Node
+// Global Average Pooling Node
 const GlobalAveragePoolNode = ({ data }: { data: any }) => (
   <div className="custom-node globalaveragepool-node">
     <Handle
       type="target"
       position={Position.Left}
-      style={{ background: "#555" }}
+      style={targetHandleStyle}
+      isConnectable={true}
     />
-    <h4>{data.label || "GlobalAveragePooling Layer"}</h4>
+    <h4>{data.label || "Global Average Pooling Layer"}</h4>
     <Handle
       type="source"
       position={Position.Right}
-      style={{ background: "#555" }}
+      style={sourceHandleStyle}
+      isConnectable={true}
     />
   </div>
 );
@@ -101,13 +136,15 @@ const FlattenNode = ({ data }: { data: any }) => (
     <Handle
       type="target"
       position={Position.Left}
-      style={{ background: "#555" }}
+      style={targetHandleStyle}
+      isConnectable={true}
     />
     <h4>{data.label || "Flatten Layer"}</h4>
     <Handle
       type="source"
       position={Position.Right}
-      style={{ background: "#555" }}
+      style={sourceHandleStyle}
+      isConnectable={true}
     />
   </div>
 );
@@ -118,14 +155,16 @@ const DropoutNode = ({ data }: { data: any }) => (
     <Handle
       type="target"
       position={Position.Left}
-      style={{ background: "#555" }}
+      style={targetHandleStyle}
+      isConnectable={true}
     />
     <h4>{data.label || "Dropout Layer"}</h4>
     <p>Rate: {data.rate}</p>
     <Handle
       type="source"
       position={Position.Right}
-      style={{ background: "#555" }}
+      style={sourceHandleStyle}
+      isConnectable={true}
     />
   </div>
 );
@@ -136,7 +175,8 @@ const BatchNormalizationNode = ({ data }: { data: any }) => (
     <Handle
       type="target"
       position={Position.Left}
-      style={{ background: "#555" }}
+      style={targetHandleStyle}
+      isConnectable={true}
     />
     <h4>{data.label || "Batch Normalization Layer"}</h4>
     <p>Momentum: {data.momentum}</p>
@@ -144,7 +184,8 @@ const BatchNormalizationNode = ({ data }: { data: any }) => (
     <Handle
       type="source"
       position={Position.Right}
-      style={{ background: "#555" }}
+      style={sourceHandleStyle}
+      isConnectable={true}
     />
   </div>
 );
@@ -155,7 +196,8 @@ const AttentionNode = ({ data }: { data: any }) => (
     <Handle
       type="target"
       position={Position.Left}
-      style={{ background: "#555" }}
+      style={targetHandleStyle}
+      isConnectable={true}
     />
     <h4>{data.label || "Attention Layer"}</h4>
     <p>Heads: {data.heads}</p>
@@ -164,19 +206,25 @@ const AttentionNode = ({ data }: { data: any }) => (
     <Handle
       type="source"
       position={Position.Right}
-      style={{ background: "#555" }}
+      style={sourceHandleStyle}
+      isConnectable={true}
     />
   </div>
 );
 
-// Input Node
+// Input Node - only has source handle
 const InputNode = ({ data }: { data: any }) => (
   <div className="custom-node input-node">
     <h4>{data.label || "Input Layer"}</h4>
     <Handle
       type="source"
       position={Position.Right}
-      style={{ background: "#555" }}
+      style={{
+        ...sourceHandleStyle,
+        background: "#FF9800", // Special color for input
+        border: "3px solid #F57C00",
+      }}
+      isConnectable={true}
     />
   </div>
 );
@@ -191,8 +239,9 @@ const ResNetBlockNode = ({ data }: { data: any }) => (
     <Handle
       type="target"
       position={Position.Left}
-      style={{ background: "#555" }}
+      style={targetHandleStyle}
       id="target"
+      isConnectable={true}
     />
     <div className="resnet-block-content">
       <h4>{data.label || "ResNet Block"}</h4>
@@ -236,20 +285,20 @@ const ResNetBlockNode = ({ data }: { data: any }) => (
     <Handle
       type="source"
       position={Position.Right}
-      style={{ background: "#555" }}
+      style={sourceHandleStyle}
       id="source"
+      isConnectable={true}
     />
   </div>
 );
 
-// Output Node
+// Output Node - enhanced with special styling
 const OutputNode = ({ data }: { data: any }) => {
-  // Use inline styling to ensure handles are visible and accessible
-  const handleStyle = {
-    background: "#555",
-    width: "10px",
-    height: "10px",
-    border: "2px solid #fff",
+  const outputSourceHandleStyle = {
+    ...enhancedHandleStyle,
+    background: "#E91E63", // Pink for output
+    border: "3px solid #C2185B",
+    zIndex: 10,
   };
 
   return (
@@ -258,7 +307,7 @@ const OutputNode = ({ data }: { data: any }) => {
       <Handle
         type="target"
         position={Position.Left}
-        style={handleStyle}
+        style={targetHandleStyle}
         id="input"
         isConnectable={true}
       />
@@ -271,12 +320,7 @@ const OutputNode = ({ data }: { data: any }) => {
       <Handle
         type="source"
         position={Position.Right}
-        style={{
-          ...handleStyle,
-          background: "#f44336", // Make more visible with red color
-          border: "2px solid #fff",
-          zIndex: 10, // Ensure it's above other elements
-        }}
+        style={outputSourceHandleStyle}
         id="output"
         isConnectable={true}
       />
@@ -290,7 +334,8 @@ const AddLayerNode = ({ data }: { data: any }) => (
     <Handle
       type="target"
       position={Position.Left}
-      style={{ background: "#555" }}
+      style={targetHandleStyle}
+      isConnectable={true}
     />
     <h4>{data.label || "Add Layer"}</h4>
     <div className="add-layer-icon">
@@ -299,7 +344,8 @@ const AddLayerNode = ({ data }: { data: any }) => (
     <Handle
       type="source"
       position={Position.Right}
-      style={{ background: "#555" }}
+      style={sourceHandleStyle}
+      isConnectable={true}
     />
   </div>
 );
@@ -319,13 +365,15 @@ const ActivationNode = ({ data }: { data: any }) => {
       <Handle
         type="target"
         position={Position.Left}
-        style={{ background: "#555" }}
+        style={targetHandleStyle}
+        isConnectable={true}
       />
       <div className="simple-activation-content">{data.function || "relu"}</div>
       <Handle
         type="source"
         position={Position.Right}
-        style={{ background: "#555" }}
+        style={sourceHandleStyle}
+        isConnectable={true}
       />
     </div>
   );
@@ -341,7 +389,8 @@ const CustomBlockNode = ({ data }: { data: any }) => {
       <Handle
         type="target"
         position={Position.Left}
-        style={{ background: "#555" }}
+        style={targetHandleStyle}
+        isConnectable={true}
       />
       <div className="custom-block-content">
         <h4>{blockName}</h4>
@@ -354,7 +403,8 @@ const CustomBlockNode = ({ data }: { data: any }) => {
       <Handle
         type="source"
         position={Position.Right}
-        style={{ background: "#555" }}
+        style={sourceHandleStyle}
+        isConnectable={true}
       />
     </div>
   );
