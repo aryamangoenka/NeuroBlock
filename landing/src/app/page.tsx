@@ -1,9 +1,8 @@
 import Image from "next/image";
+import { Github } from "lucide-react";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
 const REPO_URL = "https://github.com/aryamangoenka/NeuroBlock";
-const primaryHref = APP_URL ?? REPO_URL;
-const primaryLabel = APP_URL ? "Open the builder" : "Get the code";
 
 const LAYERS: { name: string; hue: string; learns: boolean }[] = [
   { name: "Input", hue: "var(--n-input)", learns: false },
@@ -40,22 +39,14 @@ export default function LandingPage() {
           <span className="f-display text-lg font-bold">
             NeuroBlock<span style={{ color: "var(--citrus)" }}>.</span>
           </span>
-          <nav className="flex items-center gap-2">
-            <a
-              href={REPO_URL}
-              className="rounded-lg px-3.5 py-2 text-[13.5px] font-medium transition-colors hover:bg-[var(--raised)]"
-              style={{ color: "var(--muted)" }}
-            >
-              GitHub
-            </a>
-            <a
-              href={primaryHref}
-              className="rounded-lg px-4 py-2 text-[13.5px] font-semibold text-white transition-colors"
-              style={{ background: "var(--citrus)" }}
-            >
-              {primaryLabel}
-            </a>
-          </nav>
+          <a
+            href={REPO_URL}
+            aria-label="NeuroBlock on GitHub"
+            className="rounded-lg p-2 transition-colors hover:bg-[var(--raised)]"
+            style={{ color: "var(--ink)" }}
+          >
+            <Github className="h-5 w-5" />
+          </a>
         </div>
       </header>
 
@@ -75,13 +66,15 @@ export default function LandingPage() {
             on a canvas. No code required — but real code comes out.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <a
-              href={primaryHref}
-              className="rounded-[9px] px-6 py-3 text-[15px] font-semibold text-white transition-colors"
-              style={{ background: "var(--citrus)" }}
-            >
-              {primaryLabel}
-            </a>
+            {APP_URL && (
+              <a
+                href={APP_URL}
+                className="rounded-[9px] px-6 py-3 text-[15px] font-semibold text-white transition-colors"
+                style={{ background: "var(--citrus)" }}
+              >
+                Open the builder
+              </a>
+            )}
             <a
               href={`${REPO_URL}#quick-start`}
               className="card-shadow rounded-[9px] border bg-white px-6 py-3 text-[15px] font-medium transition-colors hover:bg-[var(--raised)]"
@@ -209,12 +202,13 @@ export default function LandingPage() {
       <section className="border-b" style={{ borderColor: "var(--line)", background: "var(--card)" }}>
         <div className="mx-auto grid max-w-6xl gap-12 px-5 py-16 md:grid-cols-2">
           <div>
-            <h2 className="f-display text-2xl font-semibold">Made for classrooms</h2>
+            <h2 className="f-display text-2xl font-semibold">Made for high school students</h2>
             <p className="mt-4 leading-relaxed" style={{ color: "var(--muted)" }}>
-              NeuroBlock runs the intro-to-deep-learning sessions of the Turing
-              summer program at UMass Amherst CICS. Thirty students share one
-              server: uploads are isolated per session, nothing to install, and
-              the whole class watches their networks train at the same time.
+              NeuroBlock is built for a first encounter with deep learning:
+              serious enough to respect its users, friendly enough to invite
+              play. A whole class shares one server — uploads are isolated per
+              session, nothing to install, and everyone watches their networks
+              train at the same time.
             </p>
           </div>
           <div>
@@ -250,13 +244,15 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="flex gap-3">
-            <a
-              href={primaryHref}
-              className="rounded-[9px] px-6 py-3 text-[15px] font-semibold text-white"
-              style={{ background: "var(--citrus)" }}
-            >
-              {primaryLabel}
-            </a>
+            {APP_URL && (
+              <a
+                href={APP_URL}
+                className="rounded-[9px] px-6 py-3 text-[15px] font-semibold text-white"
+                style={{ background: "var(--citrus)" }}
+              >
+                Open the builder
+              </a>
+            )}
             <a
               href={`${REPO_URL}/blob/main/docs/DEPLOYMENT.md`}
               className="card-shadow rounded-[9px] border bg-white px-6 py-3 text-[15px] font-medium"
@@ -288,7 +284,7 @@ export default function LandingPage() {
               MIT License
             </a>
           </div>
-          <span>Built for the Turing program, UMass Amherst CICS</span>
+          <span>Made for high school students</span>
         </div>
       </footer>
     </div>

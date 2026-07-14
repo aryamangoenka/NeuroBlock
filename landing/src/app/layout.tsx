@@ -17,7 +17,7 @@ const plexMono = IBM_Plex_Mono({
 export const metadata = {
   title: "NeuroBlock — Build neural networks visually",
   description:
-    "Design, train, and export real neural networks by connecting blocks on a canvas. Live training, real code out. Built for the UMass Turing summer program.",
+    "Design, train, and export real neural networks by connecting blocks on a canvas. Live training, real code out. Made for high school students.",
 };
 
 export default function RootLayout({
