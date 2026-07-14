@@ -85,7 +85,9 @@ class ProductionConfig(Config):
     # Production session settings
     SESSION_PERMANENT = True
     PERMANENT_SESSION_LIFETIME = timedelta(days=7)  # 7-day sessions
-    SESSION_COOKIE_SECURE = True  # HTTPS only
+    # HTTPS-only cookies by default; set SESSION_COOKIE_SECURE=false when
+    # serving plain HTTP (e.g. classroom EC2 on a bare IP without TLS)
+    SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'true').lower() != 'false'
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
     SESSION_COOKIE_DOMAIN = None  # Allow cross-domain cookies
@@ -102,7 +104,8 @@ class ProductionConfig(Config):
     PORT = int(os.environ.get('PORT', 8080))
     HOST = os.environ.get('HOST', '0.0.0.0')
     
-    # Production allowed origins
+    # Production allowed origins (EXTRA_ALLOWED_ORIGINS env var is appended
+    # for all configs in create_app — see backend/main.py).
     ALLOWED_ORIGINS = [
         'https://dnd-neural-frontend-76136455379.us-central1.run.app',
         'https://dnd-neural-backend-76136455379.us-central1.run.app',

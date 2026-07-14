@@ -1,23 +1,22 @@
-// Get the current environment
+// API base URL configuration.
+//
+// Development: Vite dev server on :5173, backend runs separately on :8080
+//   (override with VITE_BACKEND_URL in frontend/.env).
+// Production: single container — Flask serves this built app AND the API,
+//   so everything is same-origin. VITE_BACKEND_URL at build time can still
+//   override for a split deployment.
+
 const isDevelopment = import.meta.env.DEV;
 
-// Define API URLs for different environments
 const DEV_API_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:8080';
-const PROD_API_URL = 'https://dnd-neural-backend-76136455379.us-central1.run.app';
-const CUSTOM_DOMAIN_API_URL = 'https://api.neuroblock.co';
 
-// Export the appropriate API URL based on environment
-const API_BASE_URL = isDevelopment 
-  ? DEV_API_URL 
-  : window.location.hostname.includes('neuroblock.co')
-    ? CUSTOM_DOMAIN_API_URL
-    : PROD_API_URL;
+const API_BASE_URL: string = isDevelopment
+  ? DEV_API_URL
+  : import.meta.env.VITE_BACKEND_URL ?? window.location.origin;
 
-// Add a function to get the WebSocket URL
+// Socket.IO accepts the same http(s) origin URL
 export function getSocketUrl(): string {
-  const baseUrl = API_BASE_URL;
-  // Convert http:// to ws:// and https:// to wss://
-  return baseUrl.replace(/^http/, 'ws');
+  return API_BASE_URL;
 }
 
 export default API_BASE_URL;

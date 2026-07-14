@@ -19,7 +19,7 @@ pandas = "^2.2.3"
 matplotlib = "^3.10.1"
 seaborn = "^0.13.2"
 eventlet = "^0.39.1"
-gunicorn = "^21.2.0"
+gunicorn = "^23.0.0"
 
 [tool.poetry.group.dev.dependencies]
 python-socketio = {extras = ["client"], version = "^5.12.1"}

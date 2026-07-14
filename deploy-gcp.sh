@@ -37,7 +37,19 @@ echo -e "\n${YELLOW}📡 Enabling required GCP APIs...${NC}"
 gcloud services enable cloudbuild.googleapis.com
 gcloud services enable run.googleapis.com
 gcloud services enable secretmanager.googleapis.com
-gcloud services enable containerregistry.googleapis.com
+gcloud services enable artifactregistry.googleapis.com
+
+# Create Artifact Registry repo for images (Container Registry is retired)
+echo -e "\n${YELLOW}📦 Ensuring Artifact Registry repo exists...${NC}"
+if ! gcloud artifacts repositories describe neuroblock --location=us-central1 &>/dev/null; then
+    gcloud artifacts repositories create neuroblock \
+        --repository-format=docker \
+        --location=us-central1 \
+        --description="NeuroBlock images"
+    echo -e "${GREEN}✅ Created Artifact Registry repo 'neuroblock'${NC}"
+else
+    echo -e "${GREEN}✅ Artifact Registry repo 'neuroblock' exists${NC}"
+fi
 
 # Create secret for Flask session key
 echo -e "\n${YELLOW}🔐 Setting up Secret Manager...${NC}"
@@ -72,18 +84,17 @@ echo -e "${GREEN}✅ IAM permissions configured${NC}"
 echo -e "\n${YELLOW}🏗️  Building and deploying application...${NC}"
 gcloud builds submit --config cloudbuild.yaml
 
-# Get the service URL
-SERVICE_URL=$(gcloud run services describe dnd-neural-backend --region=us-central1 --format="value(status.url)")
+# Get the service URLs
+SERVICE_URL=$(gcloud run services describe neuroblock --region=us-central1 --format="value(status.url)")
 
 echo -e "\n${GREEN}🎉 Deployment completed successfully!${NC}"
 echo "========================================"
-echo -e "${BLUE}Service URL:${NC} $SERVICE_URL"
-echo -e "${BLUE}Health Check:${NC} $SERVICE_URL/health"
-echo -e "${BLUE}API Endpoint:${NC} $SERVICE_URL/api/datasets/available"
+echo -e "${BLUE}API (backend):${NC} $SERVICE_URL"
+echo -e "${BLUE}Health Check:${NC} $SERVICE_URL/api/health"
 
 # Test the deployment
 echo -e "\n${YELLOW}🧪 Testing deployment...${NC}"
-if curl -s "$SERVICE_URL/health" | grep -q "healthy"; then
+if curl -s "$SERVICE_URL/api/health" | grep -q "running"; then
     echo -e "${GREEN}✅ Health check passed!${NC}"
 else
     echo -e "${RED}❌ Health check failed. Check Cloud Run logs.${NC}"
@@ -91,7 +102,7 @@ fi
 
 # Display monitoring information
 echo -e "\n${BLUE}📊 Monitoring & Management:${NC}"
-echo "- Cloud Run Console: https://console.cloud.google.com/run/detail/us-central1/dnd-neural-backend"
+echo "- Cloud Run Console: https://console.cloud.google.com/run/detail/us-central1/neuroblock"
 echo "- Cloud Build History: https://console.cloud.google.com/cloud-build/builds"
 echo "- Secret Manager: https://console.cloud.google.com/security/secret-manager"
 echo "- Logs: gcloud logs tail projects/$PROJECT_ID/logs/run.googleapis.com%2Fstdout"

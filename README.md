@@ -113,9 +113,9 @@ the frontend page; check `curl http://localhost:8080/api/health`.
 
 ## Deployment
 
-Deployment configs for Google Cloud Run live in `cloudbuild.yaml`, `deploy-gcp.sh`,
-and the Dockerfiles in `backend/` and `frontend/`. See
-[docs/GCP_DEPLOYMENT_GUIDE.md](docs/GCP_DEPLOYMENT_GUIDE.md) for the full guide.
+NeuroBlock deploys as a single container (Flask serves the app, API, and
+WebSockets from one origin). See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+for the AWS EC2 quickstart and the Cloud Run alternative.
 
 ## License
 
