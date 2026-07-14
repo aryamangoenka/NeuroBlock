@@ -246,8 +246,7 @@ const NavBar: React.FC = () => {
       )}
       <div className="container d-flex justify-content-between align-items-center">
         <div className="navbar-brand">
-          <i className="fas fa-brain brand-icon"></i>
-          <a href="http://neuroblock.co" className="brand-link">
+          <a href="/" className="brand-link">
             <span className="brand-text">NeuroBlock</span>
           </a>
         </div>

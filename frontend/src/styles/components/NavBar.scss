@@ -24,12 +24,6 @@
   .navbar-brand {
     display: flex;
     align-items: center;
-    gap: 9px;
-
-    .brand-icon {
-      color: var(--citrus);
-      font-size: 18px;
-    }
 
     .brand-text {
       font-family: var(--f-display);
