@@ -88,9 +88,19 @@ logs/
 *.h5
 *.ckpt
 *.pt
+*.keras
 saved_model*/
+saved_model.json
+training_config.json
+model_config.json
 *.onnx
 exports/
+test_exports/
+
+# Runtime data (per-user sessions, experiment logs)
+sessions/
+wandb/
+cookies.txt
 # Exclude data files except samples/examples
 data/*
 !data/samples/
@@ -102,3 +112,4 @@ data/*
 tmp/
 temp/
 
+.gstack/

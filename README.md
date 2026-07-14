@@ -1,157 +1,122 @@
-# NeuroBlock - Drag-and-Drop Neural Network Builder
+# NeuroBlock — Drag-and-Drop Neural Network Builder
 
-A comprehensive web-based tool that allows users to visually design, train, and export custom neural networks using an intuitive drag-and-drop interface. This project consists of a Python Flask backend, a React frontend application, and a Next.js landing page.
+NeuroBlock lets you **design, train, and export neural networks visually** — no code required. Drag layers onto a canvas, connect them, pick a dataset, and watch training happen live with real-time loss/accuracy charts. When you're happy with the model, export it as runnable Python, a Jupyter notebook, a Keras model file, or a PyTorch script.
 
-## 🚀 Quick Start Guide
+Built for teaching: it is used in the UMass CICS Turing summer program to introduce high-school students to deep learning.
 
-Follow these step-by-step instructions to clone and run the project on your local machine.
+## Features
 
-### Prerequisites
+- **Visual model builder** — drag-and-drop layers (Dense, Convolution, MaxPooling, Global Average Pooling, Flatten, Dropout, Attention, ResNet blocks) on a ReactFlow canvas
+- **Built-in datasets** — Iris, MNIST, CIFAR-10, California Housing, Breast Cancer
+- **Custom datasets** — upload your own CSV/Excel files or image archives; each browser session gets isolated storage (safe for classrooms)
+- **Live training** — real-time per-epoch metrics streamed over WebSockets, with charts and a confusion matrix
+- **Templates** — ready-made architectures to start from
+- **Export anywhere** — Python script (`py`), Jupyter notebook (`ipynb`), Keras (`keras`), TensorFlow SavedModel (`savedmodel`), PyTorch script (`pytorch`)
+- **In-browser prediction** — test trained image models by drawing digits or uploading images
 
-Before you begin, ensure you have the following installed:
-
-- **Python 3.12** (Python 3.13 is not supported yet)
-- **Node.js** (Latest LTS version)
-- **Poetry** for Python dependency management
-- **Git**
-
-### Step 1: Clone the Repository
-
-```bash
-# Clone the repository
-git clone https://github.com/aryamangoenka/DND-neural.git
-
-# Navigate to the project directory
-cd DND-neural
-```
-
-### Step 2: Backend Setup
-
-```bash
-# Navigate to the project directory
-cd DND-Neural-Network
-
-# Add Poetry to your PATH (if you get "poetry not found" error)
-export PATH="/Users/$USER/.local/bin:$PATH"
-
-# Set Python version to 3.12 (required for compatibility)
-poetry env use python3.12
-
-# Update dependencies
-poetry lock
-
-# Install all dependencies
-poetry install
-
-# Start the backend server
-./run_backend.sh
-```
-
-The backend will start on `http://localhost:5000`
-
-### Step 3: Frontend Setup
-
-Open a new terminal window and run:
-
-```bash
-# Navigate to frontend directory
-cd frontend
-
-# Install dependencies
-npm install
-
-# Start the development server
-npm run dev
-```
-
-The frontend will start on `http://localhost:5173`
-
-## 🖥️ Accessing the Application
-
-After completing the setup:
-
-1. Backend API will be running on `http://localhost:5000`
-2. Frontend application will be available at `http://localhost:5173`
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-**Backend: Poetry not found**
-
-```bash
-# Add Poetry to PATH
-export PATH="/Users/$USER/.local/bin:$PATH"
-```
-
-**Backend: Python version error**
-
-```bash
-# Ensure you're using Python 3.12
-poetry env use python3.12
-poetry lock
-poetry install
-```
-
-**Backend: Permission denied for run_backend.sh**
-
-```bash
-chmod +x ./run_backend.sh
-```
-
-**Backend: Port already in use**
-
-```bash
-# Check if port 5000 is in use
-lsof -i :5000
-# Kill the process if needed
-kill -9 <PID>
-```
-
-## 🛠️ Project Structure
+## Architecture
 
 ```
 DND-Neural-Network/
-├── backend/                 # Flask backend
-├── frontend/               # React frontend
-├── requirements.txt        # Python dependencies
-├── pyproject.toml         # Poetry configuration
-└── README.md              # This file
+├── backend/     Flask + Flask-SocketIO + TensorFlow API server (port 8080)
+│   ├── api/         REST routes + WebSocket training events
+│   ├── datasets/    Built-in dataset loaders
+│   ├── models/      Graph → Keras model builder
+│   ├── export/      Code/model export generators
+│   ├── training/    Real-time training callbacks
+│   └── utils/       Sessions, logging, image processing
+├── frontend/    React 18 + TypeScript + Vite app (port 5173)
+├── landing/     Next.js marketing/landing page (optional, separate app)
+└── docs/        Additional guides (deployment, dataset API, testing)
 ```
 
-## 🎯 Key Features
+## Quick Start
 
-- **Drag-and-Drop Interface:** Build neural networks visually
-- **Real-Time Training:** Monitor progress with live graphs
-- **Multiple Export Formats:** Python, Jupyter, TensorFlow, Keras
-- **Pre-built Templates:** Start with ready-made templates
-- **Dataset Support:** MNIST, CIFAR-10, Iris, etc.
-- **ResNet Support:** Create deep residual networks
+### Prerequisites
 
-## 📝 Development Tips
+- **Python 3.10 – 3.12** (3.13+ not yet supported by pinned TensorFlow)
+- **Node.js 18+** (latest LTS recommended)
+- **[Poetry](https://python-poetry.org/docs/#installation)** for Python dependency management
 
-1. Keep both terminal windows open (one for backend, one for frontend)
-2. Backend must be running before starting the frontend
-3. Use Python 3.12 for full compatibility
-4. Monitor backend logs for debugging
+### 1. Clone
 
-## 🤝 Contributing
+```bash
+git clone https://github.com/aryamangoenka/DND-Neural-Network.git
+cd DND-Neural-Network
+```
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+### 2. Backend (terminal 1)
 
-## 📄 License
+```bash
+poetry env use python3.12   # or python3.10 / python3.11
+poetry install
+./run_backend.sh
+```
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+The API server starts on **http://localhost:8080**.
 
----
+> **Note:** the first startup can take 1–3 minutes while TensorFlow initializes —
+> the server is ready when you see the SocketIO/werkzeug "Running on ..." log line.
+> Verify with: `curl http://localhost:8080/api/health`
 
-## 💡 Need Help?
+### 3. Frontend (terminal 2)
 
-- Check the [Issues](https://github.com/aryamangoenka/DND-neural/issues) page
-- Ensure you're using Python 3.12
-- Verify both backend and frontend are running on correct ports
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-**Happy building! 🎉**
+Open **http://localhost:5173** — you should see the builder canvas.
+
+## Using the App
+
+1. **Choose a dataset** in the right panel (start with Iris — it trains in seconds)
+2. **Drag layers** from the left palette onto the canvas
+3. **Connect them**: Input → hidden layers → Output (drag between node handles)
+4. **Set hyperparameters** (batch size, epochs, optimizer, loss, learning rate)
+5. **Save Model**, then hit **Train** and watch live metrics
+6. **Export** your model from the Export menu in the format you want
+
+## Configuration
+
+| Setting | Default | How to change |
+|---|---|---|
+| Backend port | `8080` | `PORT` env var |
+| Backend config | `development` | `FLASK_CONFIG` env var (`development`/`production`/`testing`) |
+| Frontend → backend URL (dev) | `http://localhost:8080` | `VITE_BACKEND_URL` in `frontend/.env` (see `.env.example`) |
+
+## Tests
+
+```bash
+./run_tests.sh          # backend test suite (pytest)
+cd frontend && npm run lint
+```
+
+## Troubleshooting
+
+**`poetry: command not found`** — add Poetry to your PATH:
+`export PATH="$HOME/.local/bin:$PATH"`
+
+**Wrong Python version** — force the env before installing:
+`poetry env use python3.12 && poetry install`
+
+**Port 8080 already in use** — find and stop the other process:
+`lsof -i :8080` then `kill <PID>`, or run with `PORT=8081 ./run_backend.sh`
+(and set `VITE_BACKEND_URL=http://localhost:8081` in `frontend/.env`)
+
+**Backend seems stuck on startup** — normal for the first 1–3 minutes (TensorFlow
+loading). If it's still silent after that, check the terminal for a traceback.
+
+**Frontend can't reach backend** — the backend must be running *before* you load
+the frontend page; check `curl http://localhost:8080/api/health`.
+
+## Deployment
+
+Deployment configs for Google Cloud Run live in `cloudbuild.yaml`, `deploy-gcp.sh`,
+and the Dockerfiles in `backend/` and `frontend/`. See
+[docs/GCP_DEPLOYMENT_GUIDE.md](docs/GCP_DEPLOYMENT_GUIDE.md) for the full guide.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

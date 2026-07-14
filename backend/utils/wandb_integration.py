@@ -1,5 +1,12 @@
 import os
-import wandb
+try:
+    import wandb
+    # hasattr guards against a stray wandb/ directory being picked up as an
+    # empty namespace package instead of the real library
+    WANDB_AVAILABLE = hasattr(wandb, "init")
+except ImportError:
+    wandb = None
+    WANDB_AVAILABLE = False
 import numpy as np
 from sklearn.metrics import confusion_matrix
 import matplotlib
@@ -40,6 +47,9 @@ class WandBLogger:
             model: The Keras model to log
             config: Additional config to update the initial config
         """
+        if not WANDB_AVAILABLE:
+            logger.info("wandb is not installed; skipping experiment tracking")
+            return None
         try:
             if config:
                 self.config.update(config)

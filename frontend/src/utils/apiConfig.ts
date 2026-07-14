@@ -2,7 +2,7 @@
 const isDevelopment = import.meta.env.DEV;
 
 // Define API URLs for different environments
-const DEV_API_URL = 'http://localhost:8080';
+const DEV_API_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:8080';
 const PROD_API_URL = 'https://dnd-neural-backend-76136455379.us-central1.run.app';
 const CUSTOM_DOMAIN_API_URL = 'https://api.neuroblock.co';
 
