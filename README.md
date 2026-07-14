@@ -1,65 +1,75 @@
-# NeuroBlock — Drag-and-Drop Neural Network Builder
+# NeuroBlock
 
-NeuroBlock lets you **design, train, and export neural networks visually** — no code required. Drag layers onto a canvas, connect them, pick a dataset, and watch training happen live with real-time loss/accuracy charts. When you're happy with the model, export it as runnable Python, a Jupyter notebook, a Keras model file, or a PyTorch script.
+Build, train, and export neural networks by connecting blocks on a canvas.
+No code required — but real code comes out.
 
-Built for teaching: it is used in the UMass CICS Turing summer program to introduce high-school students to deep learning.
+![The NeuroBlock builder](docs/images/builder.png)
 
-## Features
+NeuroBlock is a visual environment for learning deep learning by doing.
+Students drag layers onto a canvas, wire them together, pick a dataset, and
+watch the network train live — loss and accuracy streaming in over
+WebSockets, epoch by epoch. When the model works, they export it as the real
+thing: a Python script, a Jupyter notebook, a Keras model, or a PyTorch
+implementation of the network they just built.
 
-- **Visual model builder** — drag-and-drop layers (Dense, Convolution, MaxPooling, Global Average Pooling, Flatten, Dropout, Attention, ResNet blocks) on a ReactFlow canvas
-- **Built-in datasets** — Iris, MNIST, CIFAR-10, California Housing, Breast Cancer
-- **Custom datasets** — upload your own CSV/Excel files or image archives; each browser session gets isolated storage (safe for classrooms)
-- **Live training** — real-time per-epoch metrics streamed over WebSockets, with charts and a confusion matrix
-- **Templates** — ready-made architectures to start from
-- **Export anywhere** — Python script (`py`), Jupyter notebook (`ipynb`), Keras (`keras`), TensorFlow SavedModel (`savedmodel`), PyTorch script (`pytorch`)
-- **In-browser prediction** — test trained image models by drawing digits or uploading images
+It was built for the Turing summer program at UMass Amherst CICS, where it
+introduces high-school students to neural networks. It works just as well
+for anyone who wants to understand what `Conv2D(32, (3, 3))` actually does
+before writing it.
 
-## Architecture
+## How it works
 
-```
-DND-Neural-Network/
-├── backend/     Flask + Flask-SocketIO + TensorFlow API server (port 8080)
-│   ├── api/         REST routes + WebSocket training events
-│   ├── datasets/    Built-in dataset loaders
-│   ├── models/      Graph → Keras model builder
-│   ├── export/      Code/model export generators
-│   ├── training/    Real-time training callbacks
-│   └── utils/       Sessions, logging, image processing
-├── frontend/    React 18 + TypeScript + Vite app (port 5173)
-├── landing/     Next.js marketing/landing page (optional, separate app)
-└── docs/        Additional guides (deployment, dataset API, testing)
-```
+1. Pick a dataset — MNIST, CIFAR-10, Iris, Breast Cancer, California
+   Housing, or upload your own CSV or image archive.
+2. Drag layers from the palette and connect them: Input through Dense,
+   Conv2D, pooling, Dropout, BatchNorm, Attention, or full ResNet blocks,
+   down to Output.
+3. Set hyperparameters, hit Train, and watch the run live: per-epoch
+   metrics, loss curves, and a confusion matrix when it finishes.
+4. Test the trained model in the browser (draw a digit against your MNIST
+   model), then export it in the format you want.
 
-## Quick Start
+A small design detail that earns its keep in the classroom: every layer's
+color rail encodes whether it learns. Filled rail means the layer has
+trainable parameters; hollow rail means it only transforms its input.
+Counting the filled nodes tells you where your parameters live.
 
-### Prerequisites
+Uploaded datasets are isolated per browser session and cleaned up
+automatically, so thirty students can share one server without stepping on
+each other.
 
-- **Python 3.10 – 3.12** (3.13+ not yet supported by pinned TensorFlow)
-- **Node.js 18+** (latest LTS recommended)
-- **[Poetry](https://python-poetry.org/docs/#installation)** for Python dependency management
+## Quick start
 
-### 1. Clone
+### Docker (recommended)
+
+The production image is a single container: Flask serves the built React
+app, the REST API, and the WebSocket stream from one origin.
 
 ```bash
 git clone https://github.com/aryamangoenka/DND-Neural-Network.git
 cd DND-Neural-Network
+docker compose up -d --build
 ```
 
-### 2. Backend (terminal 1)
+Open http://localhost:8080. That is the entire deployment.
+
+### Local development
+
+You need Python 3.10–3.12, Node 18+, and [Poetry](https://python-poetry.org/docs/#installation).
+
+Backend (terminal 1):
 
 ```bash
-poetry env use python3.12   # or python3.10 / python3.11
+poetry env use python3.12
 poetry install
 ./run_backend.sh
 ```
 
-The API server starts on **http://localhost:8080**.
+The API starts on http://localhost:8080. The first start takes a minute or
+two while TensorFlow initializes; `curl localhost:8080/api/health` tells you
+when it is up.
 
-> **Note:** the first startup can take 1–3 minutes while TensorFlow initializes —
-> the server is ready when you see the SocketIO/werkzeug "Running on ..." log line.
-> Verify with: `curl http://localhost:8080/api/health`
-
-### 3. Frontend (terminal 2)
+Frontend (terminal 2):
 
 ```bash
 cd frontend
@@ -67,56 +77,84 @@ npm install
 npm run dev
 ```
 
-Open **http://localhost:5173** — you should see the builder canvas.
+Open http://localhost:5173. The dev server proxies nothing — the frontend
+talks to the backend directly, and `VITE_BACKEND_URL` in `frontend/.env`
+overrides the default if you run the API elsewhere.
 
-## Using the App
+## Architecture
 
-1. **Choose a dataset** in the right panel (start with Iris — it trains in seconds)
-2. **Drag layers** from the left palette onto the canvas
-3. **Connect them**: Input → hidden layers → Output (drag between node handles)
-4. **Set hyperparameters** (batch size, epochs, optimizer, loss, learning rate)
-5. **Save Model**, then hit **Train** and watch live metrics
-6. **Export** your model from the Export menu in the format you want
+```
+├── Dockerfile        Single production image (frontend build + Python runtime)
+├── backend/          Flask + Flask-SocketIO + TensorFlow
+│   ├── api/          REST routes and WebSocket training events
+│   ├── models/       Graph-to-Keras model builder
+│   ├── datasets/     Built-in dataset loaders
+│   ├── export/       Python / notebook / Keras / PyTorch generators
+│   ├── training/     Real-time training callbacks
+│   └── utils/        Session isolation, logging, image processing
+├── frontend/         React 18 + TypeScript + Vite, ReactFlow canvas
+├── landing/          Marketing page (Next.js, optional, deployed separately)
+└── docs/             Deployment guide and reference docs
+```
+
+The backend turns the canvas graph into a Keras model via topological sort,
+trains it in-process, and streams progress through Socket.IO. Training
+state lives in process memory and on local disk, which is why production
+runs exactly one instance with one worker — a deliberate trade that keeps
+the system simple and is plenty for classroom scale.
+
+In production the frontend is compiled into the image and served by Flask,
+so app, API, and sockets share one origin and CORS configuration is not a
+thing you have to think about.
 
 ## Configuration
 
-| Setting | Default | How to change |
+| Variable | Default | Purpose |
 |---|---|---|
-| Backend port | `8080` | `PORT` env var |
-| Backend config | `development` | `FLASK_CONFIG` env var (`development`/`production`/`testing`) |
-| Frontend → backend URL (dev) | `http://localhost:8080` | `VITE_BACKEND_URL` in `frontend/.env` (see `.env.example`) |
+| `PORT` | `8080` | Server port |
+| `FLASK_CONFIG` | `development` locally, `production` in the container | Config profile |
+| `SECRET_KEY` | — | Session signing key; set a real one in production |
+| `SESSION_COOKIE_SECURE` | `true` | Set `false` when serving plain HTTP (e.g. a bare-IP classroom server) |
+| `SESSION_MAX_AGE` | `168` | Hours before per-session uploads are cleaned up |
+| `EXTRA_ALLOWED_ORIGINS` | empty | Extra CORS origins, only needed for split deployments |
+| `VITE_BACKEND_URL` | same-origin | Frontend build-time API override |
+
+## Deployment
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). The short version: build the
+container, run it on one machine. The guide has a 15-minute AWS EC2
+walkthrough (what the Turing program uses) and a Google Cloud Run
+alternative with scale-to-zero. Costs and trade-offs are spelled out there.
 
 ## Tests
 
 ```bash
-./run_tests.sh          # backend test suite (pytest)
-cd frontend && npm run lint
+./run_tests.sh              # backend (pytest)
+cd frontend && npm run lint # frontend lint
+cd frontend && npm run build # type-check + production build
 ```
 
-## Troubleshooting
+## Design
 
-**`poetry: command not found`** — add Poetry to your PATH:
-`export PATH="$HOME/.local/bin:$PATH"`
+The interface follows a documented design system ("Paper Lab") — warm paper
+surfaces, a single reserved accent color for anything alive or learning,
+monospaced numerals for every live metric, and a colorblind-validated layer
+palette. [DESIGN.md](DESIGN.md) is the source of truth; UI changes should
+be checked against it.
 
-**Wrong Python version** — force the env before installing:
-`poetry env use python3.12 && poetry install`
+## Contributing
 
-**Port 8080 already in use** — find and stop the other process:
-`lsof -i :8080` then `kill <PID>`, or run with `PORT=8081 ./run_backend.sh`
-(and set `VITE_BACKEND_URL=http://localhost:8081` in `frontend/.env`)
-
-**Backend seems stuck on startup** — normal for the first 1–3 minutes (TensorFlow
-loading). If it's still silent after that, check the terminal for a traceback.
-
-**Frontend can't reach backend** — the backend must be running *before* you load
-the frontend page; check `curl http://localhost:8080/api/health`.
-
-## Deployment
-
-NeuroBlock deploys as a single container (Flask serves the app, API, and
-WebSockets from one origin). See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
-for the AWS EC2 quickstart and the Cloud Run alternative.
+Issues and pull requests are welcome. Keep changes consistent with
+DESIGN.md for anything visual, and run the tests before opening a PR. If
+you are planning something larger, open an issue first so we can talk it
+through.
 
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+## Acknowledgments
+
+Built by [Aryaman Goenka](https://github.com/aryamangoenka). Used in the
+Turing summer program at UMass Amherst CICS — thanks to the program staff
+and the students whose questions shaped the tool.
