@@ -123,8 +123,8 @@ thing you have to think about.
 
 See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). The short version: build the
 container, run it on one machine. The guide has a 15-minute AWS EC2
-walkthrough (what the Turing program uses) and a Google Cloud Run
-alternative with scale-to-zero. Costs and trade-offs are spelled out there.
+walkthrough (what the Turing program uses); any Docker host with 4 GB of
+RAM and WebSocket support works. Costs and trade-offs are spelled out there.
 
 ## Tests
 

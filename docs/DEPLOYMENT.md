@@ -77,21 +77,12 @@ ssh ubuntu@<ELASTIC_IP> "cd DND-Neural-Network && docker compose logs -f --tail 
 
 ---
 
-## Option B — Google Cloud Run (scale-to-zero fallback)
+## Other hosts
 
-Costs ~$0 when idle, but cold-starts ~20–30 s after inactivity (TensorFlow
-loading). Requires a GCP project with billing.
-
-```bash
-gcloud auth login
-gcloud config set project <PROJECT_ID>
-./deploy-gcp.sh          # enables APIs, creates secret + registry, builds, deploys
-```
-
-Redeploys after the first run: `gcloud builds submit --config cloudbuild.yaml`
-
-Tip for class weeks: `gcloud run services update neuroblock --min-instances=1`
-(removes cold starts, ~$25/mo while set; set back to 0 afterwards).
+Any platform that runs a Docker container with 4 GB of RAM and supports
+WebSockets will work (Railway, Fly.io, a campus server, a home lab box).
+Build the image, run it, put HTTPS in front if you have a domain. The
+container has no host-specific assumptions.
 
 ---
 
@@ -100,9 +91,8 @@ Tip for class weeks: `gcloud run services update neuroblock --min-instances=1`
 The backend keeps training state in-process and on local disk (saved model
 architecture, per-session datasets, stop flags). Run **exactly one
 instance / one gunicorn worker** — this is already encoded in the
-Dockerfile CMD and `cloudbuild.yaml` (`--max-instances=1`). For a classroom
-(~30 students, small datasets) this is fine; concurrent trainings share the
-CPU and simply take a bit longer.
+Dockerfile CMD. For a classroom (~30 students, small datasets) this is
+fine; concurrent trainings share the CPU and simply take a bit longer.
 
 ## Environment variables
 

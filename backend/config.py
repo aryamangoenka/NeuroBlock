@@ -77,9 +77,9 @@ class TestingConfig(Config):
     SESSION_MAX_AGE_HOURS = 2
 
 class ProductionConfig(Config):
-    """Production configuration for GCP deployment."""
+    """Production configuration."""
     # Security settings
-    SECRET_KEY = os.environ.get('SECRET_KEY')  # Required from Secret Manager
+    SECRET_KEY = os.environ.get('SECRET_KEY')  # Set via environment
     LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
     
     # Production session settings
@@ -92,23 +92,19 @@ class ProductionConfig(Config):
     SESSION_COOKIE_SAMESITE = 'Lax'
     SESSION_COOKIE_DOMAIN = None  # Allow cross-domain cookies
     
-    # GCP-optimized session cleanup
+    # Session cleanup
     SESSION_CLEANUP_INTERVAL_HOURS = int(os.environ.get('SESSION_CLEANUP_INTERVAL', 12))
     SESSION_MAX_AGE_HOURS = int(os.environ.get('SESSION_MAX_AGE', 168))  # 7 days
-    
-    # GCP-specific settings
-    GCP_PROJECT_ID = os.environ.get('GOOGLE_CLOUD_PROJECT')
-    GCS_BUCKET_NAME = os.environ.get('GCS_BUCKET_NAME')
-    
-    # Cloud Run settings
+
+    # Server settings
     PORT = int(os.environ.get('PORT', 8080))
     HOST = os.environ.get('HOST', '0.0.0.0')
-    
-    # Production allowed origins (EXTRA_ALLOWED_ORIGINS env var is appended
-    # for all configs in create_app — see backend/main.py).
+
+    # Production allowed origins for HTTP CORS. In the single-container
+    # deployment the app is same-origin, so this rarely matters; the
+    # EXTRA_ALLOWED_ORIGINS env var is appended for all configs in
+    # create_app — see backend/main.py.
     ALLOWED_ORIGINS = [
-        'https://dnd-neural-frontend-76136455379.us-central1.run.app',
-        'https://dnd-neural-backend-76136455379.us-central1.run.app',
         'https://app.neuroblock.co',
         'https://api.neuroblock.co',
         'https://neuroblock.co'
