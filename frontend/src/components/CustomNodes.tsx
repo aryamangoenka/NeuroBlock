@@ -1,34 +1,247 @@
-
 import { Handle, Position } from "reactflow";
 import "../styles/components/CustomNodes.scss";
 
-// Enhanced handle style for better usability
-const enhancedHandleStyle = {
-  background: "#fff",
-  border: "3px solid #333",
-  width: "16px",
-  height: "16px",
-  borderRadius: "50%",
-  cursor: "pointer",
-  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
-  zIndex: 10,
+/**
+ * Paper Lab node system (see DESIGN.md).
+ * Every node is a white module with a colored left rail:
+ *   filled rail  = layer with trainable parameters ("it learns")
+ *   hollow rail  = transform-only layer
+ */
+
+type NodeVisual = {
+  hue: string; // CSS var for the layer hue
+  learns: boolean; // filled vs hollow rail
 };
 
-// Source handle (right side) with distinct color
-const sourceHandleStyle = {
-  ...enhancedHandleStyle,
-  background: "#4CAF50",
-  border: "3px solid #2E7D32",
+const VISUALS: Record<string, NodeVisual> = {
+  input: { hue: "var(--n-input)", learns: false },
+  conv: { hue: "var(--n-conv)", learns: true },
+  pool: { hue: "var(--n-pool)", learns: false },
+  flatten: { hue: "var(--n-flat)", learns: false },
+  dense: { hue: "var(--n-dense)", learns: true },
+  dropout: { hue: "var(--n-drop)", learns: false },
+  activation: { hue: "var(--n-act)", learns: false },
+  batchnorm: { hue: "var(--n-bn)", learns: true },
+  attention: { hue: "var(--n-attn)", learns: true },
+  output: { hue: "var(--n-out)", learns: true },
+  custom: { hue: "var(--n-input)", learns: false },
 };
 
-// Target handle (left side) with distinct color
-const targetHandleStyle = {
-  ...enhancedHandleStyle,
-  background: "#2196F3",
-  border: "3px solid #1565C0",
+const handleClass = "nb-handle";
+
+const NodeShell = ({
+  visual,
+  title,
+  params,
+  hasInput = true,
+  hasOutput = true,
+  inputId,
+  outputId,
+  extraClass = "",
+  children,
+}: {
+  visual: NodeVisual;
+  title: string;
+  params?: (string | undefined | false)[];
+  hasInput?: boolean;
+  hasOutput?: boolean;
+  inputId?: string;
+  outputId?: string;
+  extraClass?: string;
+  children?: React.ReactNode;
+}) => (
+  <div
+    className={`nb-node ${visual.learns ? "learns" : "transforms"} ${extraClass}`}
+    style={{ "--rc": visual.hue } as React.CSSProperties}
+  >
+    {hasInput && (
+      <Handle
+        type="target"
+        position={Position.Left}
+        className={handleClass}
+        id={inputId}
+        isConnectable={true}
+      />
+    )}
+    <div className="nb-node-body">
+      <h4>{title}</h4>
+      {params && params.filter(Boolean).length > 0 && (
+        <p className="nb-params">{params.filter(Boolean).join(" · ")}</p>
+      )}
+      {children}
+    </div>
+    {visual.learns && <span className="nb-learns-tag">learns</span>}
+    {hasOutput && (
+      <Handle
+        type="source"
+        position={Position.Right}
+        className={handleClass}
+        id={outputId}
+        isConnectable={true}
+      />
+    )}
+  </div>
+);
+
+// ===== Node components (names, data fields, and handle ids preserved) =====
+
+const InputNode = ({ data }: { data: any }) => (
+  <NodeShell
+    visual={VISUALS.input}
+    title={data.label || "Input"}
+    hasInput={false}
+  />
+);
+
+const DenseNode = ({ data }: { data: any }) => (
+  <NodeShell
+    visual={VISUALS.dense}
+    title={data.label || "Dense"}
+    params={[data.neurons != null && `units ${data.neurons}`]}
+  />
+);
+
+const ConvolutionNode = ({ data }: { data: any }) => (
+  <NodeShell
+    visual={VISUALS.conv}
+    title={data.label || "Conv2D"}
+    params={[
+      data.filters != null && `${data.filters} filters`,
+      data.kernelSize && `${data.kernelSize.join("×")}`,
+      data.padding && `${data.padding}`,
+    ]}
+  />
+);
+
+const MaxPoolingNode = ({ data }: { data: any }) => (
+  <NodeShell
+    visual={VISUALS.pool}
+    title={data.label || "MaxPooling"}
+    params={[
+      data.poolSize && `pool ${data.poolSize.join("×")}`,
+      data.stride && `stride ${data.stride.join("×")}`,
+    ]}
+  />
+);
+
+const GlobalAveragePoolNode = ({ data }: { data: any }) => (
+  <NodeShell
+    visual={VISUALS.pool}
+    title={data.label || "Global Avg Pool"}
+    params={["spatial → 1×1"]}
+  />
+);
+
+const FlattenNode = ({ data }: { data: any }) => (
+  <NodeShell
+    visual={VISUALS.flatten}
+    title={data.label || "Flatten"}
+    params={["2D → 1D"]}
+  />
+);
+
+const DropoutNode = ({ data }: { data: any }) => (
+  <NodeShell
+    visual={VISUALS.dropout}
+    title={data.label || "Dropout"}
+    params={[data.rate != null && `rate ${data.rate}`]}
+  />
+);
+
+const BatchNormalizationNode = ({ data }: { data: any }) => (
+  <NodeShell
+    visual={VISUALS.batchnorm}
+    title={data.label || "BatchNorm"}
+    params={[
+      data.momentum != null && `momentum ${data.momentum}`,
+      data.epsilon != null && `ε ${data.epsilon}`,
+    ]}
+  />
+);
+
+const AttentionNode = ({ data }: { data: any }) => (
+  <NodeShell
+    visual={VISUALS.attention}
+    title={data.label || "Attention"}
+    params={[
+      data.heads != null && `${data.heads} heads`,
+      data.keyDim != null && `key ${data.keyDim}`,
+      data.dropout != null && `drop ${data.dropout}`,
+    ]}
+  />
+);
+
+const OutputNode = ({ data }: { data: any }) => (
+  <NodeShell
+    visual={VISUALS.output}
+    title={data.label || "Output"}
+    inputId="input"
+    outputId="output"
+  />
+);
+
+const ActivationNode = ({ data }: { data: any }) => {
+  const fn = data.function || "relu";
+  return (
+    <NodeShell
+      visual={VISUALS.activation}
+      title={fn}
+      extraClass="nb-activation"
+    />
+  );
 };
 
-// Export all node components
+const AddLayerNode = ({ data }: { data: any }) => (
+  <NodeShell
+    visual={VISUALS.custom}
+    title={data.label || "Add"}
+    params={["merge branches"]}
+  />
+);
+
+const ResNetBlockNode = ({ data }: { data: any }) => (
+  <NodeShell
+    visual={VISUALS.conv}
+    title={data.label || "ResNet Block"}
+    params={[
+      `${data.blockType || "Basic"}`,
+      data.filters != null && `${data.filters || 64} filters`,
+      Array.isArray(data.stride) && `stride ${data.stride.join("×")}`,
+    ]}
+    inputId="target"
+    outputId="source"
+    extraClass="nb-resnet"
+  >
+    <div className="nb-resnet-structure">
+      {data.blockType === "Bottleneck" ? (
+        <>
+          <span>1×1</span>
+          <span>3×3</span>
+          <span>1×1</span>
+        </>
+      ) : (
+        <>
+          <span>3×3</span>
+          <span>3×3</span>
+        </>
+      )}
+      <i className="nb-skip" title="skip connection" />
+    </div>
+  </NodeShell>
+);
+
+const CustomBlockNode = ({ data }: { data: any }) => {
+  const layers = data.layers || [];
+  return (
+    <NodeShell
+      visual={VISUALS.custom}
+      title={data.blockName || "Custom Block"}
+      params={[`${layers.length} layer${layers.length !== 1 ? "s" : ""}`]}
+      extraClass="nb-customblock"
+    />
+  );
+};
+
 export {
   DenseNode,
   ConvolutionNode,
@@ -44,368 +257,4 @@ export {
   AddLayerNode,
   ActivationNode,
   CustomBlockNode,
-};
-
-// Dense Node
-const DenseNode = ({ data }: { data: any }) => (
-  <div className="custom-node dense-node">
-    <Handle
-      type="target"
-      position={Position.Left}
-      style={targetHandleStyle}
-      isConnectable={true}
-    />
-    <h4>{data.label || "Dense Layer"}</h4>
-    <p>Neurons: {data.neurons}</p>
-    <Handle
-      type="source"
-      position={Position.Right}
-      style={sourceHandleStyle}
-      isConnectable={true}
-    />
-  </div>
-);
-
-// Convolutional Node
-const ConvolutionNode = ({ data }: { data: any }) => (
-  <div className="custom-node convolution-node">
-    <Handle
-      type="target"
-      position={Position.Left}
-      style={targetHandleStyle}
-      isConnectable={true}
-    />
-    <h4>{data.label || "Convolution Layer"}</h4>
-    <p>Filters: {data.filters}</p>
-    <p>Kernel Size: {data.kernelSize?.join("x")}</p>
-    <p>Stride: {data.stride?.join("x")}</p>
-    <p>Padding: {data.padding || "valid"}</p>
-    <Handle
-      type="source"
-      position={Position.Right}
-      style={sourceHandleStyle}
-      isConnectable={true}
-    />
-  </div>
-);
-
-// Max Pooling Node
-const MaxPoolingNode = ({ data }: { data: any }) => (
-  <div className="custom-node maxpooling-node">
-    <Handle
-      type="target"
-      position={Position.Left}
-      style={targetHandleStyle}
-      isConnectable={true}
-    />
-    <h4>{data.label || "Max Pooling Layer"}</h4>
-    <p>Pool Size: {data.poolSize?.join("x")}</p>
-    <p>Stride: {data.stride?.join("x")}</p>
-    <p>Padding: {data.padding || "valid"}</p>
-    <Handle
-      type="source"
-      position={Position.Right}
-      style={sourceHandleStyle}
-      isConnectable={true}
-    />
-  </div>
-);
-
-// Global Average Pooling Node
-const GlobalAveragePoolNode = ({ data }: { data: any }) => (
-  <div className="custom-node globalaveragepool-node">
-    <Handle
-      type="target"
-      position={Position.Left}
-      style={targetHandleStyle}
-      isConnectable={true}
-    />
-    <h4>{data.label || "Global Average Pooling Layer"}</h4>
-    <Handle
-      type="source"
-      position={Position.Right}
-      style={sourceHandleStyle}
-      isConnectable={true}
-    />
-  </div>
-);
-
-// Flatten Node
-const FlattenNode = ({ data }: { data: any }) => (
-  <div className="custom-node flatten-node">
-    <Handle
-      type="target"
-      position={Position.Left}
-      style={targetHandleStyle}
-      isConnectable={true}
-    />
-    <h4>{data.label || "Flatten Layer"}</h4>
-    <Handle
-      type="source"
-      position={Position.Right}
-      style={sourceHandleStyle}
-      isConnectable={true}
-    />
-  </div>
-);
-
-// Dropout Node
-const DropoutNode = ({ data }: { data: any }) => (
-  <div className="custom-node dropout-node">
-    <Handle
-      type="target"
-      position={Position.Left}
-      style={targetHandleStyle}
-      isConnectable={true}
-    />
-    <h4>{data.label || "Dropout Layer"}</h4>
-    <p>Rate: {data.rate}</p>
-    <Handle
-      type="source"
-      position={Position.Right}
-      style={sourceHandleStyle}
-      isConnectable={true}
-    />
-  </div>
-);
-
-// Batch Normalization Node
-const BatchNormalizationNode = ({ data }: { data: any }) => (
-  <div className="custom-node batchnormalization-node">
-    <Handle
-      type="target"
-      position={Position.Left}
-      style={targetHandleStyle}
-      isConnectable={true}
-    />
-    <h4>{data.label || "Batch Normalization Layer"}</h4>
-    <p>Momentum: {data.momentum}</p>
-    <p>Epsilon: {data.epsilon}</p>
-    <Handle
-      type="source"
-      position={Position.Right}
-      style={sourceHandleStyle}
-      isConnectable={true}
-    />
-  </div>
-);
-
-// Attention Node
-const AttentionNode = ({ data }: { data: any }) => (
-  <div className="custom-node attention-node">
-    <Handle
-      type="target"
-      position={Position.Left}
-      style={targetHandleStyle}
-      isConnectable={true}
-    />
-    <h4>{data.label || "Attention Layer"}</h4>
-    <p>Heads: {data.heads}</p>
-    <p>Key Dim: {data.keyDim}</p>
-    <p>Dropout: {data.dropout}</p>
-    <Handle
-      type="source"
-      position={Position.Right}
-      style={sourceHandleStyle}
-      isConnectable={true}
-    />
-  </div>
-);
-
-// Input Node - only has source handle
-const InputNode = ({ data }: { data: any }) => (
-  <div className="custom-node input-node">
-    <h4>{data.label || "Input Layer"}</h4>
-    <Handle
-      type="source"
-      position={Position.Right}
-      style={{
-        ...sourceHandleStyle,
-        background: "#FF9800", // Special color for input
-        border: "3px solid #F57C00",
-      }}
-      isConnectable={true}
-    />
-  </div>
-);
-
-// ResNetBlock Node
-const ResNetBlockNode = ({ data }: { data: any }) => (
-  <div
-    className={`custom-node resnetblock-node ${
-      data.blockType?.toLowerCase() || "basic"
-    }-block`}
-  >
-    <Handle
-      type="target"
-      position={Position.Left}
-      style={targetHandleStyle}
-      id="target"
-      isConnectable={true}
-    />
-    <div className="resnet-block-content">
-      <h4>{data.label || "ResNet Block"}</h4>
-      <div className="resnet-block-info">
-        <div className="resnet-block-type">
-          {data.blockType || "Basic"} Block
-        </div>
-        <p>
-          <strong>Filters:</strong> {data.filters || 64}
-        </p>
-        <p>
-          <strong>Stride:</strong>{" "}
-          {Array.isArray(data.stride)
-            ? data.stride.join("x")
-            : data.stride || "1x1"}
-        </p>
-      </div>
-      <div className="resnet-structure">
-        {data.blockType === "Bottleneck" ? (
-          <div className="bottleneck-structure">
-            <div className="layer">Conv 1×1</div>
-            <div className="layer">Conv 3×3</div>
-            <div className="layer">Conv 1×1</div>
-          </div>
-        ) : (
-          <div className="basic-structure">
-            <div className="layer">Conv 3×3</div>
-            <div className="layer">Conv 3×3</div>
-          </div>
-        )}
-      </div>
-      <div className="resnet-skip-connection">
-        <div className="skip-line"></div>
-        {data.stride &&
-          Array.isArray(data.stride) &&
-          (data.stride[0] > 1 || data.stride[1] > 1) && (
-            <div className="projection-shortcut">1×1</div>
-          )}
-      </div>
-    </div>
-    <Handle
-      type="source"
-      position={Position.Right}
-      style={sourceHandleStyle}
-      id="source"
-      isConnectable={true}
-    />
-  </div>
-);
-
-// Output Node - enhanced with special styling
-const OutputNode = ({ data }: { data: any }) => {
-  const outputSourceHandleStyle = {
-    ...enhancedHandleStyle,
-    background: "#E91E63", // Pink for output
-    border: "3px solid #C2185B",
-    zIndex: 10,
-  };
-
-  return (
-    <div className="custom-node output-node">
-      {/* Input handle */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        style={targetHandleStyle}
-        id="input"
-        isConnectable={true}
-      />
-
-      <div className="output-node-content">
-        <h4>{data.label || "Output Layer"}</h4>
-      </div>
-
-      {/* Output handle with enhanced visibility */}
-      <Handle
-        type="source"
-        position={Position.Right}
-        style={outputSourceHandleStyle}
-        id="output"
-        isConnectable={true}
-      />
-    </div>
-  );
-};
-
-// Add Layer Node
-const AddLayerNode = ({ data }: { data: any }) => (
-  <div className="custom-node add-layer-node">
-    <Handle
-      type="target"
-      position={Position.Left}
-      style={targetHandleStyle}
-      isConnectable={true}
-    />
-    <h4>{data.label || "Add Layer"}</h4>
-    <div className="add-layer-icon">
-      <i className="fas fa-plus-circle"></i>
-    </div>
-    <Handle
-      type="source"
-      position={Position.Right}
-      style={sourceHandleStyle}
-      isConnectable={true}
-    />
-  </div>
-);
-
-// Activation Node
-const ActivationNode = ({ data }: { data: any }) => {
-  // Convert function name to lowercase and hyphenated for CSS
-  const functionClass = (data.function || "relu")
-    .toLowerCase()
-    .replace(/\s+/g, "-");
-
-  return (
-    <div
-      className={`custom-node activation-node ${functionClass}-node`}
-      data-activation-type={data.function || "relu"}
-    >
-      <Handle
-        type="target"
-        position={Position.Left}
-        style={targetHandleStyle}
-        isConnectable={true}
-      />
-      <div className="simple-activation-content">{data.function || "relu"}</div>
-      <Handle
-        type="source"
-        position={Position.Right}
-        style={sourceHandleStyle}
-        isConnectable={true}
-      />
-    </div>
-  );
-};
-
-// Custom Block Node
-const CustomBlockNode = ({ data }: { data: any }) => {
-  const layers = data.layers || [];
-  const blockName = data.blockName || "Custom Block";
-
-  return (
-    <div className="custom-node custom-block-node">
-      <Handle
-        type="target"
-        position={Position.Left}
-        style={targetHandleStyle}
-        isConnectable={true}
-      />
-      <div className="custom-block-content">
-        <h4>{blockName}</h4>
-        <div className="custom-block-layers">
-          <p>
-            {layers.length} layer{layers.length !== 1 ? "s" : ""}
-          </p>
-        </div>
-      </div>
-      <Handle
-        type="source"
-        position={Position.Right}
-        style={sourceHandleStyle}
-        isConnectable={true}
-      />
-    </div>
-  );
 };

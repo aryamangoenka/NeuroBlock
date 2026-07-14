@@ -75,6 +75,12 @@ ChartJS.register(
   Filler
 );
 
+// Paper Lab chart defaults (DESIGN.md): mono tabular numbers, recessive grid
+ChartJS.defaults.font.family = '"IBM Plex Mono", monospace';
+ChartJS.defaults.font.size = 11;
+ChartJS.defaults.color = "#697064";
+ChartJS.defaults.borderColor = "#DDE1D4";
+
 // Define the node types for ReactFlow
 const nodeTypes = {
   input: InputNode,
@@ -272,16 +278,16 @@ const NewBuildPage = (): JSX.Element => {
       {
         label: "Loss",
         data: lossData,
-        borderColor: "#FF7043",
-        backgroundColor: "rgba(255, 99, 132, 0.2)",
+        borderColor: "#D85425",
+        backgroundColor: "rgba(216, 84, 37, 0.08)",
         fill: true,
         tension: 0.4,
       },
       {
         label: "Validation Loss",
         data: valLossData,
-        borderColor: "#29B6F6",
-        backgroundColor: "rgba(54, 162, 235, 0.2)",
+        borderColor: "#2D7DD2",
+        backgroundColor: "rgba(45, 125, 210, 0.08)",
         fill: true,
         tension: 0.4,
       },
@@ -294,16 +300,16 @@ const NewBuildPage = (): JSX.Element => {
       {
         label: "Accuracy",
         data: accuracyData,
-        borderColor: "rgba(54, 162, 235, 1)",
-        backgroundColor: "rgba(54, 162, 235, 0.2)",
+        borderColor: "#2E9D68",
+        backgroundColor: "rgba(46, 157, 104, 0.08)",
         fill: true,
         tension: 0.4,
       },
       {
         label: "Validation Accuracy",
         data: valAccuracyData,
-        borderColor: "rgba(153, 102, 255, 1)",
-        backgroundColor: "rgba(153, 102, 255, 0.2)",
+        borderColor: "#0899A8",
+        backgroundColor: "rgba(8, 153, 168, 0.08)",
         fill: true,
         tension: 0.4,
       },
@@ -5786,8 +5792,8 @@ const NewBuildPage = (): JSX.Element => {
                 x: pred,
                 y: residuals[index],
               })),
-              backgroundColor: "rgba(255, 159, 64, 0.2)",
-              borderColor: "rgba(255, 159, 64, 1)",
+              backgroundColor: "rgba(242, 107, 58, 0.15)",
+              borderColor: "#F26B3A",
               borderWidth: 1,
               pointRadius: 4,
               pointHoverRadius: 6,
@@ -8351,7 +8357,7 @@ const NewBuildPage = (): JSX.Element => {
         </div>
 
         <div className="center-panel">
-          <div className="canvas-container">
+          <div className={`canvas-container ${isTraining ? "nb-training" : ""}`}>
             <ReactFlow
               nodes={nodes}
               edges={edges.map((e) => ({
@@ -8366,15 +8372,15 @@ const NewBuildPage = (): JSX.Element => {
               nodeTypes={nodeTypes}
               edgeTypes={edgeTypes}
               isValidConnection={isValidConnection}
-              connectionLineStyle={{ stroke: "#555", strokeWidth: 2 }}
+              connectionLineStyle={{ stroke: "#f26b3a", strokeWidth: 2 }}
               defaultEdgeOptions={{
-                animated: true,
-                style: { stroke: "#555", strokeWidth: 2 },
+                animated: false,
+                style: { stroke: "#b9c1b1", strokeWidth: 1.8 },
               }}
               fitView
               style={{ width: "100%", height: "100%" }}
             >
-              <Background />
+              <Background color="#d3d8c8" gap={24} size={1.5} />
               <Controls />
             </ReactFlow>
           </div>

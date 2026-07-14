@@ -1,4 +1,4 @@
-/* GlobalStyles.scss */
+/* GlobalStyles.scss — Paper Lab design system (see DESIGN.md) */
 @use "./components/NavBar";
 @use "./components/HomePage";
 @use "./components/TrainPage.scss";
@@ -12,80 +12,141 @@
 @tailwind utilities;
 
 :root {
-  --main: #88aaee;
-  --overlay: rgba(0, 0, 0, 0.8); /* background color overlay for alert dialogs, modals, etc. */
+  /* ===== Paper Lab tokens ===== */
+  --paper: #f7f4ec;
+  --card: #ffffff;
+  --raised: #fbfaf6;
+  --canvas: #eef1ea;
+  --canvas-dot: #d3d8c8;
+  --ink: #20231f;
+  --ink-muted: #697064;
+  --line: #dde1d4;
+  --line-strong: #b9c1b1;
+  --citrus: #f26b3a; /* RESERVED: alive/learning only (Train, live metrics, pulses) */
+  --citrus-ink: #36150a;
+  --focus: #2563eb;
+  --ok: #2e9d68;
+  --warn-ink: #a87f10;
+  --err: #d94c4c;
 
-  --bg: #dfe5f2;
-  --bw: #fff; /* white and secondary black e.g. utility class variant would be: bg-[#fff] dark:bg-[#212121] */
-  --blank: #000; /* blank black and white */
-  --border: #000;
-  --text: #000;
-  --mtext: #000; /* text that is placed on background with main color e.g. text color of default button */
-  --ring: #000;
+  /* Layer palette — filled rail = learns, hollow rail = transforms (DESIGN.md) */
+  --n-input: #64707d;
+  --n-conv: #2d7dd2;
+  --n-pool: #0899a8;
+  --n-flat: #a87f10;
+  --n-dense: #7b5cd6;
+  --n-drop: #c9569c;
+  --n-act: #7a9e2f;
+  --n-bn: #a855cc;
+  --n-attn: #0f5e75;
+  --n-out: #1f7a4d;
+
+  --f-display: "Bricolage Grotesque", sans-serif;
+  --f-ui: "General Sans", sans-serif;
+  --f-mono: "IBM Plex Mono", monospace;
+
+  --card-shadow: 0 1px 2px rgba(32, 35, 31, 0.06), 0 4px 14px rgba(32, 35, 31, 0.05);
+
+  /* ===== Legacy variable names, remapped to Paper Lab ===== */
+  --main: #f26b3a;
+  --overlay: rgba(32, 35, 31, 0.55);
+  --bg: #f7f4ec;
+  --bw: #fff;
+  --blank: #20231f;
+  --border: #dde1d4;
+  --text: #20231f;
+  --mtext: #fff;
+  --ring: #2563eb;
   --ring-offset: #fff;
 
-  --border-radius: 5px;
-  --box-shadow-x: 4px;
-  --box-shadow-y: 4px;
-  --reverse-box-shadow-x: -4px;
-  --reverse-box-shadow-y: -4px;
+  --border-radius: 9px;
+  --box-shadow-x: 0px;
+  --box-shadow-y: 1px;
+  --reverse-box-shadow-x: 0px;
+  --reverse-box-shadow-y: -1px;
   --base-font-weight: 500;
-  --heading-font-weight: 700;
+  --heading-font-weight: 600;
+  --shadow: var(--card-shadow);
 
-  --shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
-
-  /* Training metrics card variables */
   --background-light: #ffffff;
-  --background-lighter: #f8fafc;
-  --border-light: #e2e8f0;
-  --border-medium: #cbd5e1;
-  --text-primary: #334155;
-  --text-secondary: #64748b;
-  --text-tertiary: #94a3b8;
-  --primary: #3b82f6;
-  --primary-dark: #2563eb;
-  --primary-darker: #1d4ed8;
-  --primary-rgb: 59, 130, 246;
-  --primary-gradient-start: #3b82f6;
-  --primary-gradient-end: #2563eb;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --danger-dark: #dc2626;
-  --danger-darker: #b91c1c;
-}
-
-.dark {
-  --bg: #272933;
-  --bw: #212121;
-  --blank: #fff;
-  --border: #000;
-  --text: #e6e6e6;
-  --mtext: #000;
-  --ring: #fff;
-  --ring-offset: #000;
-
-  --shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
-
-  /* Training metrics card variables - dark mode */
-  --background-light: #1e293b;
-  --background-lighter: #334155;
-  --border-light: #475569;
-  --border-medium: #64748b;
-  --text-primary: #f1f5f9;
-  --text-secondary: #cbd5e1;
-  --text-tertiary: #94a3b8;
-  --primary-gradient-start: #2563eb;
-  --primary-gradient-end: #1d4ed8;
+  --background-lighter: #fbfaf6;
+  --border-light: #dde1d4;
+  --border-medium: #b9c1b1;
+  --text-primary: #20231f;
+  --text-secondary: #697064;
+  --text-tertiary: #8a9184;
+  --primary: #20231f;
+  --primary-dark: #101210;
+  --primary-darker: #000;
+  --primary-rgb: 32, 35, 31;
+  --primary-gradient-start: #20231f;
+  --primary-gradient-end: #20231f;
+  --success: #2e9d68;
+  --warning: #a87f10;
+  --danger: #d94c4c;
+  --danger-dark: #c43e3e;
+  --danger-darker: #a83232;
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: "Roboto", sans-serif;
+}
+
+body {
+  font-family: var(--f-ui);
+  color: var(--ink);
+  background: var(--paper);
+  font-size: 15px;
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: var(--f-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+code, pre, kbd, samp {
+  font-family: var(--f-mono);
 }
 
 a {
   text-decoration: none;
+  color: inherit;
 }
+
+button {
+  font-family: var(--f-ui);
+}
+
+input, select, textarea {
+  font-family: var(--f-ui);
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
+
+/* Minimal flex utilities (Bootstrap removed) */
+.d-flex { display: flex; }
+.justify-content-between { justify-content: space-between; }
+.align-items-center { align-items: center; }
+.container { width: 100%; padding: 0 16px; }
+.container-fluid { width: 100%; }
+.ms-1 { margin-left: 4px; }
+.row { display: flex; flex-wrap: wrap; }
+
+/* react-toastify — paper cards */
+.Toastify__toast {
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--card-shadow);
+  font-family: var(--f-ui);
+  font-size: 13.5px;
+}
+.Toastify__progress-bar { background: var(--citrus); }
+.Toastify__close-button { color: var(--ink-muted); }

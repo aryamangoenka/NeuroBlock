@@ -13,8 +13,8 @@
   }
   
   .layer-visual {
-    background-color: #4CAF50;
-    border: 2px solid color.adjust(#4CAF50, $lightness: -15%);
+    background-color: #2e9d68;
+    border: 2px solid color.adjust(#2e9d68, $lightness: -15%);
     border-radius: 8px;
     padding: 12px 20px;
     position: relative;
@@ -80,7 +80,7 @@
     margin: 10px 0 0;
     padding: 0 10px;
     font-size: 0.9rem;
-    color: #495057;
+    color: #697064;
     line-height: 1.5;
   }
 }
@@ -108,7 +108,7 @@
   .connection-line {
     flex: 1;
     height: 3px;
-    background: linear-gradient(90deg, #0d6efd 0%, #6610f2 100%);
+    background: linear-gradient(90deg, #20231f 0%, #6610f2 100%);
     position: relative;
     margin: 0 -5px;
     
@@ -120,7 +120,7 @@
       height: 10px;
       border-radius: 50%;
       transform: translateY(-50%);
-      background-color: #0d6efd;
+      background-color: #20231f;
     }
     
     &::before {
@@ -150,7 +150,7 @@
       width: 40px;
       height: 40px;
       border-radius: 50%;
-      background-color: #0d6efd;
+      background-color: #20231f;
       color: white;
       display: flex;
       align-items: center;
@@ -167,12 +167,12 @@
       h4 {
         margin: 0 0 8px;
         font-size: 1.1rem;
-        color: #212529;
+        color: #20231f;
       }
       
       p {
         margin: 0;
-        color: #495057;
+        color: #697064;
       }
     }
   }

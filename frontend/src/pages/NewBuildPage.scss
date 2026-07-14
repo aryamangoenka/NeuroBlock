@@ -11,7 +11,7 @@
 
 // Add a special style for the ResNet Block layer in the sidebar
 .layer-item.resnetblock-layer {
-  background: linear-gradient(135deg, #4C5FD5, #3F51B5);
+  background: linear-gradient(135deg, #20231f, #3F51B5);
   color: white;
   border-radius: 8px;
   transition: all 0.2s ease-in-out;
@@ -25,7 +25,7 @@
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 14px rgba(26, 35, 126, 0.4);
-    background: linear-gradient(135deg, #5D70E9, #4C5FD5);
+    background: linear-gradient(135deg, #5D70E9, #20231f);
   }
 
   .add-button {
@@ -41,24 +41,24 @@
 // Styles for template section titles
 .template-section-title {
   font-weight: 600;
-  color: #333;
+  color: #20231f;
   margin-top: 16px;
   margin-bottom: 8px;
   padding-bottom: 6px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #f3f0e7;
   display: flex;
   align-items: center;
   
   i {
     margin-right: 8px;
-    color: #4a6ee0;
+    color: #20231f;
   }
 }
 
 // Special styling for ResNet templates
 .template-item.resnet-template {
   background: linear-gradient(135deg, rgba(76, 95, 213, 0.1), rgba(63, 81, 181, 0.05));
-  border-left: 3px solid #4C5FD5;
+  border-left: 3px solid #20231f;
   
   span {
     display: flex;
@@ -72,7 +72,7 @@
   }
   
   i.fas.fa-code-branch {
-    color: #4C5FD5;
+    color: #20231f;
   }
   
   &:hover {
@@ -94,7 +94,7 @@
   }
 
   &.selected {
-    border: 2px solid #4a6ee0;
+    border: 2px solid #20231f;
     background-color: rgba(74, 110, 224, 0.05);
   }
 }
@@ -105,12 +105,12 @@
   align-items: center;
   padding-bottom: 8px;
   margin-bottom: 8px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #f3f0e7;
 }
 
 .layer-params-type {
   font-weight: 600;
-  color: #4a6ee0;
+  color: #20231f;
   background-color: rgba(74, 110, 224, 0.1);
   padding: 3px 8px;
   border-radius: 4px;
@@ -136,14 +136,14 @@
 }
 
 .param-label {
-  color: #666;
+  color: #697064;
   font-weight: 500;
 }
 
 .param-value {
-  color: #333;
+  color: #20231f;
   font-weight: 600;
-  background-color: #f5f5f5;
+  background-color: #fbfaf6;
   padding: 2px 6px;
   border-radius: 4px;
 }
@@ -170,7 +170,7 @@
   
   i {
     font-size: 2.5rem;
-    color: #4a6ee0;
+    color: #20231f;
     margin-bottom: 20px;
     opacity: 0.6;
     animation: pulse 2s infinite;
@@ -184,7 +184,7 @@
   }
   
   p {
-    color: #555;
+    color: #697064;
     font-size: 1rem;
     font-weight: 500;
     line-height: 1.5;
@@ -224,14 +224,14 @@
     align-items: center;
     font-size: 1.1rem;
     font-weight: 600;
-    color: #333;
+    color: #20231f;
     margin-bottom: 15px;
     padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid #f3f0e7;
     
     i {
       margin-right: 8px;
-      color: #4a6ee0;
+      color: #20231f;
     }
   }
 }
@@ -257,7 +257,7 @@
     flex-shrink: 0;
     
     i {
-      color: #4a6ee0;
+      color: #20231f;
       font-size: 1.2rem;
     }
   }
@@ -265,7 +265,7 @@
   p {
     margin: 0;
     font-size: 0.92rem;
-    color: #555;
+    color: #697064;
     line-height: 1.4;
   }
 }
@@ -273,7 +273,7 @@
 // Special styling for layer params intro
 .layer-params-intro {
   background: linear-gradient(135deg, rgba(74, 110, 224, 0.05) 0%, rgba(74, 110, 224, 0.1) 100%);
-  border-left: 3px solid #4a6ee0;
+  border-left: 3px solid #20231f;
   padding: 16px;
   transition: all 0.3s ease;
   
@@ -308,7 +308,7 @@
   margin-bottom: 20px;
   max-height: calc(100vh - 300px);
   overflow-y: auto;
-  border: 1px solid #f0f0f0;
+  border: 1px solid #f3f0e7;
   
   .node-parameters-header {
     display: flex;
@@ -316,13 +316,13 @@
     align-items: center;
     margin-bottom: 18px;
     padding-bottom: 12px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid #f3f0e7;
     
     .node-type {
       display: flex;
       align-items: center;
       font-weight: 600;
-      color: #4a6ee0;
+      color: #20231f;
       
       i {
         width: 34px;
@@ -334,7 +334,7 @@
         border-radius: 50%;
         margin-right: 10px;
         font-size: 1rem;
-        color: #4a6ee0;
+        color: #20231f;
         box-shadow: 0 2px 5px rgba(74, 110, 224, 0.2);
       }
       
@@ -344,19 +344,19 @@
     }
     
     .node-id {
-      color: #999;
+      color: #8a9184;
       font-size: 0.85rem;
       font-family: monospace;
-      background-color: #f5f5f5;
+      background-color: #fbfaf6;
       padding: 4px 10px;
       border-radius: 4px;
-      border: 1px solid #eee;
+      border: 1px solid #f3f0e7;
       transition: all 0.2s ease;
       
       &:hover {
-        background-color: #4a6ee0;
+        background-color: #20231f;
         color: white;
-        border-color: #4a6ee0;
+        border-color: #20231f;
       }
     }
   }
@@ -372,14 +372,14 @@
       display: block;
       margin: 12px 0;
       height: 1px;
-      background: linear-gradient(to right, transparent, #eee, transparent);
+      background: linear-gradient(to right, transparent, #f3f0e7, transparent);
     }
   }
   
   label {
     display: block;
     font-weight: 500;
-    color: #555;
+    color: #697064;
     margin-bottom: 8px;
     font-size: 0.95rem;
     position: relative;
@@ -392,7 +392,7 @@
   input, select {
     width: 100%;
     padding: 12px 14px;
-    border: 1px solid #ddd;
+    border: 1px solid #dde1d4;
     border-radius: 8px;
     background-color: #f9f9f9;
     font-size: 0.95rem;
@@ -400,11 +400,11 @@
     
     &:hover {
       border-color: #aaa;
-      background-color: #f5f5f5;
+      background-color: #fbfaf6;
     }
     
     &:focus {
-      border-color: #4a6ee0;
+      border-color: #20231f;
       box-shadow: 0 0 0 3px rgba(74, 110, 224, 0.15);
       outline: none;
       background-color: #fff;
@@ -415,12 +415,12 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background-color: #f5f5f5;
+    background-color: #fbfaf6;
     border-radius: 8px;
     padding: 12px;
     
     span {
-      color: #666;
+      color: #697064;
       font-weight: 600;
       font-size: 1.1rem;
     }
@@ -435,16 +435,16 @@
   
   .layer-name-input {
     font-weight: 600;
-    color: #333;
-    background-color: #f5f5f5;
-    border: 1px solid #ddd;
+    color: #20231f;
+    background-color: #fbfaf6;
+    border: 1px solid #dde1d4;
     margin-bottom: 4px;
     border-radius: 8px;
     font-size: 1rem;
     
     &:focus {
       background-color: white;
-      border-color: #4a6ee0;
+      border-color: #20231f;
     }
   }
   
@@ -465,17 +465,17 @@
       display: block;
       margin: 24px 0 8px;
       height: 2px;
-      background: linear-gradient(to right, #4a6ee0, transparent);
+      background: linear-gradient(to right, #20231f, transparent);
     }
   }
   
   // Special styling for ResNetBlock
   .node-type.resnetblock {
-    color: #4C5FD5;
+    color: #20231f;
     
     i {
       background-color: rgba(76, 95, 213, 0.15);
-      color: #4C5FD5;
+      color: #20231f;
       box-shadow: 0 2px 5px rgba(76, 95, 213, 0.2);
     }
   }
@@ -488,7 +488,7 @@
     position: relative;
     
     &:focus {
-      border-color: #4C5FD5;
+      border-color: #20231f;
       box-shadow: 0 0 0 3px rgba(76, 95, 213, 0.15);
     }
   }
@@ -496,11 +496,11 @@
   // Highlight skip connection options
   select[name="useSkipConnection"],
   select[name="downsampleType"] {
-    border-left: 3px solid #4C5FD5;
+    border-left: 3px solid #20231f;
     transition: all 0.2s ease;
     
     &:focus {
-      border-left-color: #4C5FD5;
+      border-left-color: #20231f;
       border-left-width: 3px;
     }
   }
@@ -510,7 +510,7 @@
     // Add visual separator for ResBlock channels 
     input[type="number"] {
       &:focus {
-        border-color: #4C5FD5;
+        border-color: #20231f;
         box-shadow: 0 0 0 3px rgba(76, 95, 213, 0.15);
       }
     }
@@ -550,7 +550,7 @@
       
       span {
         font-weight: 600;
-        color: #4C5FD5;
+        color: #20231f;
         z-index: 1;
         position: relative;
       }
@@ -566,11 +566,11 @@
     
     .parameter-section-title {
       font-weight: 600;
-      color: #333;
+      color: #20231f;
       font-size: 1rem;
       margin-bottom: 14px;
       padding-bottom: 8px;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid #f3f0e7;
       position: relative;
       display: flex;
       align-items: center;
@@ -580,7 +580,7 @@
         display: inline-block;
         width: 4px;
         height: 16px;
-        background-color: #4a6ee0;
+        background-color: #20231f;
         margin-right: 8px;
         border-radius: 2px;
       }
@@ -590,10 +590,10 @@
   // Special styling for ResNetBlock parameter sections
   &.resnetblock {
     .parameter-section-title {
-      color: #4C5FD5;
+      color: #20231f;
       
       &::before {
-        background-color: #4C5FD5;
+        background-color: #20231f;
       }
     }
     
@@ -616,19 +616,19 @@
   align-items: center;
   margin-bottom: 12px;
   padding: 8px 12px;
-  background-color: #f8f9fa;
+  background-color: #fbfaf6;
   border-radius: 6px;
-  border-left: 3px solid #4a6ee0;
+  border-left: 3px solid #20231f;
   
   i {
     margin-right: 8px;
-    color: #4a6ee0;
+    color: #20231f;
     font-size: 1rem;
   }
   
   label {
     font-weight: 600;
-    color: #333;
+    color: #20231f;
     margin: 0;
     font-size: 0.95rem;
   }
@@ -641,14 +641,14 @@
   label {
     display: block;
     font-weight: 500;
-    color: #555;
+    color: #697064;
     margin-bottom: 6px;
     font-size: 0.9rem;
   }
 }
 
 .block-info {
-  background-color: #f8f9fa;
+  background-color: #fbfaf6;
   border-radius: 6px;
   padding: 8px 12px;
   
@@ -659,14 +659,14 @@
     
     .info-label {
       font-weight: 500;
-      color: #666;
+      color: #697064;
       font-size: 0.9rem;
     }
     
     .info-value {
       font-weight: 600;
-      color: #333;
-      background-color: #e9ecef;
+      color: #20231f;
+      background-color: #dde1d4;
       padding: 2px 8px;
       border-radius: 4px;
       font-size: 0.85rem;
@@ -675,12 +675,12 @@
 }
 
 .param-info {
-  color: #666;
+  color: #697064;
   font-style: italic;
   font-size: 0.85rem;
   margin: 0;
   padding: 8px 12px;
-  background-color: #f8f9fa;
+  background-color: #fbfaf6;
   border-radius: 4px;
   text-align: center;
 } 

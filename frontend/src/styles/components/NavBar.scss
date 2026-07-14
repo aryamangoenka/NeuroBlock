@@ -1,247 +1,184 @@
-/* Navbar Styles */
-@use "sass:color";
+/* NavBar — Paper Lab top bar (see DESIGN.md) */
 
 .navbar {
-    background: #003049;
-    color: white;
-    padding: 0.5rem 1rem;
-    height: 60px;
+  background: var(--card);
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+  height: 60px;
+  width: 100%;
+  z-index: 1000;
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+
+  .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     width: 100%;
-    z-index: 1000;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-    position: fixed !important;
-    
+    padding: 0 18px;
+  }
 
-    .container {
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        max-width: 100%;
-        padding: 0 1rem;
+  .navbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    .brand-icon {
+      color: var(--citrus);
+      font-size: 18px;
     }
 
-    .navbar-brand {
-        display: flex;
-        align-items: center;
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: white;
-        text-decoration: none;
-
-        .brand-icon {
-            color: #00c6ff;
-            margin-right: 0.5rem;
-            font-size: 1.8rem;
-        }
-
-        .brand-text {
-            color: white;
-            font-weight: 700;
-        }
-
-        .brand-link {
-            text-decoration: none;
-            color: white;
-            display: flex;
-            align-items: center;
-            
-            &:hover {
-                text-decoration: none;
-                color: #eae2b7;
-            }
-        }
-    }
-
-    .navbar-actions {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 12px;
-    }
-
-    .navbar-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0.4rem 1rem;
-        border-radius: 4px;
-        border: none;
-        cursor: pointer;
-        font-weight: 600;
-        font-size: 0.9rem;
-        transition: all 0.2s;
-        color: #000000;
-        text-decoration: none;
-        
-        &:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-        
-        &:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-        
-        i {
-            margin-right: 0.5rem;
-        }
-    }
-
-    .tutorial-button {
-        @extend .navbar-btn;
-        background: #f77f00;
-        
-        &:hover {
-            background: color.scale(#f77f00, $lightness: -10%);
-        }
-    }
-
-    .feedback-button {
-        @extend .navbar-btn;
-        background: #6a4c93;
-        
-        &:hover {
-            background: color.scale(#6a4c93, $lightness: -10%);
-        }
-    }
-
-    .save-model-button {
-        @extend .navbar-btn;
-        background: #fcbf49;
-        
-        &:hover {
-            background: color.scale(#fcbf49, $lightness: -10%);
-        }
-    }
-
-    .train-button-red {
-        @extend .navbar-btn;
-        background: #d62828;
-        
-        &:hover {
-            background: color.scale(#d62828, $lightness: -10%);
-        }
-        
-        &.training {
-            animation: pulse 1.5s infinite;
-        }
-    }
-
-    .stop-button-red {
-        @extend .navbar-btn;
-        background: linear-gradient(45deg, #e67e22, #d35400);
-        
-        &:hover {
-            background: linear-gradient(45deg, #d35400, #a04000);
-        }
-    }
-
-    .export-button-black {
-        @extend .navbar-btn;
-        background: #eae2b7;
-        color: #333;
-        
-        &:hover {
-            background: color.scale(#eae2b7, $lightness: -10%);
-        }
-        
-        .fa-caret-down {
-            transition: transform 0.3s;
-            margin-left: 0.5rem;
-            
-            &.dropdown-open {
-                transform: rotate(180deg);
-            }
-        }
-    }
-
-    .export-dropdown-container {
-        position: relative;
-    }
-
-    .export-dropdown {
-        position: absolute;
-        top: 100%;
-        right: 0;
-        margin-top: 5px;
-        background-color: #ffffff;
-        border-radius: 4px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        z-index: 10;
-        min-width: 180px;
-        overflow: hidden;
-        
-        .export-option {
-            display: flex;
-            align-items: center;
-            padding: 0.7rem 1rem;
-            width: 100%;
-            text-align: left;
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #333;
-            font-weight: 500;
-            transition: background-color 0.2s;
-            
-            &:hover {
-                background-color: #f2f2f2;
-            }
-            
-            i {
-                margin-right: 0.5rem;
-                width: 20px;
-                text-align: center;
-            }
-        }
-    }
-}
-
-@keyframes pulse {
-    0% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.7;
-    }
-    100% {
-        opacity: 1;
-    }
-}
-
-/* Responsive Adjustments */
-
-@media (max-width: 768px) {
     .brand-text {
-        font-size: 1.1rem;
+      font-family: var(--f-display);
+      font-weight: 700;
+      font-size: 19px;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+
+      &::after {
+        content: ".";
+        color: var(--citrus);
+      }
     }
-    
-    .save-model-nav-button span {
-        display: none;
+  }
+
+  .navbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* shared button base */
+  .tutorial-button,
+  .feedback-button,
+  .save-model-button,
+  .train-button-red,
+  .stop-button-red,
+  .export-button-black {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--f-ui);
+    font-size: 13.5px;
+    font-weight: 500;
+    border-radius: 9px;
+    padding: 7px 15px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--ink-muted);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+
+    i {
+      font-size: 13px;
     }
-    
-    .nav-link {
-        font-size: 0.9rem;
-        padding: 6px 10px;
+
+    &:hover:not(:disabled) {
+      background: var(--raised);
+      color: var(--ink);
     }
-    
-    .tutorial-button span {
-        display: none;
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
     }
-    
-    .feedback-button span {
-        display: none;
+  }
+
+  /* secondary: Save + Export */
+  .save-model-button,
+  .export-button-black {
+    background: var(--card);
+    color: var(--ink);
+    border-color: var(--line-strong);
+    box-shadow: var(--card-shadow);
+
+    &:hover:not(:disabled) {
+      background: var(--raised);
+      border-color: var(--ink-muted);
     }
-    
-    .save-model-button span {
-        display: none;
+  }
+
+  /* Train — the only citrus button in the app */
+  .train-button-red {
+    background: var(--citrus);
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 2px 10px rgba(242, 107, 58, 0.35);
+
+    &:hover:not(:disabled) {
+      background: #e4552a;
+      color: #fff;
     }
-    
-    .train-button-red span {
-        display: none;
+
+    &.training {
+      background: var(--citrus);
+      color: #fff;
+      opacity: 0.85;
     }
+  }
+
+  .stop-button-red {
+    color: var(--err);
+    border-color: rgba(217, 76, 76, 0.45);
+
+    &:hover {
+      background: rgba(217, 76, 76, 0.08);
+      color: var(--err);
+    }
+  }
+
+  .export-dropdown-container {
+    position: relative;
+
+    .dropdown-open {
+      transform: rotate(180deg);
+    }
+  }
+
+  .export-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--card-shadow);
+    min-width: 170px;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    z-index: 1100;
+
+    .export-option {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      background: transparent;
+      border: none;
+      border-radius: 7px;
+      padding: 8px 11px;
+      font-family: var(--f-ui);
+      font-size: 13.5px;
+      color: var(--ink);
+      text-align: left;
+      cursor: pointer;
+
+      i {
+        color: var(--ink-muted);
+        width: 15px;
+        text-align: center;
+      }
+
+      &:hover {
+        background: var(--raised);
+
+        i {
+          color: var(--citrus);
+        }
+      }
+    }
+  }
 }

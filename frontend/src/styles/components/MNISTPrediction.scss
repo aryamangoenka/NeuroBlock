@@ -17,7 +17,7 @@
 
     h4 {
       font-size: 1.1rem;
-      color: #1e293b;
+      color: #20231f;
       margin: 0;
       text-align: center;
     }
@@ -32,17 +32,17 @@
         align-items: center;
         gap: 0.5rem;
         padding: 0.5rem 1rem;
-        background: #f1f5f9;
+        background: #fbfaf6;
         border: none;
         border-radius: 6px;
-        color: #64748b;
+        color: #697064;
         font-weight: 500;
         cursor: pointer;
         transition: all 0.2s ease;
 
         &:hover:not(:disabled) {
-          background: #e2e8f0;
-          color: #475569;
+          background: #dde1d4;
+          color: #697064;
         }
 
         &:disabled {
@@ -64,23 +64,23 @@
     align-items: center;
     justify-content: center;
     padding: 1rem;
-    background: #f8fafc;
+    background: #fbfaf6;
     border-radius: 8px;
 
     .loading-state {
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      color: #64748b;
+      color: #697064;
 
       i {
         font-size: 1.1rem;
-        color: #0ea5e9;
+        color: #20231f;
       }
     }
 
     .error-state {
-      color: #ef4444;
+      color: #d94c4c;
       font-size: 0.9rem;
       text-align: center;
       padding: 0.5rem;
@@ -102,11 +102,11 @@
         font-size: 1.1rem;
 
         span {
-          color: #64748b;
+          color: #697064;
         }
 
         strong {
-          color: #0ea5e9;
+          color: #20231f;
           font-size: 1.5rem;
         }
       }
@@ -118,19 +118,31 @@
         font-size: 0.9rem;
 
         span {
-          color: #64748b;
+          color: #697064;
         }
 
         strong {
-          color: #10b981;
+          color: #2e9d68;
         }
       }
     }
 
     .empty-state {
-      color: #94a3b8;
+      color: #8a9184;
       font-size: 0.9rem;
       text-align: center;
     }
   }
 } 
+/* Paper Lab error state */
+.error-state {
+  background: var(--card) !important;
+  border: 1px solid var(--line) !important;
+  border-left: 4px solid var(--err) !important;
+  border-radius: 10px !important;
+  color: var(--ink) !important;
+  padding: 12px 14px !important;
+  font-size: 13px !important;
+
+  i, .error-icon { color: var(--err) !important; }
+}

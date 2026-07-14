@@ -5,8 +5,8 @@
   display: flex;
   height: 100vh;
   width: 100vw;
-  background: #f8f9fa;
-  color: #343a40;
+  background: #fbfaf6;
+  color: #20231f;
   overflow: hidden;
   font-family: 'Inter', sans-serif;
 }
@@ -21,12 +21,12 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  border-right: 1px solid #e9ecef;
+  border-right: 1px solid #dde1d4;
 }
 
 .left-sidebar h2 {
   font-size: 1.4rem;
-  color: #0ea5e9;
+  color: #20231f;
   text-align: center;
   letter-spacing: 0.5px;
   margin-bottom: 1.5rem;
@@ -42,13 +42,13 @@
   left: 25%;
   width: 50%;
   height: 3px;
-  background: linear-gradient(to right, rgba(14, 165, 233, 0.2), rgba(14, 165, 233, 0.7), rgba(14, 165, 233, 0.2));
+  background: linear-gradient(to right, rgba(32, 35, 31, 0.2), rgba(32, 35, 31, 0.7), rgba(32, 35, 31, 0.2));
   border-radius: 2px;
 }
 
 .left-sidebar h3 {
   font-size: 1.1rem;
-  color: #0ea5e9;
+  color: #20231f;
   margin-bottom: 0.75rem;
   font-weight: 500;
   display: flex;
@@ -66,7 +66,7 @@
   padding: 1.25rem;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
   margin-bottom: 1rem;
-  border: 1px solid #e9ecef;
+  border: 1px solid #dde1d4;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -81,7 +81,7 @@
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
   font-size: 0.9rem;
-  color: #495057;
+  color: #697064;
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -89,16 +89,16 @@
 
 .config-section label i {
   margin-right: 8px;
-  color: #0ea5e9;
+  color: #20231f;
   font-size: 0.9rem;
 }
 
 .selected-dataset {
-  background-color: #f8f9fa;
+  background-color: #fbfaf6;
   padding: 0.75rem 1rem;
   border-radius: 8px;
-  border: 1px solid #e9ecef;
-  color: #495057;
+  border: 1px solid #dde1d4;
+  color: #697064;
   font-weight: 500;
   margin-top: 0.5rem;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -110,10 +110,10 @@
   margin-top: 0.5rem;
   padding: 0.7rem 1rem;
   border-radius: 8px;
-  border: 1px solid #ced4da;
-  background-color: #f8f9fa;
+  border: 1px solid #b9c1b1;
+  background-color: #fbfaf6;
   font-size: 0.9rem;
-  color: #495057;
+  color: #697064;
   transition: all 0.2s ease;
   cursor: pointer;
   appearance: none;
@@ -124,8 +124,8 @@
 }
 
 .config-section select:focus {
-  border-color: #0ea5e9;
-  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.25);
+  border-color: #20231f;
+  box-shadow: 0 0 0 3px rgba(32, 35, 31, 0.25);
   outline: none;
 }
 
@@ -135,7 +135,7 @@
   padding: 1.25rem;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
   margin-top: 1rem;
-  border: 1px solid #e9ecef;
+  border: 1px solid #dde1d4;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -146,7 +146,7 @@
 
 .config-section-1 h3 {
   font-size: 1.1rem;
-  color: #0ea5e9;
+  color: #20231f;
   margin-bottom: 1rem;
   font-weight: 500;
   display: flex;
@@ -170,7 +170,7 @@
   margin-top: 0.75rem;
   margin-bottom: 0.5rem;
   font-size: 0.9rem;
-  color: #495057;
+  color: #697064;
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -178,7 +178,7 @@
 
 .config-section-1 label i {
   margin-right: 8px;
-  color: #0ea5e9;
+  color: #20231f;
   font-size: 0.9rem;
 }
 
@@ -187,16 +187,16 @@
   width: 100%;
   padding: 0.7rem 1rem;
   border-radius: 8px;
-  border: 1px solid #ced4da;
-  background-color: #f8f9fa;
+  border: 1px solid #b9c1b1;
+  background-color: #fbfaf6;
   font-size: 0.9rem;
-  color: #495057;
+  color: #697064;
   transition: all 0.2s ease;
 }
 
 .config-section-1 input:focus {
-  border-color: #0ea5e9;
-  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.25);
+  border-color: #20231f;
+  box-shadow: 0 0 0 3px rgba(32, 35, 31, 0.25);
   outline: none;
 }
 
@@ -216,13 +216,13 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid #dde1d4;
   padding-bottom: 1rem;
 }
 
 .training-header h2 {
   font-size: 1.5rem;
-  color: #0ea5e9;
+  color: #20231f;
   margin: 0;
   font-weight: 600;
   display: flex;
@@ -235,14 +235,14 @@
 }
 
 .training-badge {
-  background: linear-gradient(90deg, #0ea5e9, #38bdf8);
+  background: linear-gradient(90deg, #20231f, #20231f);
   color: white;
   font-size: 0.8rem;
   padding: 0.35rem 0.75rem;
   border-radius: 50px;
   margin-left: 1rem;
   font-weight: 500;
-  box-shadow: 0 2px 5px rgba(14, 165, 233, 0.3);
+  box-shadow: 0 2px 5px rgba(32, 35, 31, 0.3);
   display: inline-flex;
   align-items: center;
   animation: pulse 2s infinite;
@@ -250,13 +250,13 @@
 
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.7);
+    box-shadow: 0 0 0 0 rgba(32, 35, 31, 0.7);
   }
   70% {
-    box-shadow: 0 0 0 10px rgba(14, 165, 233, 0);
+    box-shadow: 0 0 0 10px rgba(32, 35, 31, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(14, 165, 233, 0);
+    box-shadow: 0 0 0 0 rgba(32, 35, 31, 0);
   }
 }
 
@@ -272,19 +272,19 @@
 }
 
 .progress-info span {
-  color: #495057;
+  color: #697064;
   font-weight: 500;
   font-size: 0.9rem;
 }
 
 .progress-info span:last-child {
-  color: #0ea5e9;
+  color: #20231f;
   font-weight: 600;
 }
 
 .progress-bar {
   width: 100%;
-  background-color: #e9ecef;
+  background-color: #dde1d4;
   border-radius: 10px;
   overflow: hidden;
   height: 1.5rem;
@@ -293,7 +293,7 @@
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #0ea5e9, #38bdf8);
+  background: linear-gradient(90deg, #20231f, #20231f);
   transition: width 0.5s ease-in-out;
   text-align: center;
   color: #fff;
@@ -354,8 +354,8 @@
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
   margin-bottom: 1.5rem;
-  color: #343a40;
-  border: 1px solid #e9ecef;
+  color: #20231f;
+  border: 1px solid #dde1d4;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -366,7 +366,7 @@
 
 .chart-small h3 {
   font-size: 1.1rem;
-  color: #0ea5e9;
+  color: #20231f;
   margin-bottom: 1rem;
   font-weight: 500;
   text-align: center;
@@ -386,8 +386,8 @@
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
   margin-bottom: 1.5rem;
-  color: #343a40;
-  border: 1px solid #e9ecef;
+  color: #20231f;
+  border: 1px solid #dde1d4;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -398,7 +398,7 @@
 
 .matrix-container h3 {
   font-size: 1.1rem;
-  color: #0ea5e9;
+  color: #20231f;
   margin-bottom: 1rem;
   font-weight: 500;
   text-align: center;
@@ -414,13 +414,13 @@
   align-items: center;
   justify-content: center;
   padding: 3rem 2rem;
-  color: #adb5bd;
+  color: #8a9184;
   text-align: center;
 }
 
 .empty-state i {
   margin-bottom: 1rem;
-  color: #dee2e6;
+  color: #dde1d4;
 }
 
 .empty-state p {
@@ -436,8 +436,8 @@
   padding: 1.25rem;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-  color: #343a40;
-  border: 1px solid #e9ecef;
+  color: #20231f;
+  border: 1px solid #dde1d4;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -448,7 +448,7 @@
 
 .residuals-chart-wrapper h4 {
   font-size: 1.1rem;
-  color: #0ea5e9;
+  color: #20231f;
   margin-bottom: 1rem;
   font-weight: 500;
   text-align: center;
@@ -472,12 +472,12 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  border-left: 1px solid #e9ecef;
+  border-left: 1px solid #dde1d4;
 }
 
 .right-sidebar h2 {
   font-size: 1.4rem;
-  color: #0ea5e9;
+  color: #20231f;
   text-align: center;
   letter-spacing: 0.5px;
   margin-bottom: 1.5rem;
@@ -493,7 +493,7 @@
   left: 25%;
   width: 50%;
   height: 3px;
-  background: linear-gradient(to right, rgba(14, 165, 233, 0.2), rgba(14, 165, 233, 0.7), rgba(14, 165, 233, 0.2));
+  background: linear-gradient(to right, rgba(32, 35, 31, 0.2), rgba(32, 35, 31, 0.7), rgba(32, 35, 31, 0.2));
   border-radius: 2px;
 }
 
@@ -506,7 +506,7 @@
 .button-container button {
   width: 100%;
   padding: 1rem;
-  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  background: linear-gradient(135deg, #20231f, #101210);
   border: none;
   border-radius: 50px;
   color: #ffffff;
@@ -515,7 +515,7 @@
   cursor: pointer;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   margin-bottom: 1.5rem;
-  box-shadow: 0 4px 6px rgba(14, 165, 233, 0.25);
+  box-shadow: 0 4px 6px rgba(32, 35, 31, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -527,38 +527,38 @@
 }
 
 .button-container button.training {
-  background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+  background: linear-gradient(135deg, #20231f, #20231f);
   animation: pulse 2s infinite;
 }
 
 .button-container button:hover {
   transform: translateY(-3px);
-  box-shadow: 0 6px 12px rgba(14, 165, 233, 0.35);
+  box-shadow: 0 6px 12px rgba(32, 35, 31, 0.35);
 }
 
 .button-container button:disabled {
-  background: linear-gradient(135deg, #93c5fd, #60a5fa);
+  background: linear-gradient(135deg, #b9c1b1, #8a9184);
   cursor: not-allowed;
   transform: none;
 }
 
 .metrics-container {
-  background-color: #f8f9fa;
+  background-color: #fbfaf6;
   border-radius: 12px;
   padding: 1.25rem;
-  border: 1px solid #e9ecef;
+  border: 1px solid #dde1d4;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
 
 .metrics-container h3 {
   font-size: 1.1rem;
-  color: #0ea5e9;
+  color: #20231f;
   margin-bottom: 1rem;
   font-weight: 500;
   display: flex;
   align-items: center;
   gap: 8px;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid #dde1d4;
   padding-bottom: 0.75rem;
 }
 
@@ -569,19 +569,19 @@
 .button-container p {
   margin: 0.5rem 0;
   font-weight: 500;
-  color: #495057;
+  color: #697064;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 0.75rem;
   background-color: #ffffff;
   border-radius: 8px;
-  border: 1px solid #e9ecef;
+  border: 1px solid #dde1d4;
 }
 
 .button-container p span {
   font-weight: 600;
-  color: #0ea5e9;
+  color: #20231f;
 }
 
 /* 5. Responsive Design */
@@ -618,7 +618,7 @@
   margin: 20px auto;
   padding: 20px;
   background-color: #ffffff;
-  border: 1px solid #e9ecef;
+  border: 1px solid #dde1d4;
   border-radius: 12px;
   box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.08);
   overflow-x: auto;
@@ -642,8 +642,8 @@
   padding: 1.25rem;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-  color: #343a40;
-  border: 1px solid #e9ecef;
+  color: #20231f;
+  border: 1px solid #dde1d4;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -654,7 +654,7 @@
 
 .chart-wrapper h4 {
   font-size: 1.1rem;
-  color: #0ea5e9;
+  color: #20231f;
   margin-bottom: 1rem;
   font-weight: 500;
   text-align: center;

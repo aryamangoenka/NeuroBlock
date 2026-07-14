@@ -17,7 +17,7 @@
   /* Left Column - Available Layers */
   .available-layers-column {
     flex: 0 0 280px; /* Fixed smaller width */
-    border-right: 1px solid #e5e7eb;
+    border-right: 1px solid #dde1d4;
     padding: 16px;
     overflow-y: auto;
 
@@ -34,7 +34,7 @@
         content: "\f5fd"; /* fa-layer-group */
         font-family: "Font Awesome 5 Free";
         font-weight: 900;
-        color: #6366f1;
+        color: #20231f;
       }
     }
 
@@ -60,7 +60,7 @@
       transition: all 0.3s ease;
       position: relative;
       overflow: hidden;
-      border-left: 3px solid var(--border, #333); /* Thinner border */
+      border-left: 3px solid var(--border, #20231f); /* Thinner border */
       color: #000;
       font-weight: 500;
       font-size: 0.85rem; /* Smaller font */
@@ -87,7 +87,7 @@
 
       .add-button {
         padding: 4px 8px; /* Smaller button */
-        background-color: #dfe5f2;
+        background-color: #f7f4ec;
         color: #000;
         border: 1px solid #000;
         border-radius: 4px;
@@ -101,7 +101,7 @@
         justify-content: center;
 
         &:hover {
-          background-color: #88aaee;
+          background-color: #20231f;
           color: #000;
           transform: translateY(-1px);
         }
@@ -115,35 +115,35 @@
     /* Layer-Specific Styling - same as main page */
     .dense-layer {
       background: #ffddca;
-      border-left-color: #ffc107;
+      border-left-color: #a87f10;
 
-      span i { color: #ffc107; }
+      span i { color: #a87f10; }
       .add-button {
         color: #eddcd2;
-        background-color: rgba(255, 193, 7, 0.1);
-        &:hover { background-color: rgba(255, 193, 7, 0.2); }
+        background-color: rgba(168, 127, 16, 0.1);
+        &:hover { background-color: rgba(168, 127, 16, 0.2); }
       }
     }
 
     .convolution-layer {
       background: #fff1e6;
-      border-left-color: #4caf50;
+      border-left-color: #2e9d68;
 
-      span i { color: #4caf50; }
+      span i { color: #2e9d68; }
       .add-button {
-        color: #4caf50;
-        background-color: rgba(76, 175, 80, 0.1);
-        &:hover { background-color: rgba(76, 175, 80, 0.2); }
+        color: #2e9d68;
+        background-color: rgba(46, 157, 104, 0.1);
+        &:hover { background-color: rgba(46, 157, 104, 0.2); }
       }
     }
 
     .maxpooling-layer {
       background: #fde2e4;
-      border-left-color: #e91e63;
+      border-left-color: #c9569c;
 
-      span i { color: #e91e63; }
+      span i { color: #c9569c; }
       .add-button {
-        color: #e91e63;
+        color: #c9569c;
         background-color: rgba(233, 30, 99, 0.1);
         &:hover { background-color: rgba(233, 30, 99, 0.2); }
       }
@@ -151,9 +151,9 @@
 
     .globalaveragepool-layer {
       background: #f0b3c9;
-      border-left-color: #8E24AA;
+      border-left-color: #7b5cd6;
 
-      span i { color: #8E24AA; }
+      span i { color: #7b5cd6; }
       .add-button {
         color: #90DBF4;
         background-color: rgba(142, 36, 170, 0.1);
@@ -163,25 +163,25 @@
 
     .flatten-layer {
       background: linear-gradient(165deg, rgba(0, 188, 212, 0.15), rgba(0, 188, 212, 0.25));
-      border-left-color: #00bcd4;
+      border-left-color: #20231f;
 
-      span i { color: #00bcd4; }
+      span i { color: #20231f; }
       .add-button {
-        color: #00bcd4;
+        color: #20231f;
         background-color: rgba(0, 188, 212, 0.1);
         &:hover { background-color: rgba(0, 188, 212, 0.2); }
       }
     }
 
     .dropout-layer {
-      background: linear-gradient(165deg, rgba(244, 67, 54, 0.15), rgba(244, 67, 54, 0.25));
-      border-left-color: #f44336;
+      background: linear-gradient(165deg, rgba(217, 76, 76, 0.15), rgba(217, 76, 76, 0.25));
+      border-left-color: #d94c4c;
 
-      span i { color: #f44336; }
+      span i { color: #d94c4c; }
       .add-button {
-        color: #f44336;
-        background-color: rgba(244, 67, 54, 0.1);
-        &:hover { background-color: rgba(244, 67, 54, 0.2); }
+        color: #d94c4c;
+        background-color: rgba(217, 76, 76, 0.1);
+        &:hover { background-color: rgba(217, 76, 76, 0.2); }
       }
     }
 
@@ -210,24 +210,24 @@
     }
 
     .activation-layer {
-      background: linear-gradient(165deg, rgba(255, 193, 7, 0.15), rgba(255, 193, 7, 0.25));
-      border-left-color: #ffc107;
+      background: linear-gradient(165deg, rgba(168, 127, 16, 0.15), rgba(168, 127, 16, 0.25));
+      border-left-color: #a87f10;
 
-      span i { color: #ffc107; }
+      span i { color: #a87f10; }
       .add-button {
-        color: #ffc107;
-        background-color: rgba(255, 193, 7, 0.1);
-        &:hover { background-color: rgba(255, 193, 7, 0.2); }
+        color: #a87f10;
+        background-color: rgba(168, 127, 16, 0.1);
+        &:hover { background-color: rgba(168, 127, 16, 0.2); }
       }
     }
 
     .addlayer-layer {
       background: linear-gradient(165deg, rgba(156, 39, 176, 0.15), rgba(156, 39, 176, 0.25));
-      border-left-color: #9c27b0;
+      border-left-color: #7b5cd6;
 
-      span i { color: #9c27b0; }
+      span i { color: #7b5cd6; }
       .add-button {
-        color: #9c27b0;
+        color: #7b5cd6;
         background-color: rgba(156, 39, 176, 0.1);
         &:hover { background-color: rgba(156, 39, 176, 0.2); }
       }
@@ -254,7 +254,7 @@
         content: "\f1b2"; /* fa-cube */
         font-family: "Font Awesome 5 Free";
         font-weight: 900;
-        color: #10b981;
+        color: #2e9d68;
       }
     }
 
@@ -272,15 +272,15 @@
       input {
         width: 100%;
         padding: 10px 12px;
-        border: 1px solid #d1d5db;
+        border: 1px solid #b9c1b1;
         border-radius: 6px;
         font-size: 0.95rem;
         transition: border-color 0.2s ease;
 
         &:focus {
           outline: none;
-          border-color: #6366f1;
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+          border-color: #20231f;
+          box-shadow: 0 0 0 3px rgba(32, 35, 31, 0.1);
         }
 
         &::placeholder {
@@ -326,13 +326,13 @@
       display: flex;
       align-items: center;
       padding: 12px;
-      border: 1px solid #d1d5db;
+      border: 1px solid #b9c1b1;
       border-radius: 6px;
       background-color: #ffffff;
       transition: all 0.2s ease;
 
       &:hover {
-        border-color: #10b981;
+        border-color: #2e9d68;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
       }
 
@@ -340,7 +340,7 @@
         width: 24px;
         height: 24px;
         border-radius: 50%;
-        background-color: #10b981;
+        background-color: #2e9d68;
         color: white;
         display: flex;
         align-items: center;
@@ -362,7 +362,7 @@
         i {
           width: 16px;
           text-align: center;
-          color: #6366f1;
+          color: #20231f;
         }
       }
 
@@ -402,7 +402,7 @@
           color: #6b7280;
 
           &:not(:disabled):hover {
-            background-color: #e5e7eb;
+            background-color: #dde1d4;
             color: #374151;
           }
         }
@@ -413,7 +413,7 @@
 
           &:hover {
             background-color: #fee2e2;
-            color: #b91c1c;
+            color: #a83232;
           }
         }
       }
@@ -422,7 +422,7 @@
 
   .modal-footer {
     .save-btn {
-      background-color: #10b981;
+      background-color: #2e9d68;
       color: white;
       border: none;
 
@@ -448,7 +448,7 @@
     .available-layers-column {
       flex: none;
       border-right: none;
-      border-bottom: 1px solid #e5e7eb;
+      border-bottom: 1px solid #dde1d4;
       max-height: 180px;
       padding: 12px;
     }

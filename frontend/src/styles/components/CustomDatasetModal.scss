@@ -38,14 +38,14 @@
         justify-content: center;
         font-weight: 600;
         font-size: 0.875rem;
-        background-color: #e5e7eb;
+        background-color: #dde1d4;
         color: #6b7280;
         transition: all 0.3s ease;
 
         &.active {
-          background-color: #6366f1;
+          background-color: #20231f;
           color: white;
-          box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+          box-shadow: 0 0 0 4px rgba(32, 35, 31, 0.1);
         }
 
         &:not(:last-child)::after {
@@ -56,12 +56,12 @@
           transform: translateY(-50%);
           width: 16px;
           height: 2px;
-          background-color: #e5e7eb;
+          background-color: #dde1d4;
           margin-left: 8px;
         }
 
         &.active:not(:last-child)::after {
-          background-color: #6366f1;
+          background-color: #20231f;
         }
       }
     }
@@ -102,7 +102,7 @@
       gap: 12px;
 
       i {
-        color: #6366f1;
+        color: #20231f;
         font-size: 1.1rem;
       }
     }
@@ -110,7 +110,7 @@
 
   /* Step 1: File Upload Styles */
   .file-upload-area {
-    border: 2px dashed #d1d5db;
+    border: 2px dashed #b9c1b1;
     border-radius: 12px;
     padding: 48px 24px;
     text-align: center;
@@ -119,8 +119,8 @@
     margin-bottom: 24px;
 
     &:hover, &.drag-over {
-      border-color: #6366f1;
-      background-color: rgba(99, 102, 241, 0.05);
+      border-color: #20231f;
+      background-color: rgba(32, 35, 31, 0.05);
     }
 
     i {
@@ -155,17 +155,17 @@
         align-items: center;
         gap: 8px;
         padding: 12px 24px;
-        border: 2px solid #6366f1;
+        border: 2px solid #20231f;
         border-radius: 8px;
         background-color: transparent;
-        color: #6366f1;
+        color: #20231f;
         font-weight: 600;
         font-size: 0.875rem;
         cursor: pointer;
         transition: all 0.2s ease;
 
         &:hover {
-          background-color: #6366f1;
+          background-color: #20231f;
           color: white;
         }
 
@@ -175,21 +175,21 @@
         }
 
         &.file-btn {
-          border-color: #6366f1;
-          color: #6366f1;
+          border-color: #20231f;
+          color: #20231f;
 
           &:hover {
-            background-color: #6366f1;
+            background-color: #20231f;
             color: white;
           }
         }
 
         &.folder-btn {
-          border-color: #10b981;
-          color: #10b981;
+          border-color: #2e9d68;
+          color: #2e9d68;
 
           &:hover {
-            background-color: #10b981;
+            background-color: #2e9d68;
             color: white;
           }
         }
@@ -210,7 +210,7 @@
       font-size: 0.875rem;
 
       i {
-        color: #6366f1;
+        color: #20231f;
         font-size: 1.1rem;
       }
 
@@ -232,13 +232,13 @@
       gap: 8px;
 
       i {
-        color: #6366f1;
+        color: #20231f;
       }
     }
 
     .development-notice {
       background-color: #fef3c7;
-      border: 1px solid #f59e0b;
+      border: 1px solid #a87f10;
       border-radius: 8px;
       padding: 16px;
       margin-bottom: 20px;
@@ -253,7 +253,7 @@
         color: #92400e;
 
         i {
-          color: #f59e0b;
+          color: #a87f10;
           font-size: 1rem;
         }
 
@@ -296,7 +296,7 @@
 
     .preview-table-wrapper {
       border-radius: 8px;
-      border: 1px solid #e5e7eb;
+      border: 1px solid #dde1d4;
       overflow: auto;
       max-height: 200px;
 
@@ -307,7 +307,7 @@
 
         th {
           background-color: #f9fafb;
-          border-bottom: 1px solid #e5e7eb;
+          border-bottom: 1px solid #dde1d4;
           padding: 12px 8px;
           text-align: left;
           font-weight: 500;
@@ -373,15 +373,15 @@
 
     select, input[type="text"] {
       padding: 12px;
-      border: 1px solid #d1d5db;
+      border: 1px solid #b9c1b1;
       border-radius: 6px;
       font-size: 0.875rem;
       transition: all 0.2s ease;
 
       &:focus {
         outline: none;
-        border-color: #6366f1;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        border-color: #20231f;
+        box-shadow: 0 0 0 3px rgba(32, 35, 31, 0.1);
       }
     }
 
@@ -410,7 +410,7 @@
       max-height: 200px;
       overflow-y: auto;
       padding: 16px;
-      border: 1px solid #e5e7eb;
+      border: 1px solid #dde1d4;
       border-radius: 6px;
       background-color: #f9fafb;
 
@@ -424,7 +424,7 @@
         transition: background-color 0.2s ease;
 
         &:hover {
-          background-color: rgba(99, 102, 241, 0.05);
+          background-color: rgba(32, 35, 31, 0.05);
         }
 
         input[type="checkbox"] {
@@ -450,7 +450,7 @@
   .validation-results {
     margin-top: 24px;
     border-radius: 8px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #dde1d4;
     overflow: hidden;
 
     h5 {
@@ -463,10 +463,10 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      border-bottom: 1px solid #e5e7eb;
+      border-bottom: 1px solid #dde1d4;
 
       i {
-        color: #10b981;
+        color: #2e9d68;
       }
     }
 
@@ -508,7 +508,7 @@
         }
 
         ul li {
-          color: #b91c1c;
+          color: #a83232;
         }
       }
 
@@ -529,13 +529,13 @@
       }
 
       &.recommendations {
-        background-color: #f0f9ff;
+        background-color: #fbfaf6;
 
         h6 {
-          color: #0369a1;
+          color: #101210;
 
           i {
-            color: #0369a1;
+            color: #101210;
           }
         }
 
@@ -566,7 +566,7 @@
         justify-content: space-between;
         align-items: center;
         padding: 8px 0;
-        border-bottom: 1px solid #e5e7eb;
+        border-bottom: 1px solid #dde1d4;
         font-size: 0.875rem;
 
         &:last-child {
@@ -614,7 +614,7 @@
     background-color: #fee2e2;
     border: 1px solid #fca5a5;
     border-radius: 6px;
-    color: #b91c1c;
+    color: #a83232;
     font-size: 0.875rem;
     display: flex;
     align-items: center;
@@ -649,7 +649,7 @@
 
       i {
         font-size: 2rem;
-        color: #6366f1;
+        color: #20231f;
       }
 
       span {
@@ -665,7 +665,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid #dde1d4;
     flex-shrink: 0;
     background-color: white;
 
@@ -673,7 +673,7 @@
       padding: 8px 16px;
       background-color: #f3f4f6;
       color: #374151;
-      border: 1px solid #d1d5db;
+      border: 1px solid #b9c1b1;
       border-radius: 6px;
       cursor: pointer;
       font-size: 0.875rem;
@@ -681,7 +681,7 @@
       transition: all 0.2s ease;
 
       &:hover {
-        background-color: #e5e7eb;
+        background-color: #dde1d4;
         color: #1f2937;
       }
     }
@@ -711,22 +711,22 @@
       .back-btn {
         background-color: #f3f4f6;
         color: #374151;
-        border: 1px solid #d1d5db;
+        border: 1px solid #b9c1b1;
 
         &:hover:not(:disabled) {
-          background-color: #e5e7eb;
+          background-color: #dde1d4;
           color: #1f2937;
         }
       }
 
       .next-btn, .create-btn {
-        background-color: #6366f1;
+        background-color: #20231f;
         color: white;
 
         &:hover:not(:disabled) {
           background-color: #5855eb;
           transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+          box-shadow: 0 4px 12px rgba(32, 35, 31, 0.3);
         }
 
         &:active:not(:disabled) {
@@ -735,7 +735,7 @@
       }
 
       .create-btn {
-        background-color: #10b981;
+        background-color: #2e9d68;
 
         &:hover:not(:disabled) {
           background-color: #059669;
@@ -759,7 +759,7 @@
       gap: 8px;
 
       i {
-        color: #6366f1;
+        color: #20231f;
         font-size: 0.9rem;
       }
     }
@@ -793,13 +793,13 @@
         .class-bar {
           width: 100%;
           height: 4px;
-          background-color: #e5e7eb;
+          background-color: #dde1d4;
           border-radius: 2px;
           overflow: hidden;
 
           .class-bar-fill {
             height: 100%;
-            background-color: #6366f1;
+            background-color: #20231f;
             transition: width 0.3s ease;
           }
         }
@@ -819,7 +819,7 @@
           font-size: 0.875rem;
 
           i {
-            color: #6366f1;
+            color: #20231f;
             font-size: 1rem;
           }
 
@@ -849,7 +849,7 @@
   .config-info {
     margin-bottom: 20px;
     padding: 12px 16px;
-    background-color: #eff6ff;
+    background-color: #fbfaf6;
     border: 1px solid #bfdbfe;
     border-radius: 6px;
 
@@ -861,7 +861,7 @@
       color: #1e40af;
 
       i {
-        color: #3b82f6;
+        color: #20231f;
         margin-top: 2px;
         flex-shrink: 0;
       }
@@ -881,7 +881,7 @@
       gap: 8px;
 
       i {
-        color: #6366f1;
+        color: #20231f;
         font-size: 0.9rem;
       }
     }
@@ -893,7 +893,7 @@
 
       .class-tag {
         padding: 4px 12px;
-        background-color: #6366f1;
+        background-color: #20231f;
         color: white;
         border-radius: 16px;
         font-size: 0.8rem;
@@ -951,3 +951,53 @@
     }
   }
 } 
+/* ===== Paper Lab semantic alerts (DESIGN.md) ===== */
+.error-message,
+.validation-warning,
+.validation-group {
+  border-radius: 10px !important;
+  border: 1px solid var(--line) !important;
+  background: var(--card) !important;
+  color: var(--ink) !important;
+  box-shadow: none !important;
+  padding: 11px 14px !important;
+  font-size: 13px !important;
+  position: relative;
+  padding-left: 20px !important;
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: 6px;
+    top: 8px;
+    bottom: 8px;
+    width: 4px;
+    border-radius: 2px;
+    background: var(--line-strong);
+  }
+
+  h4, h5, strong { color: var(--ink) !important; font-size: 13px !important; }
+  li, p, span { color: var(--ink-muted) !important; font-size: 12.5px !important; }
+}
+.error-message,
+.validation-group.errors {
+  &::before { background: var(--err) !important; }
+  h4, h5, strong, > span { color: var(--err) !important; }
+}
+.validation-warning,
+.validation-group.warnings {
+  &::before { background: var(--warn-ink) !important; }
+  h4, h5, strong { color: var(--warn-ink) !important; }
+}
+.validation-group.recommendations {
+  &::before { background: var(--focus) !important; }
+  h4, h5, strong { color: var(--focus) !important; }
+}
+.validation-results {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
