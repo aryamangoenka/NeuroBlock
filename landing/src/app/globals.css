@@ -2,80 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+/* Paper Lab tokens — see DESIGN.md at the repo root */
+:root {
+  --paper: #f7f4ec;
+  --card: #ffffff;
+  --raised: #fbfaf6;
+  --canvas: #eef1ea;
+  --dot: #d3d8c8;
+  --ink: #20231f;
+  --muted: #697064;
+  --line: #dde1d4;
+  --line-strong: #b9c1b1;
+  --citrus: #f26b3a;
+  --citrus-deep: #e4552a;
+  --ok: #2e9d68;
+  --focus: #2563eb;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+  --n-input: #64707d;
+  --n-conv: #2d7dd2;
+  --n-pool: #0899a8;
+  --n-flat: #a87f10;
+  --n-dense: #7b5cd6;
+  --n-drop: #c9569c;
+  --n-out: #1f7a4d;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 270 95% 60%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 270 95% 97%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 270 95% 60%;
-
-    --radius: 0.5rem;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 270 95% 60%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 270 95% 60%;
-  }
+  --f-ui: "General Sans", ui-sans-serif, system-ui, sans-serif;
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+* {
+  box-sizing: border-box;
 }
 
-/* Test block to verify Tailwind works */
-.test {
-  @apply bg-green-500 text-white p-4 rounded;
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--f-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+.f-display {
+  font-family: var(--f-display), sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.f-mono {
+  font-family: var(--f-mono), monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.dotgrid {
+  background-image: radial-gradient(circle at 1px 1px, var(--dot) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+.card-shadow {
+  box-shadow: 0 1px 2px rgba(32, 35, 31, 0.06), 0 4px 14px rgba(32, 35, 31, 0.05);
+}
+
+::selection {
+  background: rgba(242, 107, 58, 0.25);
 }

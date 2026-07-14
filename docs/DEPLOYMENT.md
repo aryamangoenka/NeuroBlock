@@ -104,3 +104,14 @@ fine; concurrent trainings share the CPU and simply take a bit longer.
 | `EXTRA_ALLOWED_ORIGINS` | empty | Comma-separated extra CORS origins (only needed for split deployments) |
 | `SESSION_COOKIE_SECURE` | true | Set `false` when serving plain HTTP (bare-IP EC2) |
 | `SESSION_MAX_AGE` | 168 | Hours before per-session datasets are cleaned |
+
+## Landing page
+
+The marketing page (`landing/`) deploys separately on Vercel
+(https://neuroblock-app.vercel.app). Its call-to-action buttons say
+"Get the code" until the class server exists. Once the EC2 app is live,
+point them at it:
+
+Vercel dashboard → project `neuroblock` → Settings → Environment
+Variables → add `NEXT_PUBLIC_APP_URL = https://<your-app-url>` →
+redeploy. The buttons become "Open the builder".

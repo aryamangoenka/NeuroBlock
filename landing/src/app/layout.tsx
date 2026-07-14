@@ -1,14 +1,23 @@
 import type React from "react";
 import "./globals.css";
-import { Inter } from "next/font/google";
-import { ThemeProvider } from "@/components//ui/theme-provider";
+import { Bricolage_Grotesque, IBM_Plex_Mono } from "next/font/google";
 
-const inter = Inter({ subsets: ["latin"] });
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"],
+  variable: "--f-display",
+  weight: ["400", "600", "700"],
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  variable: "--f-mono",
+  weight: ["400", "500"],
+});
 
 export const metadata = {
-  title: "NeuroBlock - Visual AI Model Builder",
+  title: "NeuroBlock — Build neural networks visually",
   description:
-    "Build AI models visually with our intuitive drag-and-drop interface. No coding required.",
+    "Design, train, and export real neural networks by connecting blocks on a canvas. Live training, real code out. Built for the UMass Turing summer program.",
 };
 
 export default function RootLayout({
@@ -17,17 +26,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.className} suppressHydrationWarning>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
-      </body>
+    <html lang="en" className={`${bricolage.variable} ${plexMono.variable}`}>
+      <head>
+        <link
+          href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body>{children}</body>
     </html>
   );
 }
