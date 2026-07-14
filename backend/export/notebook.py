@@ -169,9 +169,7 @@ def generate_notebook(model, training_config, x_train_shape, dataset_name):
             padding = getattr(layer, 'padding', 'valid')
             if hasattr(layer, 'data') and 'padding' in layer.data:
                 padding = layer.data['padding']
-            layer_str = f"model.add(Conv2D({filters}"
-            if kernel_size != (3,3):
-                layer_str += f", kernel_size={kernel_size}"
+            layer_str = f"model.add(Conv2D({filters}, kernel_size={kernel_size}"
             if strides != (1,1):
                 layer_str += f", strides={strides}"
             if padding != 'valid':
@@ -190,9 +188,7 @@ def generate_notebook(model, training_config, x_train_shape, dataset_name):
             padding = getattr(layer, 'padding', 'valid')
             if hasattr(layer, 'data') and 'padding' in layer.data:
                 padding = layer.data['padding']
-            layer_str = "model.add(MaxPooling2D("
-            if pool_size != (2,2):
-                layer_str += f"pool_size={pool_size}"
+            layer_str = f"model.add(MaxPooling2D(pool_size={pool_size}"
             if strides:
                 layer_str += f", strides={strides}"
             if padding != 'valid':
@@ -202,11 +198,8 @@ def generate_notebook(model, training_config, x_train_shape, dataset_name):
         elif "flatten" in layer_type or "flatten" in layer_name or layer_class == "Flatten":
             model_code.append("model.add(Flatten())")
         elif "dropout" in layer_type or "dropout" in layer_name or layer_class == "Dropout":
-            rate = layer.rate if hasattr(layer, 'rate') and layer.rate != 0.5 else None
-            if rate is not None:
-                model_code.append(f"model.add(Dropout({rate}))")
-            else:
-                model_code.append("model.add(Dropout())")
+            rate = layer.rate if hasattr(layer, 'rate') else 0.5
+            model_code.append(f"model.add(Dropout({rate}))")
         elif "batchnormalization" in layer_type or "batchnormalization" in layer_name or layer_class == "BatchNormalization":
             momentum = layer.momentum if hasattr(layer, 'momentum') and layer.momentum != 0.99 else None
             epsilon = layer.epsilon if hasattr(layer, 'epsilon') and layer.epsilon != 0.001 else None
@@ -321,7 +314,7 @@ def generate_notebook(model, training_config, x_train_shape, dataset_name):
         "metadata": {},
         "source": [
             "# Save the model",
-            "model.save('trained_model.h5')"
+            "model.save('trained_model.keras')"
         ],
         "outputs": []
     })
@@ -336,10 +329,19 @@ def generate_notebook(model, training_config, x_train_shape, dataset_name):
             },
             "language_info": {
                 "name": "python",
-                "version": "3.8.0"
+                "version": "3.12.0"
             }
         },
         "nbformat": 4,
         "nbformat_minor": 4
     }
+    # Every source line except the last must end with a newline, or Jupyter
+    # renders the whole cell as one concatenated line.
+    for cell in notebook["cells"]:
+        src = cell.get("source", [])
+        cell["source"] = [
+            line if (line.endswith("\n") or i == len(src) - 1) else line + "\n"
+            for i, line in enumerate(src)
+        ]
+
     return json.dumps(notebook, indent=2) 

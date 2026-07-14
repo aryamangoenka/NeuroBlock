@@ -229,9 +229,7 @@ def generate_python_script(model, training_config, x_train_shape, dataset_name):
                 padding = layer.data['padding']
             
             # Build the layer string with only the parameters that were explicitly set
-            layer_str = f"model.add(Conv2D({filters}"
-            if kernel_size != (3,3):
-                layer_str += f", kernel_size={kernel_size}"
+            layer_str = f"model.add(Conv2D({filters}, kernel_size={kernel_size}"
             if strides != (1,1):
                 layer_str += f", strides={strides}"
             if padding != 'valid':
@@ -259,9 +257,7 @@ def generate_python_script(model, training_config, x_train_shape, dataset_name):
                 padding = layer.data['padding']
             
             # Build the layer string with only the parameters that were explicitly set
-            layer_str = "model.add(MaxPooling2D("
-            if pool_size != (2,2):
-                layer_str += f"pool_size={pool_size}"
+            layer_str = f"model.add(MaxPooling2D(pool_size={pool_size}"
             if strides:
                 layer_str += f", strides={strides}"
             if padding != 'valid':
@@ -275,11 +271,8 @@ def generate_python_script(model, training_config, x_train_shape, dataset_name):
             
         elif "dropout" in layer_type or "dropout" in layer_name or layer_class == "Dropout":
             # Only include rate if it's not the default 0.5
-            rate = layer.rate if hasattr(layer, 'rate') and layer.rate != 0.5 else None
-            if rate is not None:
-                script.append(f"model.add(Dropout({rate}))")
-            else:
-                script.append(f"model.add(Dropout())")
+            rate = layer.rate if hasattr(layer, 'rate') else 0.5
+            script.append(f"model.add(Dropout({rate}))")
             
         elif "batchnormalization" in layer_type or "batchnormalization" in layer_name or layer_class == "BatchNormalization":
             # Only get the values that were explicitly set
@@ -390,7 +383,7 @@ def generate_python_script(model, training_config, x_train_shape, dataset_name):
     script.append("print(f'Test accuracy: {test_acc:.4f}')")
     script.append("")
     script.append("# Save the model")
-    script.append("model.save('trained_model.h5')")
+    script.append("model.save('trained_model.keras')")
     
     return "\n".join(script)
 

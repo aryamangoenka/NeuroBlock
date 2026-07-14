@@ -365,301 +365,35 @@ def export_model(format):
             return send_file(os.path.abspath(file_path), as_attachment=True)
 
         elif format == "savedmodel":
-            logger.info("Exporting to SavedModel format")
-            # Save the model in TensorFlow 2 SavedModel format
+            logger.info("Exporting to TensorFlow SavedModel format")
             saved_model_dir = os.path.join(export_folder, "saved_model_tf2")
-            
-            # Clear any existing directory to avoid conflicts
             if os.path.exists(saved_model_dir):
-                logger.debug(f"Removing existing directory: {saved_model_dir}")
                 shutil.rmtree(saved_model_dir)
-            os.makedirs(saved_model_dir, exist_ok=True)
-            
-            # Create a separate directory for the weights-only approach as fallback
-            weights_dir = os.path.join(saved_model_dir, "weights_only")
-            os.makedirs(weights_dir, exist_ok=True)
-            
-            # First, save weights and config separately as a guaranteed fallback
-            try:
-                # Save weights
-                weights_path = os.path.join(weights_dir, "weights.h5")
-                model.save_weights(weights_path)
-                
-                # Save model configuration
-                config_path = os.path.join(weights_dir, "model_config.json")
-                with open(config_path, 'w') as f:
-                    json.dump(json.loads(model.to_json()), f, indent=2)
-                
-                # Create a Python script to load the model
-                loader_script = os.path.join(weights_dir, "load_model.py")
-                with open(loader_script, 'w') as f:
-                    f.write("""
-import tensorflow as tf
-from tensorflow.keras.models import model_from_json
-import json
 
-# Define custom attention layer class
-@tf.keras.utils.register_keras_serializable(package='custom_layers')
-class CustomAttentionLayer(tf.keras.layers.Layer):
-    def __init__(self, num_heads=8, key_dim=64, dropout=0.0, **kwargs):
-        super(CustomAttentionLayer, self).__init__(**kwargs)
-        self.num_heads = num_heads
-        self.key_dim = key_dim
-        self.dropout = dropout
-        self.attention = None
-        
-    def build(self, input_shape):
-        self.attention = tf.keras.layers.MultiHeadAttention(
-            num_heads=self.num_heads,
-            key_dim=self.key_dim,
-            dropout=self.dropout
-        )
-        super(CustomAttentionLayer, self).build(input_shape)
-        
-    def call(self, inputs, training=None):
-        return self.attention(inputs, inputs, training=training)
-        
-    def get_config(self):
-        config = super(CustomAttentionLayer, self).get_config()
-        config.update({
-            'num_heads': self.num_heads,
-            'key_dim': self.key_dim,
-            'dropout': self.dropout
-        })
-        return config
+            # Keras 3: model.export() writes a TF SavedModel for serving.
+            model.export(saved_model_dir)
 
-# Define custom attention function for Lambda layer
-@tf.keras.utils.register_keras_serializable(package='custom_layers')
-def apply_attention(x, num_heads=8, key_dim=64, dropout=0.0):
-    attention_layer = tf.keras.layers.MultiHeadAttention(
-        num_heads=num_heads,
-        key_dim=key_dim,
-        dropout=dropout
-    )
-    return attention_layer(x, x)
+            # Include the native Keras file alongside for reloading/fine-tuning
+            keras_copy = os.path.join(saved_model_dir, "model.keras")
+            model.save(keras_copy)
 
-# Load model architecture from saved_model.json
-with open('saved_model.json', 'r') as f:
-    model_arch = json.load(f)
-    
-# Convert architecture to model JSON format
-model_json = model_arch.get('model_json', {})
-model_json_str = json.dumps(model_json)
-
-# Create model with custom objects
-custom_objects = {
-    'CustomAttentionLayer': CustomAttentionLayer,
-    'apply_attention': apply_attention
-}
-model = model_from_json(model_json_str, custom_objects=custom_objects)
-
-# Load weights
-model.load_weights('weights.h5')
-
-# Now the model is ready to use
-print("Model loaded successfully!")
-""")
-                
-                # Create a README
-                readme_path = os.path.join(weights_dir, "README.txt")
-                with open(readme_path, 'w') as f:
-                    f.write("""
-# SavedModel with Custom Layers
-
-This SavedModel contains custom attention layers that required special handling.
-
-## How to Load the Model
-
-1. Use the provided `load_model.py` script which contains all necessary custom layer definitions.
-2. Or manually load using the following steps:
-   a. Define the CustomAttentionLayer class (see load_model.py)
-   b. Load the model architecture from saved_model.json
-   c. Load the weights from weights.h5
-
-Example:
-```python
-import tensorflow as tf
-from tensorflow.keras.models import model_from_json
-import json
-
-# Define custom layers (see load_model.py for full definitions)
-@tf.keras.utils.register_keras_serializable(package='custom_layers')
-class CustomAttentionLayer(tf.keras.layers.Layer):
-    # ... (copy from load_model.py)
-
-# Load model from saved_model.json
-with open('saved_model.json', 'r') as f:
-    model_arch = json.load(f)
-model = model_from_json(json.dumps(model_arch.get('model_json', {})), custom_objects={'CustomAttentionLayer': CustomAttentionLayer})
-
-# Load weights
-model.load_weights('weights.h5')
-```
-""")
-                
-                logger.info("Saved weights and configuration as fallback")
-            except Exception as e:
-                logger.warning(f"Could not save weights and config: {str(e)}")
-            
-            # Now try to save the full SavedModel with different approaches
-            success = False
-            
-            # Approach 1: Try to save with tf.saved_model.save and custom signatures
-            try:
-                logger.debug("Attempting to save model with tf.saved_model.save and custom signatures")
-                # Define serving signature with explicit tensor conversion to avoid descriptor issues
-                @tf.function
-                def serving_fn(inputs):
-                    # Convert inputs to tensor explicitly to avoid descriptor issues
-                    inputs_tensor = tf.convert_to_tensor(inputs, dtype=tf.float32)
-                    return {"outputs": model(inputs_tensor, training=False)}
-                
-                # Create input signature separately
-                input_signature = [tf.TensorSpec(shape=model_input_shape, dtype=tf.float32, name="inputs")]
-                
-                # Get the concrete function
-                concrete_serving_fn = serving_fn.get_concrete_function(*input_signature)
-                
-                # Save with concrete function
-                tf.saved_model.save(
-                    model,
-                    saved_model_dir,
-                    signatures={
-                        "serving_default": concrete_serving_fn
-                    },
-                    options=tf.saved_model.SaveOptions(
-                        experimental_custom_gradients=False,
-                        save_debug_info=False
-                    )
+            readme_path = os.path.join(saved_model_dir, "README.txt")
+            with open(readme_path, "w") as f:
+                f.write(
+                    "NeuroBlock SavedModel export\n"
+                    "============================\n\n"
+                    "saved_model.pb + variables/  TensorFlow SavedModel (for serving,\n"
+                    "                             TF Serving, or tf.saved_model.load)\n"
+                    "model.keras                  Native Keras model (for reloading in\n"
+                    "                             Python: keras.models.load_model)\n"
                 )
-                logger.info("Model saved successfully with tf.saved_model.save and custom signatures")
-                success = True
-            except Exception as e:
-                logger.warning(f"Could not save with approach 1: {str(e)}")
-            
-            # Approach 2: If approach 1 failed, try rebuilding the model
-            if not success and os.path.exists(model_architecture_file):
-                try:
-                    logger.debug("Attempting to save model by rebuilding from architecture")
-                    # Get the model architecture from the saved file
-                    with open(model_architecture_file, "r") as f:
-                        rebuild_arch = json.load(f)
-                    
-                    # Build a fresh model from the architecture
-                    from backend.models.builder import build_model_from_architecture
-                    fresh_model = build_model_from_architecture(
-                        rebuild_arch, 
-                        model_input_shape, 
-                        dataset_name
-                    )
-                    
-                    # Copy weights from the trained model to the fresh model
-                    fresh_model.set_weights(model.get_weights())
-                    
-                    # Compile the model (important for SavedModel)
-                    fresh_model.compile(
-                        optimizer='adam',  # Doesn't matter for inference
-                        loss='mse',        # Doesn't matter for inference
-                        metrics=['accuracy']
-                    )
-                    
-                    # Create concrete functions for the model with explicit tensor conversion
-                    @tf.function
-                    def serving_fn(inputs):
-                        # Convert inputs to tensor explicitly
-                        inputs_tensor = tf.convert_to_tensor(inputs, dtype=tf.float32)
-                        return {"outputs": fresh_model(inputs_tensor, training=False)}
-                    
-                    # Create input signature separately
-                    input_signature = [tf.TensorSpec(shape=fresh_model.input_shape, dtype=tf.float32, name="inputs")]
-                    
-                    # Get the concrete function
-                    concrete_serving_fn = serving_fn.get_concrete_function(*input_signature)
-                    
-                    # Save with concrete function
-                    tf.saved_model.save(
-                        fresh_model,
-                        saved_model_dir,
-                        signatures={
-                            "serving_default": concrete_serving_fn
-                        },
-                        options=tf.saved_model.SaveOptions(
-                            experimental_custom_gradients=False,
-                            save_debug_info=False
-                        )
-                    )
-                    logger.info("Fresh model saved successfully with tf.saved_model.save and custom signatures")
-                    success = True
-                except Exception as e:
-                    logger.warning(f"Could not save with approach 2: {str(e)}")
-            
-            # Approach 3: If approaches 1 and 2 failed, try saving with Keras model.save
-            if not success:
-                try:
-                    logger.debug("Attempting to save model with Keras model.save")
-                    # For Keras 3, use file extension to determine format instead of save_format parameter
-                    keras_saved_model_path = os.path.join(saved_model_dir, "keras_model")
-                    os.makedirs(keras_saved_model_path, exist_ok=True)
-                    
-                    # Try saving in TF SavedModel format by using a directory path
-                    model.save(
-                        keras_saved_model_path,
-                        include_optimizer=False
-                    )
-                    logger.info("Model saved successfully with model.save to directory (SavedModel format)")
-                    success = True
-                except Exception as e:
-                    logger.warning(f"Could not save with approach 3 (directory): {str(e)}")
-                    
-                    # Try saving in Keras format with .keras extension
-                    try:
-                        keras_file_path = os.path.join(saved_model_dir, "model.keras")
-                        model.save(
-                            keras_file_path,
-                            include_optimizer=False
-                        )
-                        logger.info("Model saved successfully with model.save to .keras file")
-                        success = True
-                    except Exception as e2:
-                        logger.warning(f"Could not save with approach 3 (.keras file): {str(e2)}")
-                        
-                        # Try saving in HDF5 format with .h5 extension as last resort
-                        try:
-                            h5_file_path = os.path.join(saved_model_dir, "model.h5")
-                            model.save(
-                                h5_file_path,
-                                include_optimizer=False
-                            )
-                            logger.info("Model saved successfully with model.save to .h5 file")
-                            success = True
-                        except Exception as e3:
-                            logger.warning(f"Could not save with approach 3 (.h5 file): {str(e3)}")
-            
-            # If all approaches failed, create a special README
-            if not success:
-                logger.error("All approaches to save the model failed")
-                readme_path = os.path.join(saved_model_dir, "README.txt")
-                with open(readme_path, 'w') as f:
-                    f.write("""
-# SavedModel Export Failed
 
-The model could not be saved in the standard SavedModel format due to custom layers.
-However, we've provided the model weights and architecture in the 'weights_only' directory.
-
-Please use the 'load_model.py' script in the 'weights_only' directory to load the model.
-""")
-                logger.warning("Created fallback README for weights-only approach")
-            
-            # Zip the SavedModel directory
-            logger.debug(f"Creating zip archive of SavedModel directory: {saved_model_dir}")
-            zip_path = shutil.make_archive(saved_model_dir, 'zip', saved_model_dir)
-            logger.info(f"Saved model exported to zip file: {zip_path}")
-
-            # Send the zipped SavedModel
+            zip_path = shutil.make_archive(saved_model_dir, "zip", saved_model_dir)
+            logger.info(f"SavedModel exported to {zip_path}")
             return send_file(
                 zip_path,
                 as_attachment=True,
-                mimetype='application/zip'
+                mimetype="application/zip",
             )
 
         elif format == "keras":
@@ -703,6 +437,25 @@ Please use the 'load_model.py' script in the 'weights_only' directory to load th
             # Use absolute path for send_file
             return send_file(os.path.abspath(file_path), as_attachment=True)
         
+        elif format == "tflite":
+            logger.info("Exporting to TensorFlow Lite format")
+            converter = tf.lite.TFLiteConverter.from_keras_model(model)
+            # Broad op support so attention/custom layers convert cleanly
+            converter.target_spec.supported_ops = [
+                tf.lite.OpsSet.TFLITE_BUILTINS,
+                tf.lite.OpsSet.SELECT_TF_OPS,
+            ]
+            tflite_model = converter.convert()
+            file_path = os.path.join(export_folder, "model.tflite")
+            with open(file_path, "wb") as f:
+                f.write(tflite_model)
+            logger.info(f"TFLite model exported to {file_path} ({len(tflite_model)} bytes)")
+            return send_file(
+                os.path.abspath(file_path),
+                as_attachment=True,
+                mimetype="application/octet-stream",
+            )
+
         elif format == "pytorch":
             logger.info("Exporting to PyTorch format")
             # Load the latest training configuration

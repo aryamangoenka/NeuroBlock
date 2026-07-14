@@ -47,6 +47,9 @@ print(f'Using device: {{device}}')
 
 """
 
+    # Normalize dataset name once, before any lookups
+    dataset_name = dataset_name.lower() if dataset_name else ""
+
     # Check if this is a custom dataset
     is_custom_dataset = _is_custom_dataset(dataset_name)
     
@@ -71,7 +74,7 @@ print(f'Using device: {{device}}')
     dataset_name = dataset_name.lower() if dataset_name else ""
     
     # Add the dataset name as a variable for the evaluation logic
-    pytorch_code += f"\n# Define the dataset name for evaluation logic\ndataset_name = \"{dataset_name}\"\n"
+    pytorch_code += f"# Define the dataset name for evaluation logic\ndataset_name = \"{dataset_name}\"\n"
 
     # Add attention-specific imports if needed
     if has_attention_layer:
@@ -122,137 +125,6 @@ from torch.nn import MultiheadAttention
     
     loss_value = LOSS_FUNCTION_MAPPING.get(loss_function, "nn.CrossEntropyLoss()")
     
-    # Base imports
-    pytorch_code += """
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-from torch.utils.data import DataLoader, TensorDataset
-import numpy as np
-"""
-
-    # Dataset-specific preprocessing code
-    if dataset_name == "iris":
-        pytorch_code += f"""
-from sklearn.datasets import load_iris
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
-
-# Load Iris dataset
-data = load_iris()
-X, y = data.data, data.target
-
-# Standardize features
-scaler = StandardScaler()
-X = scaler.fit_transform(X)
-
-# One-hot encode labels
-encoder = OneHotEncoder(sparse_output=False)
-y = encoder.fit_transform(y.reshape(-1, 1))
-
-# Split data
-x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-X_train, X_test = torch.tensor(x_train, dtype=torch.float32), torch.tensor(x_test, dtype=torch.float32)
-y_train, y_test = torch.tensor(y_train, dtype=torch.float32), torch.tensor(y_test, dtype=torch.float32)
-"""
-
-    elif dataset_name == "breast cancer":
-        pytorch_code += f"""
-from sklearn.datasets import load_breast_cancer
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-
-# Load dataset
-data = load_breast_cancer()
-X, y = data.data, data.target
-
-# Standardize features
-scaler = StandardScaler()
-X = scaler.fit_transform(X)
-
-# Convert to tensors
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
-X_train, X_test = torch.tensor(X_train, dtype=torch.float32), torch.tensor(X_test, dtype=torch.float32)
-y_train, y_test = torch.tensor(y_train, dtype=torch.float32).unsqueeze(1), torch.tensor(y_test, dtype=torch.float32).unsqueeze(1)
-"""
-
-    elif dataset_name == "california housing":
-        pytorch_code += f"""
-from sklearn.datasets import fetch_california_housing
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-
-# Load dataset
-data = fetch_california_housing()
-X, y = data.data, data.target
-
-# Standardize features
-scaler = StandardScaler()
-X = scaler.fit_transform(X)
-
-# Split data
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-X_train, X_test = torch.tensor(X_train, dtype=torch.float32), torch.tensor(X_test, dtype=torch.float32)
-y_train, y_test = torch.tensor(y_train, dtype=torch.float32).unsqueeze(1), torch.tensor(y_test, dtype=torch.float32).unsqueeze(1)
-"""
-
-    elif dataset_name == "mnist":
-        pytorch_code += f"""
-from torchvision import datasets, transforms
-from torch.utils.data import DataLoader
-
-# Define transformations
-transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
-
-# Load MNIST dataset
-train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
-test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
-
-# Create DataLoader
-train_loader = DataLoader(train_dataset, batch_size={batch_size}, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size={batch_size}, shuffle=False)
-"""
-
-    elif dataset_name == "cifar-10":
-        pytorch_code += f"""
-from torchvision import datasets, transforms
-from torch.utils.data import DataLoader
-
-# Define transformations
-transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-
-# Load CIFAR-10 dataset
-train_dataset = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
-test_dataset = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
-
-# Create DataLoader
-train_loader = DataLoader(train_dataset, batch_size={batch_size}, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size={batch_size}, shuffle=False)
-"""
-    else:
-        # Generic case for tabular datasets
-        pytorch_code += f"""
-# Dataset loading code would go here based on your specific dataset
-# Convert your data to PyTorch tensors
-X_train = torch.tensor(x_train, dtype=torch.float32)
-X_test = torch.tensor(x_test, dtype=torch.float32)
-y_train = torch.tensor(y_train, dtype=torch.float32)
-y_test = torch.tensor(y_test, dtype=torch.float32)
-"""
-
-    # Wrap tabular datasets in DataLoader
-    if dataset_name in ["iris", "breast cancer", "california housing"]:
-        pytorch_code += f"""
-# Create TensorDatasets
-train_dataset = TensorDataset(X_train, y_train)
-test_dataset = TensorDataset(X_test, y_test)
-
-# Create DataLoaders
-train_loader = DataLoader(train_dataset, batch_size={batch_size}, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size={batch_size}, shuffle=False)
-"""
-
     # Model definition
     pytorch_code += """
 # Define the PyTorch model
@@ -261,58 +133,14 @@ class NeuralNetwork(nn.Module):
         super(NeuralNetwork, self).__init__()
 """
 
-    # Placeholder for layers based on model type
-    if 'Conv2D' in str(model.layers):
-        # It's a CNN-like model
-        pytorch_code += f"""        # Convolutional layers
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1)  # Adjust parameters as needed
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.flatten = nn.Flatten()
-        self.fc1 = nn.Linear(64 * 7 * 7, 128)  # Adjust input size based on your model
-        self.fc2 = nn.Linear(128, {expected_output_units})  # Output layer sized for dataset: {dataset_name}
-        self.dropout = nn.Dropout(0.25)
-"""
-    else:
-        # It's a simpler MLP-like model
-        input_size = x_train_shape[0] if len(x_train_shape) == 1 else x_train_shape[1]
-        pytorch_code += f"""        # Fully connected layers
-        self.fc1 = nn.Linear({input_size}, 128)
-        self.fc2 = nn.Linear(128, 64)
-        self.fc3 = nn.Linear(64, {expected_output_units})  # Output layer sized for dataset: {dataset_name}
-        self.dropout = nn.Dropout(0.25)
-"""
-
-    # Forward function
-    if 'Conv2D' in str(model.layers):
-        pytorch_code += """
-    def forward(self, x):
-        # Convolutional layers
-        x = F.relu(self.conv1(x))
-        x = self.pool(x)
-        x = F.relu(self.conv2(x))
-        x = self.pool(x)
-        
-        # Flatten and fully connected layers
-        x = self.flatten(x)
-        x = F.relu(self.fc1(x))
-        x = self.dropout(x)
-        x = self.fc2(x)
-        
-        return x
-"""
-    else:
-        pytorch_code += """
-    def forward(self, x):
-        # Fully connected layers
-        x = F.relu(self.fc1(x))
-        x = self.dropout(x)
-        x = F.relu(self.fc2(x))
-        x = self.dropout(x)
-        x = self.fc3(x)
-        
-        return x
-"""
+    # Generate the real architecture from the trained Keras model
+    init_lines, forward_lines = _keras_layers_to_torch(model, expected_output_units)
+    for line in init_lines:
+        pytorch_code += f"        {line}\n"
+    pytorch_code += "\n    def forward(self, x):\n"
+    for line in forward_lines:
+        pytorch_code += f"        {line}\n"
+    pytorch_code += "        return x\n"
 
     # Training code
     opt_map = {"adam": "Adam", "sgd": "SGD", "rmsprop": "RMSprop", "adagrad": "Adagrad"}
@@ -406,7 +234,7 @@ for epoch in range({epochs}):
                 # Generic classification approach
                 _, predicted = torch.max(outputs.data, 1)
                 total += targets.size(0)
-                if targets.size(1) > 1:  # One-hot encoded
+                if targets.dim() > 1 and targets.size(1) > 1:  # One-hot encoded
                     _, target_classes = torch.max(targets, 1)
                     correct += (predicted == target_classes).sum().item()
                 else:  # Class indices
@@ -443,7 +271,7 @@ with torch.no_grad():
             actual_labels.extend(targets.cpu().numpy())
         else:
             _, preds = torch.max(outputs, 1)
-            if targets.size(1) > 1:  # One-hot encoded
+            if targets.dim() > 1 and targets.size(1) > 1:  # One-hot encoded
                 _, target_classes = torch.max(targets, 1)
                 predictions.extend(preds.cpu().numpy())
                 actual_labels.extend(target_classes.cpu().numpy())
@@ -812,4 +640,115 @@ test_dataset = TensorDataset(X_test, y_test)
 # Create DataLoaders
 train_loader = DataLoader(train_dataset, batch_size={batch_size}, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size={batch_size}, shuffle=False)
-""" 
+"""
+
+def _keras_layers_to_torch(model, expected_output_units):
+    """
+    Translate the trained Keras model's layers into equivalent PyTorch
+    module definitions and forward-pass lines. Uses the Keras model's real
+    tensor shapes, so Linear in_features and Conv channel counts are exact.
+    PyTorch is channels-first; the generated data pipelines already produce
+    channels-first tensors.
+    """
+    init_lines, forward_lines = [], []
+    counts = {}
+
+    def next_name(prefix):
+        counts[prefix] = counts.get(prefix, 0) + 1
+        return f"{prefix}{counts[prefix]}"
+
+    def act_line(act_name, is_last_layer):
+        if not act_name or act_name in ("linear", "None"):
+            return None
+        if act_name == "softmax":
+            if is_last_layer:
+                return "# softmax omitted: CrossEntropyLoss expects raw logits"
+            return "x = F.softmax(x, dim=1)"
+        if act_name == "leaky_relu":
+            return "x = F.leaky_relu(x)"
+        if act_name in ("relu", "sigmoid", "tanh"):
+            return f"x = F.{act_name}(x)"
+        return f"# unsupported activation: {act_name}"
+
+    layers = [l for l in model.layers if l.__class__.__name__ != "InputLayer"]
+    for idx, layer in enumerate(layers):
+        cls = layer.__class__.__name__
+        is_last = idx == len(layers) - 1
+        activation = getattr(getattr(layer, "activation", None), "__name__", None)
+
+        if cls == "Conv2D":
+            in_ch = int(layer.input.shape[-1])
+            k = tuple(layer.kernel_size)
+            st = tuple(layer.strides)
+            if layer.padding == "same":
+                pad = "'same'" if st == (1, 1) else str(k[0] // 2)
+            else:
+                pad = "0"
+            name = next_name("conv")
+            init_lines.append(
+                f"self.{name} = nn.Conv2d({in_ch}, {layer.filters}, "
+                f"kernel_size={k}, stride={st}, padding={pad})"
+            )
+            forward_lines.append(f"x = self.{name}(x)")
+            al = act_line(activation, False)
+            if al:
+                forward_lines.append(al)
+
+        elif cls == "MaxPooling2D":
+            name = next_name("pool")
+            init_lines.append(
+                f"self.{name} = nn.MaxPool2d(kernel_size={tuple(layer.pool_size)}, "
+                f"stride={tuple(layer.strides)})"
+            )
+            forward_lines.append(f"x = self.{name}(x)")
+
+        elif cls == "GlobalAveragePooling2D":
+            name = next_name("gap")
+            init_lines.append(f"self.{name} = nn.AdaptiveAvgPool2d(1)")
+            forward_lines.append(f"x = self.{name}(x)")
+            forward_lines.append("x = torch.flatten(x, 1)")
+
+        elif cls == "Flatten":
+            if not any("nn.Flatten" in l for l in init_lines):
+                init_lines.append("self.flatten = nn.Flatten()")
+            forward_lines.append("x = self.flatten(x)")
+
+        elif cls == "Dense":
+            in_f = int(layer.input.shape[-1])
+            name = next_name("fc")
+            init_lines.append(f"self.{name} = nn.Linear({in_f}, {layer.units})")
+            forward_lines.append(f"x = self.{name}(x)")
+            al = act_line(activation, is_last)
+            if al:
+                forward_lines.append(al)
+
+        elif cls == "Dropout":
+            name = next_name("dropout")
+            init_lines.append(f"self.{name} = nn.Dropout({layer.rate})")
+            forward_lines.append(f"x = self.{name}(x)")
+
+        elif cls == "BatchNormalization":
+            shape = layer.input.shape
+            name = next_name("bn")
+            if len(shape) == 4:
+                init_lines.append(f"self.{name} = nn.BatchNorm2d({int(shape[-1])})")
+            else:
+                init_lines.append(f"self.{name} = nn.BatchNorm1d({int(shape[-1])})")
+            forward_lines.append(f"x = self.{name}(x)")
+
+        elif cls == "Activation":
+            al = act_line(activation, is_last)
+            if al:
+                forward_lines.append(al)
+
+        else:
+            init_lines.append(f"# NOTE: {cls} has no automatic PyTorch equivalent;")
+            init_lines.append("#       use the Keras export for this layer.")
+            forward_lines.append(f"# {cls} skipped")
+
+    if not init_lines:
+        init_lines.append(f"self.fc1 = nn.Linear(1, {expected_output_units})")
+        forward_lines.append("x = self.fc1(x)")
+
+    return init_lines, forward_lines
+

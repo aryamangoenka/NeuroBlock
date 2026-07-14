@@ -125,6 +125,19 @@ def register_socket_events(socketio):
                 emit("training_error", {"error": f"Invalid loss function: {training_config['lossFunction']}"})
                 return
 
+            # Persist config + dataset for exports. saved_model.json can be
+            # wiped by any client loading the app (clear_model on mount), so
+            # the export endpoints fall back to this file for the dataset name.
+            try:
+                config_path = os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                    "training_config.json",
+                )
+                with open(config_path, "w") as f:
+                    json.dump({**training_config, "dataset": dataset}, f, indent=2)
+            except Exception as persist_error:
+                logger.warning(f"Could not persist training config: {persist_error}")
+
             # For custom datasets, clear any existing registration to ensure we get the most recent version
             from backend.dataset_loader import dataset_registry
             builtin_datasets = ["Iris", "MNIST", "CIFAR-10", "California Housing", "Breast Cancer"]

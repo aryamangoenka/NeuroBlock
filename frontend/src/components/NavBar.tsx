@@ -364,6 +364,12 @@ const NavBar: React.FC = () => {
                   <i className="fas fa-save"></i> SavedModel
                 </button>
                 <button
+                  onClick={() => handleExportClick("tflite")}
+                  className="export-option"
+                >
+                  <i className="fas fa-mobile-alt"></i> TFLite
+                </button>
+                <button
                   onClick={() => handleExportClick("ipynb")}
                   className="export-option"
                 >
