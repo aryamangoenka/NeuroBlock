@@ -123,3 +123,58 @@
     }
   }
 } 
+/* Paper Lab: compact horizontal layer cards */
+.layer-showcase-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 10px !important;
+  margin: 10px 0 6px !important;
+}
+.layer-showcase-item, .layer-component {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 11px !important;
+  text-align: left !important;
+  background: var(--card) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  padding: 10px 12px !important;
+  margin: 0 !important;
+  min-height: 0 !important;
+
+  i, svg, .layer-icon {
+    font-size: 14px !important;
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    border-radius: 8px !important;
+    background: var(--raised) !important;
+    border: 1px solid var(--line) !important;
+    color: var(--citrus) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+  }
+
+  h3, h4, h5, .layer-title {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    margin: 0 0 2px !important;
+    text-align: left !important;
+    color: var(--ink) !important;
+  }
+  p, .layer-description {
+    font-size: 12px !important;
+    color: var(--ink-muted) !important;
+    margin: 0 !important;
+    line-height: 1.45 !important;
+    text-align: left !important;
+  }
+  .layer-info, .layer-content { flex: 1 !important; min-width: 0; }
+}
+@media (max-width: 900px) {
+  .layer-showcase-grid { grid-template-columns: 1fr !important; }
+}

@@ -6957,3 +6957,234 @@ input[type="range"] { accent-color: var(--citrus); }
   border-radius: 0 !important;
 }
 .number-control { width: fit-content !important; }
+
+/* ============================================================
+   PAPER LAB POLISH v5 — training tab
+   ============================================================ */
+
+/* visualization picker: compact control row */
+.visualization-controls {
+  background: var(--card) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--card-shadow) !important;
+  padding: 12px 14px !important;
+  margin: 12px 0 !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  label, > span {
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: var(--ink) !important;
+  }
+}
+.visualization-select {
+  width: 170px !important;
+  background: var(--card) !important;
+  border: 1px solid var(--line-strong) !important;
+  border-radius: 8px !important;
+  padding: 7px 10px !important;
+  font-size: 13px !important;
+  color: var(--ink) !important;
+  box-shadow: none !important;
+}
+
+/* chart card */
+.visualization-container {
+  background: var(--card) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--card-shadow) !important;
+  padding: 14px !important;
+  margin: 0 0 12px !important;
+
+  h3, h4 {
+    font-family: var(--f-display) !important;
+    font-size: 14.5px !important;
+    font-weight: 600 !important;
+    color: var(--ink) !important;
+    text-align: left !important;
+    margin: 0 0 10px !important;
+    padding: 0 !important;
+    border: none !important;
+
+    &::after, &::before { display: none !important; }
+  }
+}
+.chart-container {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  min-height: 240px;
+}
+
+/* empty state: quiet dashed panel, not a void */
+.empty-chart,
+.placeholder-visualization,
+.visualization-placeholder {
+  background: var(--raised) !important;
+  border: 1px dashed var(--line-strong) !important;
+  border-radius: 10px !important;
+  min-height: 220px !important;
+  max-height: 260px;
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--ink-muted) !important;
+  font-size: 13px !important;
+  font-style: normal !important;
+
+  i, svg { color: var(--line-strong) !important; font-size: 22px !important; }
+  p, span { color: var(--ink-muted) !important; font-size: 13px !important; font-style: normal !important; }
+}
+
+/* training status card: quiet header, citrus progress */
+.training-metrics-card {
+  background: var(--card) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--card-shadow) !important;
+  overflow: hidden;
+  padding: 0 !important;
+}
+.metrics-header {
+  background: var(--card) !important;
+  color: var(--ink) !important;
+  border-bottom: 1px solid var(--line) !important;
+  border-radius: 0 !important;
+  padding: 12px 14px !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--f-display) !important;
+  font-size: 14.5px !important;
+  font-weight: 600 !important;
+
+  i { color: var(--citrus) !important; font-size: 13px !important; }
+  h3, h4, span { color: var(--ink) !important; font-size: inherit !important; margin: 0 !important; border: none !important; text-decoration: none !important;
+    &::after { display: none !important; } }
+}
+.progress-container {
+  background: var(--card) !important;
+  padding: 12px 14px !important;
+  border: none !important;
+}
+.progress-info {
+  display: flex !important;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px !important;
+
+  .progress-label {
+    font-family: var(--f-mono) !important;
+    font-size: 12px !important;
+    color: var(--ink-muted) !important;
+  }
+  .progress-percentage {
+    font-family: var(--f-mono) !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    color: var(--ink) !important;
+  }
+}
+.progress-bar-container {
+  height: 6px !important;
+  border-radius: 3px !important;
+  background: var(--line) !important;
+  overflow: hidden;
+  box-shadow: none !important;
+}
+.progress-bar {
+  background: var(--citrus) !important;
+  border-radius: 3px !important;
+  box-shadow: none !important;
+}
+.progress-stripes { display: none !important; }
+.training-pulse-indicator { background: var(--citrus) !important; color: var(--citrus) !important; }
+
+/* metric tiles */
+.metrics-section {
+  background: var(--card) !important;
+  border: none !important;
+  border-top: 1px solid var(--line) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 12px 14px 14px !important;
+  margin: 0 !important;
+}
+.metrics-row {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px !important;
+  margin: 0 0 8px !important;
+
+  &:last-child { margin-bottom: 0 !important; }
+}
+.metric-compact-item {
+  background: var(--raised) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  padding: 9px 11px !important;
+  display: flex !important;
+  align-items: center;
+  gap: 9px;
+
+  .metric-icon {
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px;
+    border-radius: 7px !important;
+    background: var(--card) !important;
+    border: 1px solid var(--line) !important;
+    color: var(--ink-muted) !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    box-shadow: none !important;
+
+    i { font-size: 11px !important; color: inherit !important; }
+  }
+  .metric-label {
+    font-size: 11px !important;
+    color: var(--ink-muted) !important;
+    font-weight: 500 !important;
+  }
+  .metric-value {
+    font-family: var(--f-mono) !important;
+    font-variant-numeric: tabular-nums;
+    font-size: 13.5px !important;
+    font-weight: 500 !important;
+    color: var(--ink) !important;
+
+    &.good { color: var(--ok) !important; }
+    &.warning { color: var(--warn-ink) !important; }
+  }
+}
+
+/* kill stuck entrance fades on train-tab containers */
+.visualization-container,
+.visualization-content,
+.visualization-controls,
+.chart-container,
+.empty-chart,
+.placeholder-visualization,
+.visualization-placeholder,
+.training-metrics-card,
+.progress-container,
+.metrics-section,
+.metric-compact-item {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* native select arrow is enough */
+.custom-select-container::after { display: none !important; }

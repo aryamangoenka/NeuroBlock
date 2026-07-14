@@ -1095,3 +1095,362 @@
     }
   }
 } 
+/* ============================================================
+   PAPER LAB — tutorial page
+   ============================================================ */
+
+.tutorial-sidebar {
+  background: var(--card) !important;
+  border-right: 1px solid var(--line) !important;
+  color: var(--ink) !important;
+  box-shadow: none !important;
+
+  h2, h3 {
+    font-family: var(--f-display) !important;
+    color: var(--ink) !important;
+    font-size: 16px !important;
+    background: transparent !important;
+    border-bottom: 1px solid var(--line) !important;
+    padding: 14px 16px !important;
+    margin: 0 !important;
+  }
+}
+.tutorial-nav {
+  padding: 8px !important;
+
+  li, button, a {
+    color: var(--ink-muted) !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-size: 13.5px !important;
+    font-weight: 500 !important;
+    padding: 9px 11px !important;
+    margin: 0 0 2px !important;
+    box-shadow: none !important;
+
+    i, .nav-icon { color: var(--ink-muted) !important; font-size: 13px !important; }
+
+    &:hover {
+      background: var(--raised) !important;
+      color: var(--ink) !important;
+    }
+    &.active, &[aria-current] {
+      background: var(--raised) !important;
+      color: var(--ink) !important;
+      box-shadow: inset 3px 0 0 var(--citrus) !important;
+
+      i, .nav-icon { color: var(--citrus) !important; }
+      &::after, &::before { display: none !important; }
+    }
+  }
+}
+.back-to-app, .back-button {
+  background: var(--card) !important;
+  border: 1px solid var(--line-strong) !important;
+  border-radius: 9px !important;
+  color: var(--ink) !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  box-shadow: var(--card-shadow) !important;
+
+  i { color: var(--ink-muted) !important; }
+
+  &:hover {
+    background: var(--raised) !important;
+    border-color: var(--ink-muted) !important;
+  }
+}
+
+.tutorial-content, .tutorial-content-wrapper {
+  background: var(--paper) !important;
+
+  h1 {
+    font-family: var(--f-display) !important;
+    color: var(--ink) !important;
+    letter-spacing: -0.02em;
+  }
+  h2, h3 {
+    font-family: var(--f-display) !important;
+    color: var(--ink) !important;
+    text-align: left !important;
+  }
+}
+
+/* cards: white, hairline, no gradients */
+.feature-card, .practice-card, .chart-type, .dataset-category,
+.export-format, .building-step, .interface-section, .tip-group,
+.workflow-tip, .feature-highlight, .dataset-viz, .export-step {
+  background: var(--card) !important;
+  background-image: none !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--card-shadow) !important;
+  color: var(--ink) !important;
+
+  h3, h4, h5, strong { color: var(--ink) !important; }
+  p, li, span { color: var(--ink-muted) !important; }
+  i { color: var(--citrus) !important; }
+}
+
+/* tips/callouts: semantic rail cards */
+.workflow-tip, .tip-group {
+  position: relative;
+  padding-left: 18px !important;
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: 6px;
+    top: 10px;
+    bottom: 10px;
+    width: 4px;
+    border-radius: 2px;
+    background: var(--focus);
+  }
+}
+.checklist-item {
+  color: var(--ink) !important;
+  i { color: var(--ok) !important; }
+}
+
+/* ============================================================
+   PAPER LAB — tutorial "docs mode": compact, readable, tight
+   ============================================================ */
+
+/* reading column */
+.tutorial-content {
+  padding: 28px 40px 64px !important;
+
+  > div, > section {
+    max-width: 780px !important;
+    margin: 0 auto !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+}
+.tutorial-content-wrapper {
+  background: var(--paper) !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+
+/* type scale: docs, not posters */
+.tutorial-content {
+  font-size: 14.5px !important;
+  line-height: 1.65 !important;
+  color: var(--ink) !important;
+
+  h1 {
+    font-size: 26px !important;
+    margin: 0 0 6px !important;
+    padding: 0 !important;
+    border: none !important;
+    text-align: left !important;
+  }
+  h1 + hr, hr { border: none; border-top: 1px solid var(--line); margin: 14px 0 20px; }
+  h2 {
+    font-size: 18px !important;
+    margin: 30px 0 12px !important;
+    padding: 0 0 8px !important;
+    border-bottom: 1px solid var(--line) !important;
+    text-align: left !important;
+    &::after, &::before { display: none !important; }
+  }
+  h3 {
+    font-size: 15px !important;
+    margin: 20px 0 8px !important;
+    padding: 0 !important;
+    border: none !important;
+  }
+  h4 { font-size: 14px !important; margin: 14px 0 6px !important; }
+  p { font-size: 14.5px !important; margin: 0 0 12px !important; color: var(--ink) !important; }
+  li { font-size: 14px !important; margin: 0 0 5px !important; color: var(--ink) !important; }
+  ul, ol { padding-left: 22px !important; margin: 0 0 14px !important; }
+  strong { color: var(--ink) !important; }
+  em { color: var(--ink-muted); }
+  code, kbd {
+    font-family: var(--f-mono) !important;
+    font-size: 12px !important;
+    background: var(--raised) !important;
+    border: 1px solid var(--line) !important;
+    border-radius: 5px !important;
+    padding: 1px 6px !important;
+    color: var(--ink) !important;
+  }
+  img, video {
+    max-width: 100% !important;
+    border-radius: 10px !important;
+    border: 1px solid var(--line) !important;
+    box-shadow: var(--card-shadow) !important;
+    margin: 8px 0 16px !important;
+  }
+}
+
+/* grids: compact rows, not billboards */
+.feature-grid, .best-practices-grid, .export-formats,
+.dataset-visualizations, .workflow-tips, .training-tips {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 10px !important;
+  margin: 12px 0 18px !important;
+}
+.building-steps, .export-process, .checklist {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  margin: 12px 0 18px !important;
+}
+
+/* cards: left-aligned compact rows with small icon chips */
+.feature-card, .practice-card, .chart-type, .dataset-category,
+.export-format, .building-step, .interface-section, .tip-group,
+.workflow-tip, .feature-highlight, .dataset-viz, .export-step {
+  padding: 12px 14px !important;
+  margin: 0 !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  text-align: left !important;
+  display: block !important;
+
+  h3, h4, h5 {
+    font-size: 13.5px !important;
+    margin: 0 0 4px !important;
+    text-align: left !important;
+  }
+  p, li { font-size: 12.5px !important; margin: 0 !important; line-height: 1.5 !important; }
+  ul { margin: 4px 0 0 !important; padding-left: 16px !important; }
+
+  i {
+    font-size: 13px !important;
+    width: auto !important;
+    height: auto !important;
+    background: none !important;
+    margin: 0 6px 6px 0 !important;
+    display: inline-block !important;
+    float: none !important;
+  }
+}
+.feature-card, .practice-card {
+  i { display: block !important; margin-bottom: 6px !important; }
+}
+
+/* step items: number chip + text on one row */
+.building-step, .export-step {
+  display: flex !important;
+  gap: 10px !important;
+  align-items: flex-start !important;
+
+  .step-number, .step-count {
+    font-family: var(--f-mono) !important;
+    font-size: 11px !important;
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    border-radius: 6px !important;
+    background: var(--ink) !important;
+    color: #fff !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-top: 1px;
+  }
+  .step-content { flex: 1; h4 { margin-top: 0 !important; } }
+}
+
+/* checklist rows */
+.checklist-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 8px 12px !important;
+  background: var(--card) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+}
+
+/* sidebar: slimmer */
+.tutorial-sidebar {
+  width: 230px !important;
+  min-width: 230px !important;
+}
+
+@media (max-width: 900px) {
+  .feature-grid, .best-practices-grid, .export-formats,
+  .dataset-visualizations, .workflow-tips, .training-tips {
+    grid-template-columns: 1fr !important;
+  }
+  .tutorial-content { padding: 20px 16px 48px !important; }
+}
+
+/* layer type cards inside tutorial: compact horizontal rows */
+.tutorial-layer-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 10px !important;
+  margin: 10px 0 4px !important;
+}
+.tutorial-layer-item {
+  display: grid !important;
+  grid-template-columns: 30px 1fr !important;
+  grid-template-rows: auto auto;
+  column-gap: 11px !important;
+  align-items: center !important;
+  text-align: left !important;
+  background: var(--card) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  padding: 10px 12px !important;
+  margin: 0 !important;
+  min-height: 0 !important;
+
+  i {
+    grid-row: 1 / 3;
+    font-size: 13px !important;
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 8px !important;
+    background: var(--raised) !important;
+    border: 1px solid var(--line) !important;
+    color: var(--citrus) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    float: none !important;
+  }
+  strong {
+    font-size: 13px !important;
+    color: var(--ink) !important;
+    text-align: left !important;
+    display: block;
+  }
+  p {
+    font-size: 12px !important;
+    color: var(--ink-muted) !important;
+    margin: 1px 0 0 !important;
+    line-height: 1.45 !important;
+    text-align: left !important;
+    grid-column: 2;
+  }
+}
+.layer-category {
+  margin: 0 0 16px !important;
+  h4 { border-bottom: 1px solid var(--line); padding-bottom: 6px !important; }
+}
+@media (max-width: 900px) {
+  .tutorial-layer-grid { grid-template-columns: 1fr !important; }
+}
+
+/* no legacy border-ticks on headings */
+.tutorial-content h2, .tutorial-content h3, .tutorial-content h4 {
+  border-left: none !important;
+  padding-left: 0 !important;
+  background: none !important;
+}
