@@ -46,8 +46,8 @@ The production image is a single container: Flask serves the built React
 app, the REST API, and the WebSocket stream from one origin.
 
 ```bash
-git clone https://github.com/aryamangoenka/DND-Neural-Network.git
-cd DND-Neural-Network
+git clone https://github.com/aryamangoenka/NeuroBlock.git
+cd NeuroBlock
 docker compose up -d --build
 ```
 

@@ -51,7 +51,7 @@ poetry run export SECRET_KEY=your-secret-key
 
 ```bash
 # 1. Navigate to project directory
-cd DND-Neural-Network
+cd NeuroBlock
 
 # 2. Install dependencies
 poetry install

@@ -1,5 +1,5 @@
 """
-DND Neural Network Backend
+NeuroBlock Backend
 A tool for designing and training neural networks visually.
 """
 

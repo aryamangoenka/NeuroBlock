@@ -37,8 +37,8 @@ curl -fsSL https://get.docker.com | sudo sh
 sudo usermod -aG docker ubuntu && exit   # re-ssh after this
 
 ssh ubuntu@<ELASTIC_IP>
-git clone https://github.com/aryamangoenka/DND-Neural-Network.git
-cd DND-Neural-Network
+git clone https://github.com/aryamangoenka/NeuroBlock.git
+cd NeuroBlock
 echo "SECRET_KEY=$(openssl rand -base64 32)" > .env
 docker compose up -d --build     # first build ~5-10 min
 ```
@@ -69,10 +69,10 @@ aws ec2 start-instances --instance-ids i-xxxx     # or EC2 console → Start
 aws ec2 stop-instances --instance-ids i-xxxx      # billing stops, disk kept
 
 # update to latest code
-ssh ubuntu@<ELASTIC_IP> "cd DND-Neural-Network && git pull && docker compose up -d --build"
+ssh ubuntu@<ELASTIC_IP> "cd NeuroBlock && git pull && docker compose up -d --build"
 
 # logs
-ssh ubuntu@<ELASTIC_IP> "cd DND-Neural-Network && docker compose logs -f --tail 100"
+ssh ubuntu@<ELASTIC_IP> "cd NeuroBlock && docker compose logs -f --tail 100"
 ```
 
 ---

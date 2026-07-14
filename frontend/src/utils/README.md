@@ -1,6 +1,6 @@
 # Custom Dataset API Service
 
-This directory contains the TypeScript API service for managing custom datasets in the DND Neural Network frontend application.
+This directory contains the TypeScript API service for managing custom datasets in the NeuroBlock frontend application.
 
 ## Files
 

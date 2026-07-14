@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "dnd-neural-network"
+name = "neuroblock"
 version = "0.1.0"
-description = "A drag-and-drop neural network builder"
+description = "Build, train, and export neural networks visually"
 authors = ["Your Name <your.email@example.com>"]
 readme = "README.md"
 packages = [{ include = "backend" }]

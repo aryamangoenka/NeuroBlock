@@ -256,7 +256,7 @@ const NavBar: React.FC = () => {
           <NavLink
             to="/tutorial"
             className="tutorial-button"
-            title="Learn how to use DND Neural Network"
+            title="Learn how to use NeuroBlock"
           >
             <i className="fas fa-question-circle"></i>
             <span>Tutorial</span>

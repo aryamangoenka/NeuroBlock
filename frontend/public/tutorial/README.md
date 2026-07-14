@@ -1,6 +1,6 @@
 # Tutorial Images Directory
 
-This directory is intended for storing images used in the DND Neural Network tutorial.
+This directory is intended for storing images used in the NeuroBlock tutorial.
 
 ## Image Naming Convention
 

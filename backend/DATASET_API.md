@@ -1,6 +1,6 @@
 # Custom Dataset Management API
 
-This document describes the custom dataset management endpoints for the DND Neural Network backend.
+This document describes the custom dataset management endpoints for the NeuroBlock backend.
 
 ## Overview
 

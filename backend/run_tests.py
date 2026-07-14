@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Test runner script for DND Neural Network tests.
+Test runner script for NeuroBlock tests.
 Runs all tests and generates a coverage report.
 """
 
@@ -56,12 +56,12 @@ def run_tests_with_coverage(verbose=False, html_report=False):
 
 def main():
     """Parse command line arguments and run tests."""
-    parser = argparse.ArgumentParser(description="Run DND Neural Network tests with coverage.")
+    parser = argparse.ArgumentParser(description="Run NeuroBlock tests with coverage.")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
     parser.add_argument("--html", action="store_true", help="Generate HTML coverage report")
     args = parser.parse_args()
 
-    print("Running DND Neural Network tests...")
+    print("Running NeuroBlock tests...")
     result = run_tests_with_coverage(verbose=args.verbose, html_report=args.html)
 
     # Return non-zero exit code if tests failed

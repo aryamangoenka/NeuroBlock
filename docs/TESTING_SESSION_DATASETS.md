@@ -5,7 +5,7 @@
 1. **Activate Virtual Environment**
 
    ```bash
-   cd DND-Neural-Network
+   cd NeuroBlock
    source venv/bin/activate
    ```
 
@@ -351,7 +351,7 @@ chmod +x test_session_datasets.sh
 ### Step 1: Start the Server
 
 ```bash
-cd DND-Neural-Network
+cd NeuroBlock
 source venv/bin/activate
 python -m backend.main
 ```
@@ -360,7 +360,7 @@ python -m backend.main
 
 ```bash
 # In a new terminal
-cd DND-Neural-Network
+cd NeuroBlock
 ./test_session_datasets.sh
 ```
 
