@@ -7188,3 +7188,10 @@ input[type="range"] { accent-color: var(--citrus); }
 
 /* native select arrow is enough */
 .custom-select-container::after { display: none !important; }
+
+/* rows speak through rail + label; per-row icons were redundant */
+.layer-item span > i,
+.template-item span > i,
+.activation-item span > i {
+  display: none !important;
+}
