@@ -12,8 +12,8 @@ WebSockets, epoch by epoch. When the model works, they export it as the real
 thing: a Python script, a Jupyter notebook, a Keras model, or a PyTorch
 implementation of the network they just built.
 
-It was built for the Turing summer program at UMass Amherst CICS, where it
-introduces high-school students to neural networks. It works just as well
+It was built for high-school students, where it
+introduces them to neural networks. It works just as well
 for anyone who wants to understand what `Conv2D(32, (3, 3))` actually does
 before writing it.
 
