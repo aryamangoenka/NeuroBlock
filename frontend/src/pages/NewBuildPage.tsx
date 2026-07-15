@@ -4458,6 +4458,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
+                  aria-label="Add Input layer"
                   onClick={() => addLayer("Input")}
                 >
                   <i className="fas fa-plus"></i>
@@ -4469,6 +4470,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
+                  aria-label="Add Output layer"
                   onClick={() => addLayer("Output")}
                 >
                   <i className="fas fa-plus"></i>
@@ -4481,6 +4483,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
+                  aria-label="Add Dense layer"
                   onClick={() => addLayer("Dense")}
                 >
                   <i className="fas fa-plus"></i>
@@ -4492,6 +4495,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
+                  aria-label="Add Convolution layer"
                   onClick={() => addLayer("Convolution")}
                 >
                   <i className="fas fa-plus"></i>
@@ -4503,6 +4507,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
+                  aria-label="Add MaxPooling layer"
                   onClick={() => addLayer("MaxPooling")}
                 >
                   <i className="fas fa-plus"></i>
@@ -4514,6 +4519,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
+                  aria-label="Add GlobalAveragePool layer"
                   onClick={() => addLayer("GlobalAveragePool")}
                 >
                   <i className="fas fa-plus"></i>
@@ -4525,6 +4531,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
+                  aria-label="Add Flatten layer"
                   onClick={() => addLayer("Flatten")}
                 >
                   <i className="fas fa-plus"></i>
@@ -4536,6 +4543,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
+                  aria-label="Add Dropout layer"
                   onClick={() => addLayer("Dropout")}
                 >
                   <i className="fas fa-plus"></i>
@@ -4547,6 +4555,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
+                  aria-label="Add BatchNormalization layer"
                   onClick={() => addLayer("BatchNormalization")}
                 >
                   <i className="fas fa-plus"></i>
@@ -4559,6 +4568,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
+                  aria-label="Add Attention layer"
                   onClick={() => addLayer("Attention")}
                 >
                   <i className="fas fa-plus"></i>
@@ -4571,6 +4581,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
+                  aria-label="Add AddLayer layer"
                   onClick={() => addLayer("AddLayer")}
                 >
                   <i className="fas fa-plus"></i>
@@ -4588,6 +4599,7 @@ const NewBuildPage = (): JSX.Element => {
                   </span>
                   <button
                     className="add-button"
+                    aria-label="Add to canvas"
                     onClick={() =>
                       addLayer("customblock", {
                         blockName: customLayer.name,
@@ -4608,6 +4620,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
+                  aria-label="Add to canvas"
                   onClick={() => setShowCustomLayerModal(true)}
                 >
                   <i className="fas fa-plus"></i>
@@ -4634,6 +4647,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
+                  aria-label="Add to canvas"
                   style={{ color: "#22c55e", border: "1.5px solid #22c55e" }}
                   onClick={handleSaveAsTemplate}
                 >
@@ -4653,6 +4667,7 @@ const NewBuildPage = (): JSX.Element => {
                   </span>
                   <button
                     className="add-button"
+                    aria-label="Add to canvas"
                     style={{ color: "#6366f1", border: "1.5px solid #6366f1" }}
                     onClick={() => loadSessionTemplate(template)}
                   >
@@ -4667,6 +4682,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
+                  aria-label="Load Simple Feedforward template"
                   onClick={() => loadTemplate("Simple Feedforward")}
                 >
                   <i className="fas fa-plus"></i>
@@ -4678,6 +4694,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
+                  aria-label="Load Convolutional Network template"
                   onClick={() => loadTemplate("Convolutional Network")}
                 >
                   <i className="fas fa-plus"></i>
@@ -4690,6 +4707,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
+                  aria-label="Load Transformer Encoder template"
                   onClick={() => loadTemplate("Transformer Encoder")}
                 >
                   <i className="fas fa-plus"></i>
@@ -4703,6 +4721,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
+                  aria-label="Load Fully Connected Regression template"
                   onClick={() => loadTemplate("Fully Connected Regression")}
                 >
                   <i className="fas fa-plus"></i>
@@ -4714,6 +4733,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
+                  aria-label="Load ResNet-18 template"
                   onClick={() => loadTemplate("ResNet-18")}
                 >
                   <i className="fas fa-plus"></i>
@@ -4739,6 +4759,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
+                  aria-label="Add to canvas"
                   onClick={() =>
                     addLayer("Activation", {
                       function: "relu",
@@ -4763,6 +4784,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
+                  aria-label="Add to canvas"
                   onClick={() =>
                     addLayer("Activation", {
                       function: "sigmoid",
@@ -4787,6 +4809,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
+                  aria-label="Add Activation layer"
                   onClick={() => addLayer("Activation", { function: "tanh" })}
                   title="Add Tanh activation layer"
                 >
@@ -4800,6 +4823,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
+                  aria-label="Add to canvas"
                   onClick={() =>
                     addLayer("Activation", { function: "softmax" })
                   }
@@ -4815,6 +4839,7 @@ const NewBuildPage = (): JSX.Element => {
                 </span>
                 <button
                   className="add-button"
+                  aria-label="Add to canvas"
                   onClick={() =>
                     addLayer("Activation", { function: "leaky_relu" })
                   }
