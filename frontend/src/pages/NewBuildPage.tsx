@@ -8383,6 +8383,13 @@ const NewBuildPage = (): JSX.Element => {
               <Background color="#d3d8c8" gap={24} size={1.5} />
               <Controls />
             </ReactFlow>
+            {edges.length === 0 && !isTraining && (
+              <div className="nb-canvas-hint">
+                Connect the blocks: drag from a right handle
+                <span className="nb-hint-arrow">→</span>
+                to the next block&apos;s left handle
+              </div>
+            )}
           </div>
         </div>
 
