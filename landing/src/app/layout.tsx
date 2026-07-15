@@ -14,10 +14,26 @@ const plexMono = IBM_Plex_Mono({
   weight: ["400", "500"],
 });
 
+const title = "NeuroBlock — Build neural networks visually";
+const description =
+  "Design, train, and export real neural networks by connecting blocks on a canvas. Live training, real code out. Made for high school students.";
+
 export const metadata = {
-  title: "NeuroBlock — Build neural networks visually",
-  description:
-    "Design, train, and export real neural networks by connecting blocks on a canvas. Live training, real code out. Made for high school students.",
+  metadataBase: new URL("https://neuroblock-app.vercel.app"),
+  title,
+  description,
+  openGraph: {
+    title,
+    description,
+    type: "website",
+    images: ["/builder.png"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+    images: ["/builder.png"],
+  },
 };
 
 export default function RootLayout({
