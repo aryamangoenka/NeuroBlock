@@ -16,6 +16,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from backend.dataset_loader import (
 
+    DatasetRegistry, 
+    register_custom_dataset, 
+    get_custom_datasets, 
+    load_custom_dataset,
+    load_dataset
+)
+
+
 import pytest
 
 def _server_available():
@@ -31,12 +39,6 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-    DatasetRegistry, 
-    register_custom_dataset, 
-    get_custom_datasets, 
-    load_custom_dataset,
-    load_dataset
-)
 
 def create_sample_custom_dataset():
     """Create a sample custom dataset for testing."""
