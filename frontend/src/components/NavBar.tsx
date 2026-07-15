@@ -135,6 +135,19 @@ const NavBar: React.FC = () => {
     };
   }, []);
 
+  // Cmd/Ctrl+S saves the model instead of the browser page
+  useEffect(() => {
+    const handleKeydown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "s") {
+        event.preventDefault();
+        handleSaveModelClick();
+      }
+    };
+    window.addEventListener("keydown", handleKeydown);
+    return () => window.removeEventListener("keydown", handleKeydown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasSelectedDataset, isTraining]);
+
   // Listen for export model event
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
