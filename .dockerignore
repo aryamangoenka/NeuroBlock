@@ -1,0 +1,32 @@
+# VCS and local state
+.git
+.gitignore
+.claude
+.gstack
+
+# Dependency and build trees (rebuilt inside the image)
+**/node_modules
+frontend/dist
+landing
+venv
+.venv
+**/__pycache__
+*.pyc
+
+# Runtime artifacts
+exports
+sessions
+datasets/sessions
+wandb
+*.keras
+*.log
+
+# Docs and tooling not needed in the image
+docs
+README.md
+DESIGN.md
+CLAUDE.md
+docker-compose.yml
+poetry.lock
+pyproject.toml
+run_tests.sh
