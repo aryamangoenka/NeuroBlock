@@ -94,24 +94,16 @@ const TutorialPage: React.FC = () => {
               </h4>
               <ul>
                 <li>
-                  <strong>Layers:</strong> Add neural network layers to your
-                  model
+                  <strong>Layers:</strong> every building block — press the
+                  &quot;+&quot; on a row to add it to the canvas
                 </li>
                 <li>
-                  <strong>Templates:</strong> Load pre-built architectures
+                  <strong>Templates:</strong> complete ready-made architectures
+                  (Feedforward, Convolutional, ResNet-18, and more)
                 </li>
                 <li>
-                  <strong>Layer Params:</strong> Configure layer parameters
-                </li>
-                <li>
-                  <strong>Hyperparams:</strong> Set training parameters
-                </li>
-                <li>
-                  <strong>Training:</strong> Monitor training progress
-                </li>
-                <li>
-                  <strong>Settings:</strong> Select datasets and configure
-                  options
+                  <strong>Activations:</strong> standalone activation functions
+                  (ReLU, Sigmoid, Tanh, Softmax)
                 </li>
               </ul>
             </div>
@@ -120,8 +112,9 @@ const TutorialPage: React.FC = () => {
                 <i className="fas fa-palette"></i> Canvas
               </h4>
               <p>
-                The main area where you build your neural network by connecting
-                layers
+                The main area where you build your network. A filled color rail
+                on a block means the layer learns (it has trainable
+                parameters); a hollow rail means it only transforms its input.
               </p>
             </div>
             <div className="interface-section">
@@ -129,9 +122,18 @@ const TutorialPage: React.FC = () => {
                 <i className="fas fa-chart-bar"></i> Right Panel
               </h4>
               <ul>
-                <li>Training metrics and visualizations</li>
-                <li>Model performance charts</li>
-                <li>Export options</li>
+                <li>
+                  <strong>Dataset:</strong> pick your dataset and set
+                  hyperparameters (batch size, epochs, optimizer, loss)
+                </li>
+                <li>
+                  <strong>Parameters:</strong> click any block on the canvas to
+                  edit its settings here
+                </li>
+                <li>
+                  <strong>Train:</strong> live loss and accuracy charts while
+                  your model learns
+                </li>
               </ul>
             </div>
           </div>
@@ -141,10 +143,11 @@ const TutorialPage: React.FC = () => {
             <div className="step">
               <div className="step-number">1</div>
               <div className="step-content">
-                <h4>Select a Dataset</h4>
+                <h4>Choose a Dataset</h4>
                 <p>
-                  Go to <strong>Settings</strong> tab and choose a dataset
-                  (start with MNIST for beginners)
+                  In the right panel's <strong>Dataset</strong> tab, pick a
+                  dataset — start with <strong>Iris</strong>, it trains in
+                  seconds
                 </p>
               </div>
             </div>
@@ -153,38 +156,40 @@ const TutorialPage: React.FC = () => {
               <div className="step-content">
                 <h4>Add Layers</h4>
                 <p>
-                  From the <strong>Layers</strong> tab, drag an Input layer,
-                  then add Dense layers
+                  The canvas starts with Input and Output blocks. Add a{" "}
+                  <strong>Dense</strong> layer from the left sidebar with its
+                  &quot;+&quot; button
                 </p>
               </div>
             </div>
             <div className="step">
               <div className="step-number">3</div>
               <div className="step-content">
-                <h4>Connect Layers</h4>
+                <h4>Connect the Blocks</h4>
                 <p>
-                  Drag from one layer's output to another layer's input to
-                  create connections
+                  Drag from a block's right handle to the next block's left
+                  handle: Input → Dense → Output
                 </p>
               </div>
             </div>
             <div className="step">
               <div className="step-number">4</div>
               <div className="step-content">
-                <h4>Save Your Model</h4>
+                <h4>Configure and Save</h4>
                 <p>
-                  Click <strong>Save Model</strong> in the navbar to save your
-                  architecture
+                  Click a block to tune it in the <strong>Parameters</strong>{" "}
+                  tab, then hit <strong>Save Model</strong> in the top bar
                 </p>
               </div>
             </div>
             <div className="step">
               <div className="step-number">5</div>
               <div className="step-content">
-                <h4>Train Your Model</h4>
+                <h4>Train and Watch</h4>
                 <p>
-                  Click <strong>Train</strong> to start training and watch the
-                  progress
+                  Press the orange <strong>Train</strong> button — the{" "}
+                  <strong>Train</strong> tab shows live loss and accuracy as
+                  your network learns
                 </p>
               </div>
             </div>
