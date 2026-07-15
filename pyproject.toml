@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "neuroblock"
-version = "0.1.0"
+version = "1.0.0"
 description = "Build, train, and export neural networks visually"
 authors = ["Your Name <your.email@example.com>"]
 readme = "README.md"

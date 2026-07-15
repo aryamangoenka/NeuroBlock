@@ -30,7 +30,12 @@ def home():
 @api_blueprint.route('/health', methods=['GET'])
 def health_check():
     logger.debug("Health check endpoint called")
-    return jsonify({"status": "running", "message": "Flask backend is operational!"})
+    from backend import __version__
+    return jsonify({
+        "status": "running",
+        "version": __version__,
+        "message": "Flask backend is operational!",
+    })
 
 # Model saving routes
 @api_blueprint.route('/save_model', methods=["POST"])
