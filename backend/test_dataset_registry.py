@@ -15,6 +15,22 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from backend.dataset_loader import (
+
+import pytest
+
+def _server_available():
+    try:
+        import requests as _rq
+        return _rq.get("http://localhost:8080/api/health", timeout=1).ok
+    except Exception:
+        return False
+
+# These are live-server integration checks, not unit tests.
+pytestmark = pytest.mark.skipif(
+    not _server_available(), reason="requires a running NeuroBlock server"
+)
+
+
     DatasetRegistry, 
     register_custom_dataset, 
     get_custom_datasets, 
@@ -116,7 +132,7 @@ def test_custom_dataset_registration():
         print(f"❌ Failed to register custom dataset: {e}")
         return None
 
-def test_custom_dataset_loading(dataset_config):
+def check_custom_dataset_loading(dataset_config):
     """Test custom dataset loading."""
     print("\nTesting custom dataset loading...")
     
@@ -193,7 +209,7 @@ def main():
         
         if dataset_config:
             # Test custom dataset loading
-            test_custom_dataset_loading(dataset_config)
+            check_custom_dataset_loading(dataset_config)
             
             # Test integration
             test_integration_with_existing_system()

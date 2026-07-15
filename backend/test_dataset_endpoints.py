@@ -11,8 +11,24 @@ import io
 import tempfile
 import os
 
+import pytest
+
+def _server_available():
+    try:
+        import requests as _rq
+        return _rq.get("http://localhost:8080/api/health", timeout=1).ok
+    except Exception:
+        return False
+
+# These are live-server integration checks, not unit tests.
+pytestmark = pytest.mark.skipif(
+    not _server_available(), reason="requires a running NeuroBlock server"
+)
+
+
+
 # Configuration
-BASE_URL = "http://localhost:5000/api/datasets"
+BASE_URL = "http://localhost:8080/api/datasets"
 
 def create_sample_csv():
     """Create a sample CSV file for testing."""
@@ -58,7 +74,7 @@ def test_preview_endpoint():
     finally:
         os.unlink(csv_file)
 
-def test_validate_endpoint(file_info):
+def check_validate_endpoint(file_info):
     """Test the /validate endpoint."""
     print("\nTesting /validate endpoint...")
     
@@ -157,7 +173,7 @@ def main():
     
     if file_info:
         # Test validate endpoint
-        test_validate_endpoint(file_info)
+        check_validate_endpoint(file_info)
         
         # Test create endpoint
         test_create_endpoint()
