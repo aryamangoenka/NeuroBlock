@@ -1454,3 +1454,10 @@
   padding-left: 0 !important;
   background: none !important;
 }
+
+/* strip residual heading tick pseudo-elements */
+.tutorial-content h2::before, .tutorial-content h3::before,
+.tutorial-content h2::after, .tutorial-content h3::after {
+  display: none !important;
+  content: none !important;
+}

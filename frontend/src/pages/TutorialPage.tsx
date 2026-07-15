@@ -622,7 +622,7 @@ const TutorialPage: React.FC = () => {
               </div>
               <div className="format-info">
                 <h4>Keras Model</h4>
-                <p>Saved Keras model file (.h5) with trained weights</p>
+                <p>Saved Keras model file (.keras) with trained weights</p>
                 <ul>
                   <li>Load directly in TensorFlow/Keras</li>
                   <li>Preserves trained weights</li>
@@ -672,6 +672,24 @@ const TutorialPage: React.FC = () => {
                   <li>Interactive exploration</li>
                   <li>Includes visualizations</li>
                   <li>Educational and documentation purposes</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="export-format">
+              <div className="format-icon">
+                <i className="fas fa-mobile-alt"></i>
+              </div>
+              <div className="format-info">
+                <h4>TensorFlow Lite</h4>
+                <p>
+                  A compact .tflite file — the same model, small enough to run
+                  on a phone or microcontroller
+                </p>
+                <ul>
+                  <li>Runs on Android, iOS, and edge devices</li>
+                  <li>Single small file, fast inference</li>
+                  <li>See how models ship inside real apps</li>
                 </ul>
               </div>
             </div>
