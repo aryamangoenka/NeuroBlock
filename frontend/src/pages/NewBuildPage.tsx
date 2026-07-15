@@ -8378,6 +8378,8 @@ const NewBuildPage = (): JSX.Element => {
                 style: { stroke: "#b9c1b1", strokeWidth: 1.8 },
               }}
               fitView
+              snapToGrid
+              snapGrid={[12, 12]}
               style={{ width: "100%", height: "100%" }}
             >
               <Background color="#d3d8c8" gap={24} size={1.5} />
